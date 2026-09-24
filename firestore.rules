@@ -1,0 +1,163 @@
+rules_version = '2';
+// JNF Moto — reglas de seguridad de Firestore (versión de prueba, plan Spark)
+// Tarifa mínima: $2.000, múltiplos de $100, sin tope.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function isAdmin() { return signedIn() && exists(/databases/$(database)/documents/admins/$(me())); }
+    function isDriver() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/conductores/$(me()))
+        && get(/databases/$(database)/documents/conductores/$(me())).data.estado == 'aprobado';
+    }
+    function viaje(id) { return get(/databases/$(database)/documents/viajes/$(id)).data; }
+    function validPrice(p) { return p is int && p >= 2000 && p % 100 == 0; }
+    function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function validStars(d) { return d.estrellas is int && d.estrellas >= 1 && d.estrellas <= 5 && d.aspectos is list && d.aspectos.size() <= 6; }
+    function validPhone(t) { return t is string && t.matches('^[0-9]{10}$'); }
+    function validPlate(p) { return p is string && p.matches('^[A-Z]{3}[0-9]{2}[A-Z]?$'); }
+
+    // Administradores: se crean solo desde la consola de Firebase.
+    match /admins/{id} {
+      allow read: if signedIn() && me() == id;
+      allow write: if false;
+    }
+
+    match /usuarios/{userId} {
+      allow read: if signedIn() && (me() == userId || isAdmin());
+      allow create: if signedIn() && me() == userId
+        && request.resource.data.keys().hasOnly(['nombre','telefono','aceptoDatos','aceptoEn','creado','contactos'])
+        && request.resource.data.nombre is string && request.resource.data.nombre.size() >= 2 && request.resource.data.nombre.size() <= 60
+        && validPhone(request.resource.data.telefono)
+        && request.resource.data.aceptoDatos == true
+        && request.resource.data.contactos is list && request.resource.data.contactos.size() == 0;
+      allow update: if signedIn() && me() == userId
+        && onlyChanged(['nombre','telefono','contactos'])
+        && request.resource.data.nombre is string && request.resource.data.nombre.size() >= 2 && request.resource.data.nombre.size() <= 60
+        && validPhone(request.resource.data.telefono)
+        && request.resource.data.contactos is list && request.resource.data.contactos.size() <= 5;
+      allow delete: if false;
+
+      // Calificación que el conductor le da al pasajero (solo la ven conductores aprobados, el pasajero y el admin).
+      match /calificaciones/{viajeId} {
+        allow read: if signedIn() && (me() == userId || isDriver() || isAdmin());
+        allow create: if signedIn()
+          && viaje(viajeId).conductorId == me()
+          && viaje(viajeId).pasajeroId == userId
+          && viaje(viajeId).estado == 'finalizado'
+          && request.resource.data.keys().hasOnly(['estrellas','aspectos','creado'])
+          && validStars(request.resource.data);
+        allow update, delete: if false;
+      }
+    }
+
+    match /conductores/{cid} {
+      allow read: if signedIn();
+      allow create: if signedIn() && me() == cid
+        && request.resource.data.keys().hasOnly(['nombre','moto','color','placa','estado','creado'])
+        && request.resource.data.estado == 'pendiente'
+        && request.resource.data.nombre is string && request.resource.data.nombre.size() >= 2 && request.resource.data.nombre.size() <= 60
+        && request.resource.data.moto is string && request.resource.data.moto.size() >= 2 && request.resource.data.moto.size() <= 60
+        && request.resource.data.color is string && request.resource.data.color.size() >= 2 && request.resource.data.color.size() <= 30
+        && validPlate(request.resource.data.placa);
+      allow update: if isAdmin()
+        || (signedIn() && me() == cid && onlyChanged(['moto','color','placa'])
+            && validPlate(request.resource.data.placa));
+      allow delete: if isAdmin();
+
+      // Calificación que el pasajero le da al conductor (no guarda quién calificó).
+      match /calificaciones/{viajeId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && viaje(viajeId).pasajeroId == me()
+          && viaje(viajeId).conductorId == cid
+          && viaje(viajeId).estado == 'finalizado'
+          && request.resource.data.keys().hasOnly(['estrellas','aspectos','comentario','creado'])
+          && validStars(request.resource.data)
+          && request.resource.data.comentario is string && request.resource.data.comentario.size() <= 500;
+        allow update, delete: if false;
+      }
+    }
+
+    match /viajes/{vid} {
+      allow read: if signedIn() && (
+        resource.data.pasajeroId == me()
+        || resource.data.conductorId == me()
+        || isAdmin()
+        || (resource.data.estado == 'buscando' && isDriver()));
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['pasajeroId','pasajeroNombre','origen','destino','oferta','nota','estado','creado','conductorId','precioFinal','conductor'])
+        && request.resource.data.pasajeroId == me()
+        && request.resource.data.estado == 'buscando'
+        && request.resource.data.conductorId == null
+        && request.resource.data.precioFinal == null
+        && validPrice(request.resource.data.oferta)
+        && request.resource.data.pasajeroNombre is string && request.resource.data.pasajeroNombre.size() <= 60
+        && request.resource.data.destino.texto is string && request.resource.data.destino.texto.size() >= 2 && request.resource.data.destino.texto.size() <= 120
+        && request.resource.data.origen.texto is string && request.resource.data.origen.texto.size() <= 120
+        && request.resource.data.nota is string && request.resource.data.nota.size() <= 200;
+
+      allow update: if signedIn() && (
+        isAdmin()
+        // El pasajero cancela mientras busca o antes de que lo recojan.
+        || (resource.data.pasajeroId == me() && resource.data.estado in ['buscando','asignado']
+            && request.resource.data.estado == 'cancelado'
+            && onlyChanged(['estado','canceladoEn','canceladoPor']))
+        // El pasajero acepta una oferta existente, al precio exacto de esa oferta.
+        || (resource.data.pasajeroId == me() && resource.data.estado == 'buscando'
+            && request.resource.data.estado == 'asignado'
+            && onlyChanged(['estado','conductorId','precioFinal','conductor','asignadoEn'])
+            && exists(/databases/$(database)/documents/viajes/$(vid)/ofertas/$(request.resource.data.conductorId))
+            && request.resource.data.precioFinal == get(/databases/$(database)/documents/viajes/$(vid)/ofertas/$(request.resource.data.conductorId)).data.precio)
+        // El conductor asignado recoge al pasajero.
+        || (resource.data.conductorId == me() && resource.data.estado == 'asignado'
+            && request.resource.data.estado == 'en_curso' && onlyChanged(['estado','iniciadoEn']))
+        // El conductor asignado finaliza el viaje.
+        || (resource.data.conductorId == me() && resource.data.estado == 'en_curso'
+            && request.resource.data.estado == 'finalizado' && onlyChanged(['estado','finalizadoEn']))
+        // El conductor asignado cancela antes de recoger.
+        || (resource.data.conductorId == me() && resource.data.estado == 'asignado'
+            && request.resource.data.estado == 'cancelado' && onlyChanged(['estado','canceladoEn','canceladoPor']))
+      );
+      allow delete: if false;
+
+      match /ofertas/{cid} {
+        allow read: if signedIn() && (me() == cid || viaje(vid).pasajeroId == me() || isAdmin());
+        allow create: if signedIn() && me() == cid && isDriver()
+          && viaje(vid).estado == 'buscando'
+          && viaje(vid).pasajeroId != me()
+          && request.resource.data.keys().hasOnly(['conductorId','nombre','moto','color','placa','precio','creado','lat','lng'])
+          && request.resource.data.conductorId == cid
+          && validPrice(request.resource.data.precio)
+          && request.resource.data.nombre == get(/databases/$(database)/documents/conductores/$(cid)).data.nombre
+          && request.resource.data.placa == get(/databases/$(database)/documents/conductores/$(cid)).data.placa;
+        allow update: if false;
+        allow delete: if signedIn() && me() == cid;
+      }
+
+      // Teléfonos: solo los ven el pasajero y el conductor asignado.
+      match /privado/{pid} {
+        allow read: if signedIn() && (viaje(vid).pasajeroId == me() || viaje(vid).conductorId == me());
+        allow create, update: if signedIn() && me() == pid
+          && (viaje(vid).pasajeroId == me() || viaje(vid).conductorId == me())
+          && request.resource.data.keys().hasOnly(['telefono','nombre'])
+          && validPhone(request.resource.data.telefono);
+        allow delete: if false;
+      }
+    }
+
+    match /alertas/{aid} {
+      allow read: if isAdmin() || (signedIn() && resource.data.creadoPor == me());
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['viajeId','creadoPor','nombre','rol','lat','lng','estado','creado'])
+        && request.resource.data.creadoPor == me()
+        && request.resource.data.estado == 'activa'
+        && (viaje(request.resource.data.viajeId).pasajeroId == me() || viaje(request.resource.data.viajeId).conductorId == me());
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+  }
+}

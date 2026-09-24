@@ -1,0 +1,11 @@
+{
+  "rules": {
+    "ubicaciones": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['lat', 'lng', 'ts']) && newData.child('lat').isNumber() && newData.child('lng').isNumber() && newData.child('ts').isNumber()"
+      }
+    }
+  }
+}
