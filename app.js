@@ -64,10 +64,10 @@ const S = {
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
   offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
-  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, topDest: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null,
+  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, topDest: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
-  cal: null, hist: null, admTab: 'conductores', adm: {}
+  cal: null, hist: null, admTab: 'resumen', adm: {}
 };
 let subs = [], gsubs = [], map = null, mk = {}, watchId = null, lastPush = 0, audioCtx = null;
 const addSub = u => subs.push(u);
@@ -464,12 +464,49 @@ function vMiCalif() {
   return h + '</div></div>';
 }
 /* ---------- panel de administración ---------- */
+const isWide = () => window.innerWidth >= 900;
+const ADM_SECS = () => [['resumen', 'Resumen'], ['usuarios', 'Usuarios'], ['conductores', 'Conductores'], ['viajes', 'Viajes'], ['alertas', 'Alertas de pánico' + (S.adm.alertas && S.adm.alertas.length ? ' (' + S.adm.alertas.length + ')' : '')]];
 function vAdmin() {
-  const t = S.admTab, A = S.adm;
-  let h = '<div class="screen">' + subTop('Administración') + '<div class="pad">' + errHTML() + bannerHTML(S.banner) + '<div class="tabs" role="group" aria-label="Secciones">' +
-    [['usuarios', 'Usuarios'], ['conductores', 'Conductores'], ['alertas', 'Alertas' + (A.alertas && A.alertas.length ? ' (' + A.alertas.length + ')' : '')], ['viajes', 'Viajes']].map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0]) + '">' + x[1] + '</button>').join('') + '</div>';
+  const t = S.admTab, secs = ADM_SECS(), title = (secs.find(x => x[0] === t) || secs[0])[1].replace(/ \(\d+\)$/, '');
+  if (isWide()) {
+    return '<div class="adm-wrap"><nav class="adm-side" aria-label="Secciones del panel"><div class="row" style="gap:12px;padding:0 8px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:52px;height:52px"><div class="col" style="gap:2px"><span class="brandname" style="font-size:18px">JNF Moto</span><span class="small" style="color:#D8DEE8;font-weight:600">Administración</span></div></div>' +
+      secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0]) + '">' + x[1] + '</button>').join('') +
+      '<button data-act="go" data-v="menu" style="margin-top:auto">← Volver a la app</button></nav>' +
+      '<main class="adm-main"><div class="row between" style="flex-wrap:wrap;gap:8px"><h1 class="h1" style="font-size:28px">' + title + '</h1><span class="muted">Hoy · ' + new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '</span></div>' +
+      errHTML() + bannerHTML(S.banner) + admBody(t) + '</main></div>';
+  }
+  return '<div class="screen">' + subTop('Administración') + '<div class="pad">' + errHTML() + bannerHTML(S.banner) + '<div class="tabs" role="group" aria-label="Secciones">' +
+    secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0]) + '">' + x[1].replace('Alertas de pánico', 'Alertas') + '</button>').join('') + '</div>' + admBody(t) + '</div></div>';
+}
+function admBody(t) {
+  const A = S.adm;
+  let h = '';
+  if (t === 'resumen') {
+    const K = S.admKpi, V = A.viajes, AL = A.alertas, C = A.conductores, wide = isWide();
+    const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+    const hoy = V ? V.filter(v => v.estado === 'finalizado' && tsMs(v.finalizadoEn || v.creado) >= d0.getTime()).length : null;
+    const enLinea = Object.keys(S.others || {}).filter(u => livePos(u)).length;
+    const kpi = (label, val, kind) => '<div class="card kpi' + (kind ? ' ' + kind : '') + '"><span class="k">' + label + '</span><span class="v">' + (val == null ? '…' : val) + '</span></div>';
+    h += '<div class="kpis">' + kpi('Viajes finalizados hoy', hoy) + kpi('Conductores en línea', enLinea) + kpi('Alertas de pánico activas', AL ? AL.length : null, AL && AL.length ? 'alert' : '') + kpi('Personas registradas', K && K.total, 'navy') + '</div>';
+    const pend = C ? C.filter(c => c.estado === 'pendiente') : null;
+    let tbl = '';
+    if (!pend) tbl = '<div class="spinner" role="status" aria-label="Cargando"></div>';
+    else if (!pend.length) tbl = '<div class="muted">No hay conductores pendientes de aprobación.</div>';
+    else {
+      const docs = c => { const n = S.admDocCount[c.id]; return n == null ? '<span class="pill p-info">…</span>' : '<span class="pill ' + (n >= DOCS_C.length ? 'p-ok' : 'p-warn') + '">' + n + ' de ' + DOCS_C.length + '</span>'; };
+      const btn = c => '<button class="btn btn-ghost btn-sm" data-act="admReview" data-v="' + c.id + '">Revisar</button>';
+      tbl = wide ? '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th scope="col">Conductor</th><th scope="col">Mototour / placa</th><th scope="col">Documentos</th><th scope="col">Acción</th></tr></thead><tbody>' +
+        pend.map(c => '<tr><td class="strong">' + esc(c.nombre) + '</td><td>' + esc(c.moto) + ' · ' + esc(c.placa) + '</td><td>' + docs(c) + '</td><td>' + btn(c) + '</td></tr>').join('') + '</tbody></table></div>'
+        : pend.map(c => '<div class="row between" style="gap:10px;padding:10px 0;border-bottom:1px solid var(--line)"><div class="col"><span class="strong">' + esc(c.nombre) + '</span><span class="muted small">' + esc(c.moto) + ' · ' + esc(c.placa) + '</span>' + docs(c) + '</div>' + btn(c) + '</div>').join('');
+    }
+    let al = '';
+    if (!AL) al = '<div class="spinner" role="status" aria-label="Cargando"></div>';
+    else if (!AL.length) al = '<div class="empty">' + I.shield + '<div class="strong">Sin alertas activas</div><div class="muted small">Cada alerta muestra ubicación, persona y hora.</div></div>';
+    else al = AL.map(x => '<div class="col" style="gap:6px;padding:10px 0;border-bottom:1px solid var(--line)"><div class="row between" style="gap:8px"><span class="strong">' + esc(x.nombre) + '</span><span class="pill p-danger">Activa</span></div><span class="muted small">' + esc(x.rol) + ' · ' + new Date(tsMs(x.creado)).toLocaleString('es-CO') + '</span><div class="row">' + (x.lat != null ? '<a class="btn btn-ghost btn-sm" style="flex:1" target="_blank" rel="noopener" href="https://maps.google.com/?q=' + x.lat + ',' + x.lng + '">Ver ubicación</a>' : '') + '<button class="btn btn-gold btn-sm" style="flex:1" data-act="admAlert" data-v="' + x.id + '"' + busyAttr() + '>Marcar atendida</button></div></div>').join('');
+    h += '<div class="adm-cols"><section class="card"><h2 class="h2">Conductores por aprobar</h2>' + tbl + '</section><section class="card"><h2 class="h2">Alertas de pánico</h2>' + al + '</section></div>';
+  }
   if (t === 'conductores') {
-    const L = A.conductores; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div></div></div>';
+    const L = A.conductores; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div>';
     const lab = { pendiente: ['p-warn', 'Pendiente'], aprobado: ['p-ok', 'Aprobado'], rechazado: ['p-danger', 'Rechazado'], suspendido: ['p-danger', 'Suspendido'] };
     if (!L.length) h += '<div class="card"><div class="muted">Aún no hay conductores registrados.</div></div>';
     L.slice().sort((a, b) => (a.estado === 'pendiente' ? 0 : 1) - (b.estado === 'pendiente' ? 0 : 1)).forEach(c => {
@@ -502,7 +539,7 @@ function vAdmin() {
     const kpi = (k, v) => '<div class="card" style="gap:2px;padding:12px"><span class="muted small">' + k + '</span><span class="price" style="font-size:24px">' + (v == null ? '…' : v) + '</span></div>';
     const enLinea = Object.keys(S.others || {}).filter(u => livePos(u)).length;
     h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + kpi('Personas registradas', K && K.total) + kpi('Conductores en línea ahora', enLinea) + kpi('Conductores aprobados', K && K.aprob) + kpi('Conductores pendientes', K && K.pend) + '</div>';
-    if (!U) return h + '<div class="spinner" role="status" aria-label="Cargando"></div></div></div>';
+    if (!U) return h + '<div class="spinner" role="status" aria-label="Cargando"></div>';
     const cmap = {}; (A.conductores || []).forEach(c => { cmap[c.id] = c; });
     h += '<div class="muted small">Calidad de cada persona: calificación recibida como pasajero y como conductor, y tasa de cancelación histórica.</div>';
     U.forEach(u => {
@@ -534,18 +571,18 @@ function vAdmin() {
     if (U.length >= S.admLimit) h += '<button class="btn btn-ghost" data-act="admMore">Ver más personas</button>';
   }
   if (t === 'alertas') {
-    const L = A.alertas; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div></div></div>';
+    const L = A.alertas; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div>';
     if (!L.length) h += '<div class="card"><div class="strong">Sin alertas activas.</div><div class="muted">Cuando alguien active el botón de pánico, aparece aquí con su ubicación.</div></div>';
     L.forEach(a => { h += '<div class="card" style="border:2px solid #B42318"><div class="row between"><div class="col"><div class="strong">' + esc(a.nombre) + ' (' + esc(a.rol) + ')</div><div class="muted small">' + new Date(tsMs(a.creado)).toLocaleString('es-CO') + '</div></div><span class="pill p-danger">Activa</span></div><div class="row">' + (a.lat != null ? '<a class="btn btn-ghost btn-sm" style="flex:1" target="_blank" rel="noopener" href="https://maps.google.com/?q=' + a.lat + ',' + a.lng + '">Ver ubicación</a>' : '<span class="muted small" style="flex:1">Sin ubicación GPS</span>') + '<button class="btn btn-gold btn-sm" style="flex:1" data-act="admAlert" data-v="' + a.id + '"' + busyAttr() + '>Marcar atendida</button></div></div>'; });
   }
   if (t === 'viajes') {
-    const L = A.viajes; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div></div></div>';
+    const L = A.viajes; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div>';
     if (!L.length) h += '<div class="card"><div class="muted">Aún no hay viajes.</div></div>';
     const fin = L.filter(v => v.estado === 'finalizado');
     h += '<div class="card"><div class="row between"><span class="muted">Viajes finalizados (últimos 100)</span><span class="strong">' + fin.length + '</span></div><div class="row between"><span class="muted">Valor movido</span><span class="strong">' + money(fin.reduce((s, v) => s + (v.precioFinal || 0), 0)) + '</span></div></div>';
     L.forEach(v => { h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(v.pasajeroNombre) + ' → ' + esc(v.destino.texto) + '</div><div class="muted small">' + (v.conductor ? 'Conductor: ' + esc(v.conductor.nombre) + ' · ' : '') + new Date(tsMs(v.creado)).toLocaleString('es-CO') + '</div></div><div class="col" style="align-items:flex-end"><span class="strong">' + money(v.precioFinal || v.oferta) + '</span><span class="muted small">' + pagoTxt(v) + '</span><span class="pill p-info">' + esc(v.estado) + '</span></div></div>' + (v.estado === 'cancelado' && v.motivo ? '<div class="muted small">Motivo: ' + esc({ ya_no: 'Ya no lo necesitaba', no_llega: 'El conductor no llegaba', inseguro: 'Se sintió inseguro', otro: 'Otro', inconveniente: 'Inconveniente del conductor', no_se_presento: 'El pasajero no se presentó' }[v.motivo] || v.motivo) + (v.motivoTexto ? ': ' + esc(v.motivoTexto) : '') + (v.penalizaA ? ' · penaliza al ' + esc(v.penalizaA) : ' · sin penalización') + '</div>' : '') + '</div>'; });
   }
-  return h + '</div></div>';
+  return h;
 }
 function vSinConexion() { return '<div class="screen"><div class="pad" style="flex:1;justify-content:center"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px;align-self:center"><div class="card"><div class="h2">No pudimos conectar con el servidor</div><div class="muted">' + esc(S.connErr || '') + '</div><button class="btn btn-gold" data-act="retryLogin">Reintentar</button><button class="link" data-act="logout" style="align-self:center">Cerrar sesión</button></div></div></div>'; }
 const V = {
@@ -710,7 +747,10 @@ async function geocodeDestino(q) {
 }
 
 /* ---------- render y navegación ---------- */
+let lastWide = null;
+window.addEventListener('resize', () => { const w = isWide(); if (S.screen === 'admin' && w !== lastWide) render(); });
 function render() {
+  lastWide = isWide(); appEl.classList.toggle('wide', S.screen === 'admin' && lastWide);
   if (map) { try { map.remove(); } catch (e) { } map = null; }
   appEl.innerHTML = V[S.screen]();
   mountMap();
@@ -762,6 +802,20 @@ function beep() {
 }
 
 /* ---------- panel: personas registradas y su calidad (consultas de agregación: 1 lectura cada una) ---------- */
+async function loadAdmKpi() {
+  try {
+    const [t, ap, pe] = await Promise.all([getCountFromServer(collection(db, 'usuarios')), getCountFromServer(query(collection(db, 'conductores'), where('estado', '==', 'aprobado'))), getCountFromServer(query(collection(db, 'conductores'), where('estado', '==', 'pendiente')))]);
+    S.admKpi = { total: t.data().count, aprob: ap.data().count, pend: pe.data().count };
+  } catch (e) { S.admKpi = { total: '—', aprob: '—', pend: '—' }; }
+  if (S.screen === 'admin') render();
+}
+async function loadDocCounts() {
+  for (const c of (S.adm.conductores || []).filter(x => x.estado === 'pendiente')) {
+    if (S.admDocCount[c.id] != null) continue;
+    try { S.admDocCount[c.id] = (await getCountFromServer(collection(db, 'conductores', c.id, 'documentos'))).data().count; } catch (e) { S.admDocCount[c.id] = 0; }
+    if (S.screen === 'admin') render();
+  }
+}
 async function loadAdmUsers() {
   try {
     const [t, ap, pe] = await Promise.all([getCountFromServer(collection(db, 'usuarios')), getCountFromServer(query(collection(db, 'conductores'), where('estado', '==', 'aprobado'))), getCountFromServer(query(collection(db, 'conductores'), where('estado', '==', 'pendiente')))]);
@@ -952,8 +1006,8 @@ function enter(s) {
       .catch(fail);
   }
   if (s === 'admin') {
-    listenOthers(); if (S.admTab === 'usuarios') loadAdmUsers();
-    addSub(onSnapshot(query(collection(db, 'conductores'), limit(200)), qs => { S.adm.conductores = qs.docs.map(d => Object.assign({ id: d.id }, d.data())); if (S.screen === 'admin') render(); }, fail));
+    listenOthers(); loadAdmKpi(); if (S.admTab === 'usuarios') loadAdmUsers();
+    addSub(onSnapshot(query(collection(db, 'conductores'), limit(200)), qs => { S.adm.conductores = qs.docs.map(d => Object.assign({ id: d.id }, d.data())); if (S.screen === 'admin') render(); loadDocCounts(); }, fail));
     addSub(onSnapshot(query(collection(db, 'alertas'), where('estado', '==', 'activa'), limit(50)), qs => { S.adm.alertas = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => tsMs(b.creado) - tsMs(a.creado)); if (S.screen === 'admin') render(); }, fail));
     getDocs(query(collection(db, 'viajes'), limit(100))).then(qs => { S.adm.viajes = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => tsMs(b.creado) - tsMs(a.creado)); if (S.screen === 'admin') render(); }).catch(fail);
   }
@@ -1276,6 +1330,7 @@ async function act(a, v, b) {
       S.busy = true; render();
       try { await updateDoc(doc(db, 'conductores', v), { estado: 'aprobado', aprobadoSinDocs: true }); S.busy = false; render(); } catch (e) { fail(e); }
       break;
+    case 'admReview': S.admTab = 'conductores'; S.admOpen = null; render(); window.scrollTo(0, 0); act('admDocs', v); break;
     case 'admDocs':
       if (S.admOpen === v) { S.admOpen = null; S.admBig = null; render(); break; }
       S.admOpen = v; S.admBig = null; S.admDocs[v] = 'cargando'; render();
