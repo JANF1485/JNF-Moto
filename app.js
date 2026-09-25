@@ -87,8 +87,8 @@ const I = {
 };
 const LABELS = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
 const FREQ = ['Terminal de transporte', 'Hospital', 'Parque principal', 'Plaza de mercado'];
-const ASP_C = ['Conducción segura', 'Puntualidad', 'Amabilidad', 'Casco para el pasajero', 'Moto en buen estado'];
-const ASP_P = ['Pagó completo', 'Puntual en el punto', 'Respetuoso', 'Usó casco'];
+const ASP_C = ['Conducción segura', 'Puntualidad', 'Amabilidad', 'Vehículo limpio', 'Motocarro en buen estado'];
+const ASP_P = ['Pagó completo', 'Puntual en el punto', 'Respetuoso', 'Cuidó el vehículo'];
 
 /* ---------- piezas de interfaz ---------- */
 const brandRow = right => '<div class="row between"><div class="row"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">JNF Moto</span></div>' + (right || '') + '</div>';
@@ -118,7 +118,7 @@ function installCard() {
 function vCargando() { return '<div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:96px;height:96px"><div class="spinner" role="status" aria-label="Cargando"></div></div></div>'; }
 function vLogin() {
   const crear = S.f.modoCrear;
-  return '<div class="screen"><div class="top" style="align-items:center;text-align:center;padding:28px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px"><h1 class="h1" style="color:#C9A227">JNF Moto</h1><div class="sub">Tu mototaxi, al precio que acuerdas.</div></div>' +
+  return '<div class="screen"><div class="top" style="align-items:center;text-align:center;padding:28px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px"><h1 class="h1" style="color:#C9A227">JNF Moto</h1><div class="sub">Tu motocarro, al precio que acuerdas.</div></div>' +
     '<div class="pad">' + errHTML() + bannerHTML(S.banner) +
     '<button class="btn gbtn" data-act="google"' + busyAttr() + '>Entrar con Google</button><div class="divider">o con tu correo</div>' +
     '<div class="field"><label for="em">Correo electrónico</label><input type="email" id="em" data-in="email" autocomplete="email" value="' + fv('email') + '"></div>' +
@@ -160,7 +160,7 @@ function vHome() {
     '<button class="chip" data-act="pago" data-v="efectivo" aria-pressed="' + (S.pago === 'efectivo') + '">Efectivo</button><button class="chip" data-act="pago" data-v="transferencia" aria-pressed="' + (S.pago === 'transferencia') + '">Transferencia</button></div></div>' +
     '<button class="chip" data-act="notaToggle" aria-expanded="' + S.notaOpen + '" style="align-self:flex-start">' + (S.notaOpen ? 'Ocultar nota' : 'Agregar nota al conductor') + '</button>';
   if (S.notaOpen) h += '<div class="field"><label for="nota">Nota para el conductor</label><textarea id="nota" data-in="nota" maxlength="200" placeholder="Ej. Llevo un paquete pequeño">' + fv('nota') + '</textarea></div>';
-  h += '<button class="btn btn-gold" data-act="buscar"' + busyAttr() + '>Buscar mototaxi · ' + money(S.offer) + '</button></div></div>';
+  h += '<button class="btn btn-gold" data-act="buscar"' + busyAttr() + '>Buscar motocarro · ' + money(S.offer) + '</button></div></div>';
   return h;
 }
 function vBuscando() {
@@ -181,7 +181,7 @@ function sosBlock() {
   if (S.sos === 'confirm') return '<div class="banner danger" role="alertdialog" aria-label="Confirmar alerta de pánico">' + I.shield + '<div class="grow col" style="gap:10px"><div class="strong">¿Activar la alerta de pánico?</div><div>Se registra una alerta con tu ubicación para el administrador de JNF Moto' + ((S.perfil.contactos || []).length ? ' y podrás avisar a tus contactos por WhatsApp' : '') + '.</div><div class="row"><button class="btn btn-danger btn-sm" data-act="sosSend" style="flex:1;min-height:44px">Activar alerta</button><button class="btn btn-ghost btn-sm" data-act="sosCancel" style="flex:1;min-height:44px">Cancelar</button></div></div></div>';
   if (S.sos === 'sent') {
     const loc = S.pos ? 'https://maps.google.com/?q=' + S.pos.lat + ',' + S.pos.lng : '';
-    const txt = encodeURIComponent('Alerta JNF Moto: necesito ayuda durante un viaje en mototaxi.' + (loc ? ' Mi ubicación: ' + loc : ''));
+    const txt = encodeURIComponent('Alerta JNF Moto: necesito ayuda durante un viaje en motocarro.' + (loc ? ' Mi ubicación: ' + loc : ''));
     const btns = (S.perfil.contactos || []).map(c => '<a class="btn btn-danger btn-sm" style="width:100%;min-height:44px" target="_blank" rel="noopener" href="https://wa.me/57' + esc(c.telefono) + '?text=' + txt + '">Avisar a ' + esc(c.nombre) + ' por WhatsApp</a>').join('');
     return '<div class="banner danger" role="alert">' + I.shield + '<div class="grow col" style="gap:8px"><div><b>Alerta registrada.</b> El administrador de JNF Moto la ve en su panel.</div>' + btns + '</div></div>';
   }
@@ -221,8 +221,8 @@ function vMenu() {
   else if (st === 'ninguno') h += '<button data-act="go" data-v="registroC" aria-current="false">' + I.lock + 'Modo conductor</button>';
   else h += '<button disabled aria-current="false">' + I.lock + 'No habilitado</button>';
   h += '</div></div><div class="pad">' + bannerHTML(S.banner) + errHTML() + installCard();
-  if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes moto? Conduce con JNF Moto</div><div class="muted">Regístrate y el administrador verificará tus documentos en persona antes de habilitarte.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
-  if (st === 'pendiente') h += '<div class="card"><div class="h2">Tu registro está en revisión</div><div class="muted">Lleva tu cédula, licencia A2, SOAT, técnico-mecánica (si aplica) y tarjeta de propiedad a la oficina de JNF S.A.S. Cuando el administrador te apruebe, esta opción se habilita sola.</div></div>';
+  if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes motocarro? Conduce con JNF Moto</div><div class="muted">Regístrate y el administrador verificará tus documentos en persona antes de habilitarte.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
+  if (st === 'pendiente') h += '<div class="card"><div class="h2">Tu registro está en revisión</div><div class="muted">Lleva tu cédula, licencia de conducción vigente, SOAT, técnico-mecánica (si aplica) y tarjeta de propiedad a la oficina de JNF S.A.S. Cuando el administrador te apruebe, esta opción se habilita sola.</div></div>';
   if (st === 'rechazado' || st === 'suspendido') h += '<div class="card"><div class="h2">Modo conductor no habilitado</div><div class="muted">Tu cuenta de conductor está ' + st + '. Comunícate con la oficina de JNF S.A.S.</div></div>';
   if (st === 'aprobado') h += '<div class="card"><div class="row between"><div class="h2">Modo conductor habilitado</div><span class="pill p-ok">Aprobado</span></div><div class="banner warn">' + I.info + '<div class="grow">En esta versión de prueba, tu ubicación se comparte solo mientras la app está abierta y estás conectado.</div></div>' + (pOn ? '<button class="btn btn-gold" data-act="modeC">Conectarme como conductor</button>' : '<button class="btn btn-ghost" data-act="modeP">Volver a modo pasajero</button>') + '</div>';
   const items = [['historial', 'Mis viajes'], ['contactos', 'Contactos de emergencia']];
@@ -235,7 +235,7 @@ function vMenu() {
 function vHistorial() {
   let h = '<div class="screen">' + subTop('Mis viajes') + '<div class="pad">' + errHTML();
   if (!S.hist) return h + '<div class="spinner" role="status" aria-label="Cargando"></div></div></div>';
-  if (!S.hist.length) h += '<div class="card"><div class="strong">Aún no tienes viajes.</div><div class="muted">Tus viajes aparecen aquí cuando terminas uno.</div><button class="btn btn-gold" data-act="modeP">Pedir un mototaxi</button></div>';
+  if (!S.hist.length) h += '<div class="card"><div class="strong">Aún no tienes viajes.</div><div class="muted">Tus viajes aparecen aquí cuando terminas uno.</div><button class="btn btn-gold" data-act="modeP">Pedir un motocarro</button></div>';
   const lab = { buscando: 'Buscando', asignado: 'Asignado', en_curso: 'En curso', finalizado: 'Finalizado', cancelado: 'Cancelado' };
   S.hist.forEach(v => { h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(v.destino.texto) + '</div><div class="muted small">' + (v._rol === 'conductor' ? 'Como conductor · ' + esc(v.pasajeroNombre) : 'Como pasajero' + (v.conductor ? ' · ' + esc(v.conductor.nombre) : '')) + ' · ' + new Date(tsMs(v.creado)).toLocaleDateString('es-CO') + '</div></div><div class="col" style="align-items:flex-end"><div class="price" style="font-size:18px">' + money(v.precioFinal || v.oferta) + '</div><span class="pill ' + (v.estado === 'finalizado' ? 'p-ok' : v.estado === 'cancelado' ? 'p-warn' : 'p-info') + '">' + (lab[v.estado] || v.estado) + '</span></div></div></div>'; });
   return h + '</div></div>';
@@ -255,11 +255,11 @@ function vTransfer() {
 }
 const vTexto = (t, b) => '<div class="screen">' + subTop(t) + '<div class="pad"><div class="card">' + b + '</div></div></div>';
 function vRegistroC() {
-  return '<div class="screen">' + subTop('Registro de conductor') + '<div class="pad">' + errHTML() + '<div class="muted">En la versión de prueba, los documentos se verifican en persona en la oficina de JNF S.A.S. Aquí solo registras los datos de tu moto.</div>' +
-    '<div class="field"><label for="rm">Marca y referencia de la moto</label><input type="text" id="rm" data-in="moto" placeholder="Ej. Honda CB 125F" value="' + fv('moto') + '"></div>' +
+  return '<div class="screen">' + subTop('Registro de conductor') + '<div class="pad">' + errHTML() + '<div class="muted">En la versión de prueba, los documentos se verifican en persona en la oficina de JNF S.A.S. Aquí solo registras los datos de tu motocarro.</div>' +
+    '<div class="field"><label for="rm">Marca y modelo del motocarro</label><input type="text" id="rm" data-in="moto" placeholder="Marca y modelo" value="' + fv('moto') + '"></div>' +
     '<div class="field"><label for="rc">Color</label><input type="text" id="rc" data-in="color" placeholder="Ej. Negra" value="' + fv('color') + '"></div>' +
     '<div class="field"><label for="rp">Placa</label><input type="text" id="rp" data-in="placa" placeholder="Ej. ABC12D" autocapitalize="characters" value="' + fv('placa') + '"></div>' +
-    '<div class="banner info">' + I.info + '<div class="grow">Documentos a presentar: cédula, licencia A2 vigente, SOAT vigente, técnico-mecánica (si aplica) y tarjeta de propiedad.</div></div>' +
+    '<div class="banner info">' + I.info + '<div class="grow">Documentos a presentar: cédula, licencia de conducción vigente, SOAT vigente, técnico-mecánica (si aplica) y tarjeta de propiedad.</div></div>' +
     '<button class="btn btn-navy" data-act="saveConductor"' + busyAttr() + '>Enviar registro</button></div></div>';
 }
 /* ---------- pantallas: conductor ---------- */
@@ -372,18 +372,23 @@ const V = {
 const GOLD = '#C9A227', GREEN = '#1F6F43', GREY = '#8A919E';
 // Azul que se adapta al tema: marino en modo claro, azul claro en modo oscuro (variable --route del tema)
 const navyCol = () => (getComputedStyle(document.documentElement).getPropertyValue('--route') || '').trim() || '#1A2580';
-const SVG = {
-  moto: '<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="16.5" r="3"/><circle cx="18.5" cy="16.5" r="3"/><path d="M5.5 16.5l3.5-6h5l4.5 6"/><path d="M13.5 10.5l1.5-3.5h3"/><path d="M9 10.5h-2"/></svg>',
-  person: '<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.6" fill="#FFFFFF"/><path d="M12 9v6.5"/><path d="M7.5 12h9"/><path d="M12 15.5l-3.2 5"/><path d="M12 15.5l3.2 5"/></svg>',
-  flag: '<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6" fill="#FFFFFF"/></svg>'
+const ICON = {
+  carro: '<rect x="9" y="5" width="30" height="5" rx="2.5" fill="currentColor"/><path d="M12 40 V19 C12 13 16.5 9 22 9 H26 C31.5 9 36 13 36 19 V40 Z" fill="currentColor"/><path d="M16 14 H32 V23 H16 Z" fill="#fff"/><circle cx="24" cy="30" r="3" fill="#fff"/><rect x="21" y="38" width="6" height="8" rx="3" fill="currentColor"/><rect x="10" y="36" width="4" height="7" rx="2" fill="currentColor"/><rect x="34" y="36" width="4" height="7" rx="2" fill="currentColor"/>',
+  person: '<ellipse cx="24" cy="44" rx="11" ry="3.2" fill="currentColor" opacity=".35"/><circle cx="24" cy="7" r="4.4" fill="currentColor"/><path d="M17.8 13.5 H30.2 C31.2 13.5 32 14.3 32 15.3 V26.5 H28.4 V41 H25.2 V30 H22.8 V41 H19.6 V26.5 H16 V15.3 C16 14.3 16.8 13.5 17.8 13.5 Z" fill="currentColor"/>',
+  flag: '<path d="M12 44 V6" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M12 7 H37 L31 15 L37 23 H12 Z" fill="currentColor"/>'
 };
+// ax/ay: punto del ícono que marca la ubicación exacta (base de las ruedas, pies, pie del asta)
 const KIND = {
-  moto: () => ({ svg: SVG.moto, bg: GOLD, size: 36, op: 1 }),
-  otro: () => ({ svg: SVG.moto, bg: GREY, size: 28, op: 0.55 }),
-  person: () => ({ svg: SVG.person, bg: navyCol(), size: 34, op: 1 }),
-  dest: () => ({ svg: SVG.flag, bg: GREEN, size: 34, op: 1 })
+  moto: () => ({ d: ICON.carro, col: GOLD, w: 46, op: 1, ax: 0.5, ay: 0.93 }),
+  otro: () => ({ d: ICON.carro, col: GREY, w: 32, op: 0.55, ax: 0.5, ay: 0.93 }),
+  person: () => ({ d: ICON.person, col: navyCol(), w: 42, op: 1, ax: 0.5, ay: 0.9 }),
+  dest: () => ({ d: ICON.flag, col: GREEN, w: 40, op: 1, ax: 16 / 60, ay: 48 / 56 })
 };
-const badge = (k, px) => { const s = KIND[k](), n = px || s.size; return '<span class="jm-badge" style="width:' + n + 'px;height:' + n + 'px;background:' + s.bg + ';opacity:' + s.op + '">' + s.svg + '</span>'; };
+function iconSVG(k, w) {
+  const s = KIND[k](), W = w || s.w, H = Math.round(W * 56 / 60);
+  return '<svg class="jm-ico" data-kind="' + k + '" width="' + W + '" height="' + H + '" viewBox="-4 -4 60 56" aria-hidden="true" style="color:' + s.col + ';opacity:' + s.op + ';overflow:visible;display:block;flex-shrink:0"><g class="halo">' + s.d + '</g>' + s.d + '</svg>';
+}
+const badge = (k, px) => iconSVG(k, px);
 const pickupOf = v => v && v.origen && v.origen.lat != null ? { lat: v.origen.lat, lng: v.origen.lng } : null;
 const destOf = v => v && v.destino && v.destino.lat != null ? { lat: v.destino.lat, lng: v.destino.lng } : null;
 // Marcadores de cada pantalla: [clave, posición, tipo, etiqueta]
@@ -418,8 +423,8 @@ function mountMap() {
 function setMarker(key, pos, kind, label) {
   if (!map || !pos || !window.L || !document.getElementById('map')) return;
   if (mk[key]) { mk[key].setLatLng([pos.lat, pos.lng]); return; }
-  const s = KIND[kind]();
-  const icon = window.L.divIcon({ className: 'jm-icon', html: badge(kind), iconSize: [s.size, s.size], iconAnchor: [s.size / 2, s.size / 2] });
+  const s = KIND[kind](), W = s.w, H = Math.round(W * 56 / 60);
+  const icon = window.L.divIcon({ className: 'jm-icon', html: iconSVG(kind), iconSize: [W, H], iconAnchor: [Math.round(W * s.ax), Math.round(H * s.ay)] });
   mk[key] = window.L.marker([pos.lat, pos.lng], { icon, keyboard: false, zIndexOffset: kind === 'otro' ? 0 : 500, title: label, alt: label }).addTo(map).bindTooltip(label);
 }
 function removeMarker(key) { if (mk[key] && map) { map.removeLayer(mk[key]); delete mk[key]; } }
@@ -482,7 +487,7 @@ function updateEta() { document.querySelectorAll('[data-eta]').forEach(el => { e
 function legendHTML(items) {
   const e = routeEnds(), withRoute = !!(e[0] && e[1]);
   return '<div class="row small" style="gap:14px;flex-wrap:wrap;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--line)">' +
-    items.map(it => '<span class="row" style="gap:6px">' + badge(it[0], 20) + it[1] + '</span>').join('') +
+    items.map(it => '<span class="row" style="gap:6px">' + badge(it[0], 22) + it[1] + '</span>').join('') +
     (withRoute ? '<span class="row" style="gap:6px"><span style="width:18px;height:4px;border-radius:2px;background:' + navyCol() + ';flex-shrink:0"></span>Ruta</span>' : '') + '</div>';
 }
 // Ubicaciones en vivo (conductores conectados y el pasajero del viaje)
@@ -843,9 +848,9 @@ async function act(a, v, b) {
     }
     case 'saveConductor': {
       const moto = (S.f.moto || '').trim(), color = (S.f.color || '').trim(), placa = (S.f.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-      if (moto.length < 2) { S.err = 'Escribe la marca y referencia de la moto.'; render(); break; }
-      if (color.length < 2) { S.err = 'Escribe el color de la moto.'; render(); break; }
-      if (!/^[A-Z]{3}[0-9]{2}[A-Z]?$/.test(placa)) { S.err = 'La placa debe tener el formato ABC12D (tres letras, dos números y una letra).'; render(); break; }
+      if (moto.length < 2) { S.err = 'Escribe la marca y el modelo del motocarro.'; render(); break; }
+      if (color.length < 2) { S.err = 'Escribe el color del motocarro.'; render(); break; }
+      if (!/^[A-Z0-9]{5,7}$/.test(placa) || !/[A-Z]/.test(placa) || !/[0-9]/.test(placa)) { S.err = 'La placa debe tener entre 5 y 7 letras y números, por ejemplo ABC12D.'; render(); break; }
       S.busy = true; render();
       try { await setDoc(doc(db, 'conductores', uid), { nombre: S.perfil.nombre, moto, color, placa, estado: 'pendiente', creado: serverTimestamp() }); S.busy = false; S.banner = { kind: 'info', text: 'Registro enviado. Lleva tus documentos a la oficina de JNF S.A.S. para la verificación.' }; go('menu'); } catch (e) { fail(e); }
       break;
