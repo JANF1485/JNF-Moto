@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import { getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc, onSnapshot, query, where, limit, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import { getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 import { getDatabase, ref, set, remove, onValue, onDisconnect, serverTimestamp as rtdbTime } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 
 const firebaseConfig = {
@@ -37,6 +37,8 @@ function distKm(a, b) {
   const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(x));
 }
+const etaMin = km => Math.max(1, Math.round(km * 3)); // estimado urbano (~20 km/h)
+const normKey = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
 const fmtDist = km => km == null ? '' : km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1).replace('.', ',') + ' km';
 function errMsg(e) {
   const c = (e && e.code) || '';
@@ -62,7 +64,7 @@ const S = {
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
   offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
-  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, docMsg: '', admOpen: null, admDocs: {}, admBig: null,
+  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, topDest: null, docMsg: '', admOpen: null, admDocs: {}, admBig: null,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
   cal: null, hist: null, admTab: 'conductores', adm: {}
@@ -87,8 +89,8 @@ const I = {
   starOff: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--star-off)" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z"/></svg>'
 };
 const LABELS = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
-const FREQ = ['Terminal de transporte', 'Hospital', 'Parque principal', 'Plaza de mercado'];
-const ASP_C = ['Conducción segura', 'Puntualidad', 'Amabilidad', 'Vehículo limpio', 'Motocarro en buen estado'];
+const RADIO_KM = 2; // zona en la que se cuentan y muestran los conductores cercanos
+const ASP_C = ['Conducción segura', 'Puntualidad', 'Amabilidad', 'Vehículo limpio', 'Mototour en buen estado'];
 const ASP_P = ['Pagó completo', 'Puntual en el punto', 'Respetuoso', 'Cuidó el vehículo'];
 
 /* ---------- piezas de interfaz ---------- */
@@ -119,7 +121,7 @@ function installCard() {
 function vCargando() { return '<div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:96px;height:96px"><div class="spinner" role="status" aria-label="Cargando"></div></div></div>'; }
 function vLogin() {
   const crear = S.f.modoCrear;
-  return '<div class="screen"><div class="top" style="align-items:center;text-align:center;padding:28px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px"><h1 class="h1" style="color:#C9A227">JNF Moto</h1><div class="sub">Tu motocarro, al precio que acuerdas.</div></div>' +
+  return '<div class="screen"><div class="top" style="align-items:center;text-align:center;padding:28px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px"><h1 class="h1" style="color:#C9A227">JNF Moto</h1><div class="sub">Tu mototour, al precio que acuerdas.</div></div>' +
     '<div class="pad">' + errHTML() + bannerHTML(S.banner) +
     '<button class="btn gbtn" data-act="google"' + busyAttr() + '>Entrar con Google</button><div class="divider">o con tu correo</div>' +
     '<div class="field"><label for="em">Correo electrónico</label><input type="email" id="em" data-in="email" autocomplete="email" value="' + fv('email') + '"></div>' +
@@ -145,15 +147,15 @@ function vHome() {
   let h = '<div class="screen"><div class="row between" style="padding:12px 16px;background:var(--bg)"><button class="iconbtn light" data-act="go" data-v="menu" aria-label="Abrir menú">' + I.menu + '</button>' +
     '<div class="row" style="background:#1A2580;border-radius:28px;padding:4px 16px 4px 4px"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">JNF Moto</span></div><div style="width:44px"></div></div>';
   h += S.gps === 'ok' ? '<div id="map" class="lmap" role="img" aria-label="Mapa con tu ubicación' + (S.destPin ? ' y el destino' : '') + '"></div>' + legendHTML([['person', 'Tú'], ['otro', 'Conductores cerca']].concat(S.destPin ? [['dest', 'Destino']] : [])) : '';
-  h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + '<h1 class="h1">¿A dónde vas?</h1>';
+  h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + '<h1 class="h1">¿Dónde estás?</h1>';
   h += '<div class="field"><label for="ref">Punto de recogida (referencia)</label><input type="text" id="ref" data-in="ref" placeholder="Ej. Frente a la tienda azul, Calle 5" value="' + fv('ref') + '">' + gps + '</div>';
-  h += '<div class="field"><label for="destino">Destino</label><input type="text" id="destino" data-in="destino" placeholder="Barrio, dirección o lugar" value="' + fv('destino') + '" autocomplete="off">';
+  h += '<h2 class="h1" style="margin-top:6px">¿A dónde vas?</h2><div class="field"><label for="destino">Destino</label><input type="text" id="destino" data-in="destino" placeholder="Barrio, dirección o lugar" value="' + fv('destino') + '" autocomplete="off">';
   if (S.pickDest) h += '<div class="banner info">' + I.info + '<div class="grow">Toca el mapa en el punto exacto de tu destino.</div><button data-act="pickDest">Cancelar</button></div>';
   else if (S.destPin) h += '<div class="row between" style="flex-wrap:wrap;gap:6px"><span class="muted small">Destino marcado · recorrido estimado: <b data-eta>' + esc(etaText()) + '</b></span><button class="link" data-act="clearDest" style="font-size:13px;min-height:36px">Quitar</button></div>';
   else if (S.gps === 'ok') h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))"><button class="btn btn-ghost btn-sm" style="width:100%" data-act="geoDest"' + busyAttr() + '>Ubicar en el mapa</button><button class="btn btn-ghost btn-sm" style="width:100%" data-act="pickDest">Marcar en el mapa</button></div>';
   h += '</div>';
   const sel = {}; sel[S.f.destino] = true;
-  h += '<div class="col" style="gap:8px"><span class="lbl">Lugares frecuentes</span>' + chipsHTML(FREQ, sel, 'freq') + '</div>';
+  if (S.topDest && S.topDest.length) h += '<div class="col" style="gap:8px"><span class="lbl">Sitios frecuentes</span>' + chipsHTML(S.topDest.map(d => d.texto), sel, 'freq') + '</div>';
   h += '<div class="offerbox"><span class="lbl">Tu oferta</span><div class="stepper"><button class="round" data-act="minus" aria-label="Bajar oferta 500 pesos"' + (S.offer <= MIN ? ' disabled' : '') + '>−</button><div class="amount" id="amount">' + money(S.offer) + '</div><button class="round solid" data-act="plus" aria-label="Subir oferta 500 pesos">+</button></div>' +
     '<div class="row between" style="flex-wrap:wrap;gap:4px"><span class="muted small">Mínimo ' + money(MIN) + ' · sin tope</span><button class="link" data-act="otroToggle" aria-expanded="' + S.otroOpen + '" style="font-size:13px">' + (S.otroOpen ? 'Cerrar' : 'Escribir otro valor') + '</button></div>';
   if (S.otroOpen) h += '<div class="field"><label for="otro">Valor que ofreces</label><div class="row"><input type="text" inputmode="numeric" id="otro" data-in="otroVal" placeholder="Ej. 2.300" value="' + fv('otroVal') + '"><button class="btn btn-navy btn-sm" data-act="otroUse" style="min-height:48px">Usar</button></div>' + (S.f.otroErr ? '<div class="err" role="alert">' + esc(S.f.otroErr) + '</div>' : '') + '</div>';
@@ -161,19 +163,34 @@ function vHome() {
     '<button class="chip" data-act="pago" data-v="efectivo" aria-pressed="' + (S.pago === 'efectivo') + '">Efectivo</button><button class="chip" data-act="pago" data-v="transferencia" aria-pressed="' + (S.pago === 'transferencia') + '">Transferencia</button></div></div>' +
     '<button class="chip" data-act="notaToggle" aria-expanded="' + S.notaOpen + '" style="align-self:flex-start">' + (S.notaOpen ? 'Ocultar nota' : 'Agregar nota al conductor') + '</button>';
   if (S.notaOpen) h += '<div class="field"><label for="nota">Nota para el conductor</label><textarea id="nota" data-in="nota" maxlength="200" placeholder="Ej. Llevo un paquete pequeño">' + fv('nota') + '</textarea></div>';
-  h += '<button class="btn btn-gold" data-act="buscar"' + busyAttr() + '>Buscar motocarro · ' + money(S.offer) + '</button></div></div>';
+  h += '<button class="btn btn-gold" data-act="buscar"' + busyAttr() + '>Buscar mototour · ' + money(S.offer) + '</button></div></div>';
   return h;
 }
+function livePos(uid) { const o = S.others && S.others[uid]; return o && o.rol === 'conductor' && typeof o.ts === 'number' && Date.now() - o.ts < 3 * 60 * 1000 ? { lat: o.lat, lng: o.lng } : null; }
+function zoneCenter() { return S.screen === 'buscando' ? (pickupOf(S.viaje) || S.pos) : S.screen === 'home' ? S.pos : null; }
+function zoneCount() {
+  const c = zoneCenter(); if (!c) return 0; const me = S.user && S.user.uid;
+  return Object.keys(S.others || {}).filter(uid => { const p = livePos(uid); return uid !== me && p && distKm(c, p) <= RADIO_KM; }).length;
+}
+function offerEta(o) { const p = livePos(o.id) || (o.lat != null ? { lat: o.lat, lng: o.lng } : null); const km = distKm(p, pickupOf(S.viaje) || S.pos); return km == null ? null : { km, min: etaMin(km) }; }
 function vBuscando() {
-  const v = S.viaje || {};
-  let h = '<div class="screen"><div class="top"><div class="row"><h1 class="h1">Ofertas recibidas</h1></div><div class="sub">Tu oferta: <span style="color:#C9A227;font-weight:800">' + money(v.oferta || S.offer) + '</span> hacia ' + esc(v.destino ? v.destino.texto : '') + ' · ' + pagoTxt(v) + '</div>' +
-    '<div class="sub">' + (S.ofertas.length ? S.ofertas.length + (S.ofertas.length === 1 ? ' conductor respondió' : ' conductores respondieron') : 'Esperando respuesta de los conductores cercanos…') + '</div></div><div class="pad">' + errHTML();
-  if (!S.ofertas.length) h += '<div class="card"><div class="spinner" aria-hidden="true"></div><div class="strong center">Enviamos tu solicitud a los conductores conectados.</div><div class="muted center">Las ofertas aparecen aquí a medida que llegan. Mantén esta pantalla abierta.</div></div>';
+  const v = S.viaje || {}, n = zoneCount(), no = S.ofertas.length;
+  const CLOCK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  const PIN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+  const OK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>';
+  const chip = (ic, t, attr) => '<span class="row" style="gap:6px;padding:7px 12px;border-radius:12px;background:#1A2580;color:#FFFFFF;font-size:15px;font-weight:800;white-space:nowrap"' + attr + '>' + ic + t + '</span>';
+  let h = '<div class="screen"><div class="top" style="gap:6px"><h1 class="h1">' + (no ? 'Ofertas recibidas' : 'Buscando conductores') + '</h1><div class="sub">Tu oferta: <span style="color:#C9A227;font-weight:800">' + money(v.oferta || S.offer) + '</span> hacia ' + esc(v.destino ? v.destino.texto : '') + ' · ' + pagoTxt(v) + '</div>' +
+    '<div class="sub"><span data-count>' + n + '</span> ' + (n === 1 ? 'conductor' : 'conductores') + ' en tu zona · ' + (no ? no + (no === 1 ? ' oferta' : ' ofertas') : 'esperando ofertas') + '</div></div>';
+  h += '<div id="map" class="lmap" role="img" aria-label="Mapa con tu ubicación, la zona de búsqueda y los conductores cercanos"></div>' + legendHTML([['person', 'Tú'], ['otro', 'En tu zona'], ['moto', 'Con oferta']]);
+  h += '<div class="pad">' + errHTML();
+  if (!no) h += '<div class="card" style="flex-direction:row;align-items:center;gap:12px"><div class="spinner" aria-hidden="true" style="flex-shrink:0"></div><div class="col"><div class="strong">Enviamos tu solicitud a los conductores de tu zona</div><div class="muted small">Las ofertas aparecen aquí y en el mapa a medida que llegan. Mantén esta pantalla abierta.</div></div></div>';
   S.ofertas.forEach(o => {
-    const r = S.ratings[o.id];
-    h += '<div class="card' + (o.precio === v.oferta ? ' sel' : '') + '"><div class="row"><div class="avatar">' + esc(initials(o.nombre)) + '</div><div class="col grow"><div class="strong">' + esc(o.nombre) + '</div><div class="muted small row" style="gap:6px;flex-wrap:wrap">' + ratingLine(r) + (o.distTxt ? ' · a ' + o.distTxt : '') + '</div></div>' +
-      '<div class="col" style="align-items:flex-end"><div class="price">' + money(o.precio) + '</div>' + (o.precio === v.oferta ? '<span class="pill p-warn">Tu precio</span>' : '') + '</div></div>' +
-      '<div class="muted">' + esc(o.moto) + ' ' + esc(o.color) + ' · Placa ' + esc(o.placa) + '</div>' +
+    const r = S.ratings[o.id], e = offerEta(o), tu = o.precio === v.oferta;
+    h += '<div class="card' + (tu ? ' sel' : '') + '"><div class="row"><div class="avatar">' + esc(initials(o.nombre)) + '</div><div class="col grow"><div class="strong">' + esc(o.nombre) + '</div><div class="muted small row" style="gap:6px;flex-wrap:wrap">' + ratingLine(r) + '</div></div>' +
+      '<div class="col" style="align-items:flex-end"><div class="price">' + money(o.precio) + '</div>' + (tu ? '<span class="pill p-warn">Tu precio</span>' : '') + '</div></div>' +
+      (e ? '<div class="row" style="gap:8px;flex-wrap:wrap">' + chip(CLOCK, 'Llega en <span data-ofmin="' + esc(o.id) + '">' + e.min + '</span> min', '') + chip(PIN, 'a <span data-ofkm="' + esc(o.id) + '">' + fmtDist(e.km) + '</span>', '') + '</div>' : '<div class="muted small">Ubicación del conductor no disponible.</div>') +
+      '<div class="col" style="gap:4px"><div class="muted">' + esc(o.moto) + ' ' + esc(o.color) + ' · Placa ' + esc(o.placa) + '</div>' +
+      (o.registro ? '<div class="row small strong" style="gap:6px;color:var(--ok-ink)">' + OK + 'Registro de tránsito N° ' + esc(o.registro) + '</div>' : '') + '</div>' +
       '<button class="btn btn-gold" data-act="accept" data-v="' + esc(o.id) + '" style="min-height:48px;font-size:15px"' + busyAttr() + '>Aceptar ' + money(o.precio) + '</button></div>';
   });
   return h + '<button class="link danger" data-act="cancelTrip" style="align-self:center"' + busyAttr() + '>Cancelar solicitud</button></div></div>';
@@ -182,7 +199,7 @@ function sosBlock() {
   if (S.sos === 'confirm') return '<div class="banner danger" role="alertdialog" aria-label="Confirmar alerta de pánico">' + I.shield + '<div class="grow col" style="gap:10px"><div class="strong">¿Activar la alerta de pánico?</div><div>Se registra una alerta con tu ubicación para el administrador de JNF Moto' + ((S.perfil.contactos || []).length ? ' y podrás avisar a tus contactos por WhatsApp' : '') + '.</div><div class="row"><button class="btn btn-danger btn-sm" data-act="sosSend" style="flex:1;min-height:44px">Activar alerta</button><button class="btn btn-ghost btn-sm" data-act="sosCancel" style="flex:1;min-height:44px">Cancelar</button></div></div></div>';
   if (S.sos === 'sent') {
     const loc = S.pos ? 'https://maps.google.com/?q=' + S.pos.lat + ',' + S.pos.lng : '';
-    const txt = encodeURIComponent('Alerta JNF Moto: necesito ayuda durante un viaje en motocarro.' + (loc ? ' Mi ubicación: ' + loc : ''));
+    const txt = encodeURIComponent('Alerta JNF Moto: necesito ayuda durante un viaje en mototour.' + (loc ? ' Mi ubicación: ' + loc : ''));
     const btns = (S.perfil.contactos || []).map(c => '<a class="btn btn-danger btn-sm" style="width:100%;min-height:44px" target="_blank" rel="noopener" href="https://wa.me/57' + esc(c.telefono) + '?text=' + txt + '">Avisar a ' + esc(c.nombre) + ' por WhatsApp</a>').join('');
     return '<div class="banner danger" role="alert">' + I.shield + '<div class="grow col" style="gap:8px"><div><b>Alerta registrada.</b> El administrador de JNF Moto la ve en su panel.</div>' + btns + '</div></div>';
   }
@@ -222,7 +239,7 @@ function vMenu() {
   else if (st === 'ninguno') h += '<button data-act="go" data-v="registroC" aria-current="false">' + I.lock + 'Modo conductor</button>';
   else h += '<button disabled aria-current="false">' + I.lock + 'No habilitado</button>';
   h += '</div></div><div class="pad">' + bannerHTML(S.banner) + errHTML() + installCard();
-  if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes motocarro? Conduce con JNF Moto</div><div class="muted">Regístrate con los datos de tu motocarro y las fotos de tu licencia, tarjeta de propiedad, SOAT y una foto tuya. El administrador las revisará antes de habilitarte.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
+  if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes mototour? Conduce con JNF Moto</div><div class="muted">Regístrate con los datos de tu mototour y las fotos de tu licencia, tarjeta de propiedad, SOAT y una foto tuya. El administrador las revisará antes de habilitarte.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
   if (st === 'pendiente') h += '<div class="card"><div class="h2">Tu registro está en revisión</div><div class="muted">El administrador está revisando tus documentos. Cuando te apruebe, esta opción se habilita sola.</div><button class="btn btn-ghost" data-act="go" data-v="registroC">Ver mis documentos</button></div>';
   if (st === 'rechazado' || st === 'suspendido') h += '<div class="card"><div class="h2">Modo conductor no habilitado</div><div class="muted">Tu cuenta de conductor está ' + st + '. Revisa tus documentos y comunícate con la oficina de JNF S.A.S.</div><button class="btn btn-ghost" data-act="go" data-v="registroC">Ver mis documentos</button></div>';
   if (st === 'aprobado') h += '<div class="card"><div class="row between"><div class="h2">Modo conductor habilitado</div><span class="pill p-ok">Aprobado</span></div><div class="banner warn">' + I.info + '<div class="grow">En esta versión de prueba, tu ubicación se comparte solo mientras la app está abierta y estás conectado.</div></div>' + (pOn ? '<button class="btn btn-gold" data-act="modeC">Conectarme como conductor</button>' : '<button class="btn btn-ghost" data-act="modeP">Volver a modo pasajero</button>') + '</div>';
@@ -236,7 +253,7 @@ function vMenu() {
 function vHistorial() {
   let h = '<div class="screen">' + subTop('Mis viajes') + '<div class="pad">' + errHTML();
   if (!S.hist) return h + '<div class="spinner" role="status" aria-label="Cargando"></div></div></div>';
-  if (!S.hist.length) h += '<div class="card"><div class="strong">Aún no tienes viajes.</div><div class="muted">Tus viajes aparecen aquí cuando terminas uno.</div><button class="btn btn-gold" data-act="modeP">Pedir un motocarro</button></div>';
+  if (!S.hist.length) h += '<div class="card"><div class="strong">Aún no tienes viajes.</div><div class="muted">Tus viajes aparecen aquí cuando terminas uno.</div><button class="btn btn-gold" data-act="modeP">Pedir un mototour</button></div>';
   const lab = { buscando: 'Buscando', asignado: 'Asignado', en_curso: 'En curso', finalizado: 'Finalizado', cancelado: 'Cancelado' };
   S.hist.forEach(v => { h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(v.destino.texto) + '</div><div class="muted small">' + (v._rol === 'conductor' ? 'Como conductor · ' + esc(v.pasajeroNombre) : 'Como pasajero' + (v.conductor ? ' · ' + esc(v.conductor.nombre) : '')) + ' · ' + new Date(tsMs(v.creado)).toLocaleDateString('es-CO') + '</div></div><div class="col" style="align-items:flex-end"><div class="price" style="font-size:18px">' + money(v.precioFinal || v.oferta) + '</div><span class="pill ' + (v.estado === 'finalizado' ? 'p-ok' : v.estado === 'cancelado' ? 'p-warn' : 'p-info') + '">' + (lab[v.estado] || v.estado) + '</span></div></div></div>'; });
   return h + '</div></div>';
@@ -255,21 +272,22 @@ function vTransfer() {
     '<button class="btn btn-navy" data-act="saveTransfer"' + busyAttr() + '>Guardar datos</button></div></div>';
 }
 const vTexto = (t, b) => '<div class="screen">' + subTop(t) + '<div class="pad"><div class="card">' + b + '</div></div></div>';
-const DOCS_C = [['licencia', 'Licencia de conducción', 'Foto clara del documento vigente'], ['foto', 'Foto del conductor', 'Rostro visible, de frente y sin gafas'], ['tarjeta', 'Tarjeta de propiedad', 'Licencia de tránsito del motocarro'], ['soat', 'SOAT', 'Póliza vigente del motocarro']];
+const DOCS_C = [['licencia', 'Licencia de conducción', 'Foto clara del documento vigente'], ['foto', 'Foto del conductor', 'Rostro visible, de frente y sin gafas'], ['tarjeta', 'Tarjeta de propiedad', 'Licencia de tránsito del mototour'], ['soat', 'SOAT', 'Póliza vigente del mototour'], ['transito', 'Registro ante la Secretaría de Tránsito', 'Certificado o carné expedido por la Secretaría de Tránsito']];
 function vRegistroC() {
   const c = S.conductor, reg = !!c, locked = reg && c.estado === 'aprobado';
   const lab = { pendiente: ['p-warn', 'En revisión'], aprobado: ['p-ok', 'Aprobado'], rechazado: ['p-danger', 'Rechazado'], suspendido: ['p-danger', 'Suspendido'] };
   let h = '<div class="screen">' + subTop(reg ? 'Mis documentos' : 'Registro de conductor') + '<div class="pad">' + errHTML() + bannerHTML(S.banner);
   if (!reg) {
-    h += '<div class="field"><label for="rm">Marca y modelo del motocarro</label><input type="text" id="rm" data-in="moto" placeholder="Marca y modelo" value="' + fv('moto') + '"></div>' +
+    h += '<div class="field"><label for="rm">Marca y modelo del mototour</label><input type="text" id="rm" data-in="moto" placeholder="Marca y modelo" value="' + fv('moto') + '"></div>' +
       '<div class="field"><label for="rc">Color</label><input type="text" id="rc" data-in="color" placeholder="Ej. Blanco" value="' + fv('color') + '"></div>' +
-      '<div class="field"><label for="rp">Placa</label><input type="text" id="rp" data-in="placa" placeholder="Ej. ABC12D" autocapitalize="characters" value="' + fv('placa') + '"></div>';
+      '<div class="field"><label for="rp">Placa</label><input type="text" id="rp" data-in="placa" placeholder="Ej. ABC12D" autocapitalize="characters" value="' + fv('placa') + '"></div>' +
+      '<div class="field"><label for="rt">Número de registro de tránsito</label><input type="text" id="rt" data-in="registro" placeholder="Como aparece en el certificado" autocapitalize="characters" value="' + fv('registro') + '"></div>';
   } else {
     const l = lab[c.estado] || ['p-info', c.estado];
-    h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.moto) + ' ' + esc(c.color) + '</div><div class="muted small">Placa ' + esc(c.placa) + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' +
+    h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.moto) + ' ' + esc(c.color) + '</div><div class="muted small">Placa ' + esc(c.placa) + (c.registro ? ' · Registro de tránsito N° ' + esc(c.registro) : '') + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' +
       (locked ? '<div class="muted small">Tus documentos fueron aprobados y ya no se pueden cambiar.</div>' : '<div class="muted small">Si cambias una foto, se envía de inmediato al administrador.</div>') + '</div>';
   }
-  h += '<span class="lbl">Documentos (los 4 son obligatorios)</span>';
+  h += '<span class="lbl">Documentos (los ' + DOCS_C.length + ' son obligatorios)</span>';
   if (reg && S.docsFor !== S.user.uid) return h + '<div class="spinner" role="status" aria-label="Cargando documentos"></div></div></div>';
   h += '<div class="card" style="gap:0;padding:4px 14px">';
   DOCS_C.forEach(d => {
@@ -389,7 +407,7 @@ function vAdmin() {
     L.slice().sort((a, b) => (a.estado === 'pendiente' ? 0 : 1) - (b.estado === 'pendiente' ? 0 : 1)).forEach(c => {
       const l = lab[c.estado] || ['p-info', c.estado];
       const open = S.admOpen === c.id, dl = S.admDocs[c.id], nDocs = dl && dl !== 'cargando' ? Object.keys(dl).length : null;
-      h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.nombre) + '</div><div class="muted small">' + esc(c.moto) + ' ' + esc(c.color) + ' · Placa ' + esc(c.placa) + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' +
+      h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.nombre) + '</div><div class="muted small">' + esc(c.moto) + ' ' + esc(c.color) + ' · Placa ' + esc(c.placa) + '</div><div class="small strong">' + (c.registro ? 'Registro de tránsito N° ' + esc(c.registro) : 'Sin número de registro de tránsito') + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' +
         '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="admDocs" data-v="' + c.id + '" aria-expanded="' + open + '">' + (open ? 'Ocultar documentos' : 'Ver documentos') + '</button>';
       if (open) {
         if (!dl || dl === 'cargando') h += '<div class="spinner" role="status" aria-label="Cargando documentos"></div>';
@@ -398,8 +416,8 @@ function vAdmin() {
           return '<div class="col" style="gap:4px' + (big ? ';grid-column:1 / -1' : '') + '"><span class="small strong">' + d[1] + '</span>' + (x ? '<button data-act="admBig" data-v="' + c.id + ':' + d[0] + '" aria-label="' + (big ? 'Reducir ' : 'Ampliar ') + d[1] + '" style="padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--field)"><img src="' + x + '" alt="' + d[1] + ' de ' + esc(c.nombre) + '" style="width:100%;' + (big ? 'height:auto' : 'height:110px;object-fit:cover') + ';display:block"></button>' : '<div class="pill p-danger" style="align-self:flex-start">Falta</div>') + '</div>';
         }).join('') + '</div>';
       }
-      const canApprove = nDocs === 4;
-      h += (c.estado !== 'aprobado' && !canApprove ? '<div class="muted small">' + (nDocs === null ? 'Revisa los documentos antes de aprobar.' : 'Faltan ' + (4 - nDocs) + ' documento(s); no se puede aprobar.') + '</div>' : '') + '<div class="row">' +
+      const canApprove = nDocs === DOCS_C.length;
+      h += (c.estado !== 'aprobado' && !canApprove ? '<div class="muted small">' + (nDocs === null ? 'Revisa los documentos antes de aprobar.' : 'Faltan ' + (DOCS_C.length - nDocs) + ' documento(s); no se puede aprobar.') + '</div>' : '') + '<div class="row">' +
         (c.estado !== 'aprobado' ? '<button class="btn btn-gold btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="aprobado"' + (S.busy || !canApprove ? ' disabled' : '') + '>Aprobar</button>' : '') +
         (c.estado === 'pendiente' ? '<button class="btn btn-ghost btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="rechazado"' + busyAttr() + '>Rechazar</button>' : '') +
         (c.estado === 'aprobado' ? '<button class="btn btn-ghost btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="suspendido"' + busyAttr() + '>Suspender</button>' : '') + '</div></div>';
@@ -457,6 +475,7 @@ const destOf = v => v && v.destino && v.destino.lat != null ? { lat: v.destino.l
 function mapPoints() {
   const v = S.viaje, st = v && v.estado, m = [];
   if (S.screen === 'home') { if (S.pos) m.push(['me', S.pos, 'person', 'Tú']); if (S.destPin) m.push(['dest', S.destPin, 'dest', 'Destino']); }
+  if (S.screen === 'buscando') { const c = pickupOf(v) || S.pos; if (c) m.push(['me', c, 'person', 'Tú']); S.ofertas.forEach(o => { const p = livePos(o.id) || (o.lat != null ? { lat: o.lat, lng: o.lng } : null); if (p) m.push(['of_' + o.id, p, 'oferta', money(o.precio)]); }); }
   if (S.screen === 'solicitudes' && S.reqMap) { const r = S.requests.find(x => x.id === S.reqMap); if (r) { const p = pickupOf(r), d = destOf(r); if (p) m.push(['pax', p, 'person', 'Pasajero']); if (d) m.push(['dest', d, 'dest', 'Destino']); if (S.pos) m.push(['me', S.pos, 'moto', 'Tú']); } }
   if (S.screen === 'viaje') {
     const me = S.pos || pickupOf(v); if (me && st === 'asignado') m.push(['me', me, 'person', 'Tú']);
@@ -478,6 +497,8 @@ function mountMap() {
   map = L.map(el, { zoomControl: true, attributionControl: true, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, inertia: false }).setView([pts[0][1].lat, pts[0][1].lng], 16);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
   pts.forEach(p => setMarker(p[0], p[1], p[2], p[3]));
+  const zc = S.screen === 'buscando' ? zoneCenter() : null;
+  if (zc) mk.zone = L.circle([zc.lat, zc.lng], { radius: RADIO_KM * 1000, color: navyCol(), weight: 2, opacity: 0.45, dashArray: '7 7', fillColor: navyCol(), fillOpacity: 0.07, interactive: false }).addTo(map);
   syncOthers(); drawRoute(); fitMap();
   if (S.screen === 'home') map.on('click', e => { if (!S.pickDest) return; S.destPin = { lat: e.latlng.lat, lng: e.latlng.lng }; S.pickDest = false; S.route = null; render(); });
   if (S.screen === 'home' && S.pickDest) el.style.cursor = 'crosshair';
@@ -485,6 +506,12 @@ function mountMap() {
 function setMarker(key, pos, kind, label) {
   if (!map || !pos || !window.L || !document.getElementById('map')) return;
   if (mk[key]) { mk[key].setLatLng([pos.lat, pos.lng]); return; }
+  if (kind === 'oferta') {
+    const s = KIND.moto(), W = s.w, H = Math.round(W * 56 / 60), TW = 96;
+    const icon = window.L.divIcon({ className: 'jm-icon', html: '<div class="jm-of"><span class="jm-tag">' + esc(label) + '</span>' + iconSVG('moto') + '</div>', iconSize: [TW, H + 30], iconAnchor: [TW / 2, Math.round(30 + H * s.ay)] });
+    mk[key] = window.L.marker([pos.lat, pos.lng], { icon, keyboard: false, zIndexOffset: 800, title: 'Oferta ' + label, alt: 'Oferta ' + label }).addTo(map);
+    return;
+  }
   const s = KIND[kind](), W = s.w, H = Math.round(W * 56 / 60);
   const icon = window.L.divIcon({ className: 'jm-icon', html: iconSVG(kind), iconSize: [W, H], iconAnchor: [Math.round(W * s.ax), Math.round(H * s.ay)] });
   mk[key] = window.L.marker([pos.lat, pos.lng], { icon, keyboard: false, zIndexOffset: kind === 'otro' ? 0 : 500, title: label, alt: label }).addTo(map).bindTooltip(label);
@@ -493,18 +520,24 @@ function removeMarker(key) { if (mk[key] && map) { map.removeLayer(mk[key]); del
 // Otros conductores conectados: motos grises y semitransparentes
 function syncOthers() {
   if (!map) return;
-  const keep = {}, now = Date.now(), me = S.user && S.user.uid, assigned = S.viaje && S.viaje.conductorId;
-  const show = S.screen === 'home' || S.screen === 'viaje' || S.screen === 'cviaje' || (S.screen === 'solicitudes' && S.reqMap);
+  const keep = {}, me = S.user && S.user.uid, assigned = S.viaje && S.viaje.conductorId, zc = zoneCenter();
+  const withOffer = {}; if (S.screen === 'buscando') S.ofertas.forEach(o => { withOffer[o.id] = money(o.precio); });
+  const show = S.screen === 'home' || S.screen === 'buscando' || S.screen === 'viaje' || S.screen === 'cviaje' || (S.screen === 'solicitudes' && S.reqMap);
   if (show) Object.keys(S.others || {}).forEach(uid => {
-    const o = S.others[uid];
-    if (!o || o.rol !== 'conductor' || uid === me || uid === assigned || typeof o.ts !== 'number' || now - o.ts > 3 * 60 * 1000) return;
-    keep['o_' + uid] = true; setMarker('o_' + uid, { lat: o.lat, lng: o.lng }, 'otro', 'Otro conductor');
+    const p = livePos(uid);
+    if (!p || uid === me || uid === assigned) return;
+    if (withOffer[uid]) { setMarker('of_' + uid, p, 'oferta', withOffer[uid]); return; }
+    if (zc && distKm(zc, p) > RADIO_KM) return;
+    keep['o_' + uid] = true; setMarker('o_' + uid, p, 'otro', 'Conductor en tu zona');
   });
   Object.keys(mk).forEach(k => { if (k.indexOf('o_') === 0 && !keep[k]) removeMarker(k); });
+  document.querySelectorAll('[data-count]').forEach(el => { el.textContent = zoneCount(); });
+  if (S.screen === 'buscando') S.ofertas.forEach(o => { const e = offerEta(o); if (!e) return; document.querySelectorAll('[data-ofmin="' + o.id + '"]').forEach(el => { el.textContent = e.min; }); document.querySelectorAll('[data-ofkm="' + o.id + '"]').forEach(el => { el.textContent = fmtDist(e.km); }); });
 }
 function fitMap() {
   if (!map || !window.L) return;
-  const ll = Object.keys(mk).filter(k => k !== 'route' && k.indexOf('o_') !== 0).map(k => mk[k].getLatLng());
+  if (mk.zone && S.screen === 'buscando') { map.fitBounds(mk.zone.getBounds(), { padding: [8, 8], animate: false }); return; }
+  const ll = Object.keys(mk).filter(k => k !== 'route' && k !== 'zone' && k.indexOf('o_') !== 0).map(k => mk[k].getLatLng());
   if (mk.route) ll.push(...mk.route.getLatLngs());
   if (ll.length >= 2) map.fitBounds(window.L.latLngBounds(ll), { padding: [44, 44], maxZoom: 17, animate: false });
 }
@@ -617,6 +650,25 @@ function beep() {
   try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.frequency.value = 880; g.gain.value = 0.15; o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.35); } catch (e) { }
 }
 
+/* ---------- sitios frecuentes (los 5 destinos más pedidos) ---------- */
+async function loadTopDest() {
+  try {
+    const qs = await getDocs(query(collection(db, 'destinos'), orderBy('veces', 'desc'), limit(5)));
+    S.topDest = qs.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    if (S.screen === 'home') render();
+  } catch (e) { S.topDest = []; }
+}
+async function countDestino(texto, pin) {
+  const id = normKey(texto); if (!id) return;
+  const r = doc(db, 'destinos', id);
+  await runTransaction(db, async tx => {
+    const d = await tx.get(r);
+    const extra = pin ? { lat: pin.lat, lng: pin.lng } : {};
+    if (d.exists()) tx.update(r, Object.assign({ veces: (d.data().veces || 0) + 1, actualizado: serverTimestamp() }, extra));
+    else tx.set(r, Object.assign({ texto: String(texto).trim().slice(0, 120), veces: 1, actualizado: serverTimestamp() }, extra));
+  });
+}
+
 /* ---------- calificaciones ---------- */
 async function loadRating(key, path) {
   if (S.ratings[key]) return S.ratings[key];
@@ -631,9 +683,9 @@ async function loadRating(key, path) {
 
 /* ---------- entrada a cada pantalla ---------- */
 function enter(s) {
-  if (s === 'home') { if (S.sharing) { S.sharing = false; stopWatch(); } S.route = null; getGps(); listenOthers(); }
+  if (s === 'home') { if (S.sharing) { S.sharing = false; stopWatch(); } S.route = null; getGps(); listenOthers(); loadTopDest(); }
   if (s === 'buscando') {
-    S.sharing = true; startWatch();
+    S.sharing = true; startWatch(); listenOthers();
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
       if (!d.exists()) return; S.viaje = Object.assign({ id: d.id }, d.data());
       if (S.viaje.estado === 'asignado') { go('viaje'); return; }
@@ -840,7 +892,7 @@ async function act(a, v, b) {
     }
     case 'logout': S.online = false; await stopWatch(); await signOut(auth); break;
     case 'retryGps': S.gps = 'pendiente'; render(); getGps(); break;
-    case 'freq': S.f.destino = v; S.err = null; S.destPin = null; S.route = null; render(); break;
+    case 'freq': { const t = (S.topDest || []).find(d => d.texto === v); S.f.destino = v; S.err = null; S.destPin = t && typeof t.lat === 'number' ? { lat: t.lat, lng: t.lng } : null; S.route = null; render(); break; }
     case 'pickDest': S.pickDest = !S.pickDest; S.err = null; render(); if (S.pickDest) { const m = document.getElementById('map'); if (m) m.scrollIntoView({ block: 'center' }); } break;
     case 'clearDest': S.destPin = null; S.route = null; render(); break;
     case 'geoDest': {
@@ -867,6 +919,7 @@ async function act(a, v, b) {
         const data = { pasajeroId: uid, pasajeroNombre: S.perfil.nombre, origen: { texto: refTxt || 'Ubicación GPS', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null }, destino: S.destPin ? { texto: dest, lat: S.destPin.lat, lng: S.destPin.lng } : { texto: dest }, oferta: S.offer, nota: S.notaOpen ? (S.f.nota || '').trim().slice(0, 200) : '', pago: S.pago, estado: 'buscando', creado: serverTimestamp(), conductorId: null, precioFinal: null, conductor: null };
         const r = await addDoc(collection(db, 'viajes'), data);
         await setDoc(doc(db, 'viajes', r.id, 'privado', uid), { telefono: S.perfil.telefono, nombre: S.perfil.nombre });
+        countDestino(dest, S.destPin).catch(() => { });
         S.viajeId = r.id; S.viaje = Object.assign({ id: r.id }, data); S.ofertas = []; S.busy = false; go('buscando');
       } catch (e) { fail(e); }
       break;
@@ -927,17 +980,19 @@ async function act(a, v, b) {
     }
     case 'saveConductor': {
       const moto = (S.f.moto || '').trim(), color = (S.f.color || '').trim(), placa = (S.f.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-      if (moto.length < 2) { S.err = 'Escribe la marca y el modelo del motocarro.'; render(); break; }
-      if (color.length < 2) { S.err = 'Escribe el color del motocarro.'; render(); break; }
+      if (moto.length < 2) { S.err = 'Escribe la marca y el modelo del mototour.'; render(); break; }
+      if (color.length < 2) { S.err = 'Escribe el color del mototour.'; render(); break; }
       if (!/^[A-Z0-9]{5,7}$/.test(placa) || !/[A-Z]/.test(placa) || !/[0-9]/.test(placa)) { S.err = 'La placa debe tener entre 5 y 7 letras y números, por ejemplo ABC12D.'; render(); break; }
+      const registro = String(S.f.registro || '').trim().replace(/\s+/g, ' ').toUpperCase();
+      if (registro.length < 2 || registro.length > 30) { S.err = 'Escribe el número de registro de tránsito tal como aparece en el certificado.'; render(); break; }
       const falta = DOCS_C.filter(d => !S.docs[d[0]]).map(d => d[1]);
       if (falta.length) { S.err = 'Falta subir: ' + falta.join(', ') + '.'; render(); break; }
       S.busy = true; S.docMsg = 'Enviando registro…'; render();
       try {
-        if (!S.conductor) await setDoc(doc(db, 'conductores', uid), { nombre: S.perfil.nombre, moto, color, placa, estado: 'pendiente', creado: serverTimestamp() });
+        if (!S.conductor) await setDoc(doc(db, 'conductores', uid), { nombre: S.perfil.nombre, moto, color, placa, registro, estado: 'pendiente', creado: serverTimestamp() });
         let n = 0;
         for (const d of DOCS_C) {
-          n++; S.docMsg = 'Subiendo documentos (' + n + ' de 4)…'; render();
+          n++; S.docMsg = 'Subiendo documentos (' + n + ' de ' + DOCS_C.length + ')…'; render();
           if (S.docs[d[0]].estado === 'local') { await setDoc(doc(db, 'conductores', uid, 'documentos', d[0]), { tipo: d[0], img: S.docs[d[0]].img, subido: serverTimestamp() }); S.docs[d[0]].estado = 'subido'; }
         }
         S.docMsg = ''; S.busy = false; S.banner = { kind: 'info', text: 'Registro enviado. El administrador revisará tus documentos.' }; go('menu');
@@ -957,7 +1012,9 @@ async function act(a, v, b) {
       if (a === 'cOtroSend') { const o = S.cOtro[v] || {}; const n = parseMoney(o.val), er = validAmount(n); if (er) { S.cOtro[v] = { open: true, val: o.val, err: er }; render(); break; } price = n; }
       S.busy = true; render();
       try {
-        await setDoc(doc(db, 'viajes', v, 'ofertas', uid), { conductorId: uid, nombre: S.conductor.nombre, moto: S.conductor.moto, color: S.conductor.color, placa: S.conductor.placa, precio: price, creado: serverTimestamp(), lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null });
+        const of = { conductorId: uid, nombre: S.conductor.nombre, moto: S.conductor.moto, color: S.conductor.color, placa: S.conductor.placa, precio: price, creado: serverTimestamp(), lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null };
+        if (S.conductor.registro) of.registro = S.conductor.registro;
+        await setDoc(doc(db, 'viajes', v, 'ofertas', uid), of);
         S.busy = false; S.espera = { viajeId: v, nombre: r.pasajeroNombre, precio: price, origen: r.origen.texto, destino: r.destino.texto, pago: r.pago }; go('espera');
       } catch (e) { fail(e); }
       break;

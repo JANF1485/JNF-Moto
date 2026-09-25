@@ -1,7 +1,7 @@
 {
   "name": "JNF Moto",
   "short_name": "JNF Moto",
-  "description": "Pide tu motocarro y acuerda el precio con el conductor.",
+  "description": "Pide tu mototour y acuerda el precio con el conductor.",
   "lang": "es-CO",
   "start_url": "./",
   "scope": "./",
