@@ -62,7 +62,7 @@ const S = {
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
   offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
-  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false,
+  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, docMsg: '', admOpen: null, admDocs: {}, admBig: null,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
   cal: null, hist: null, admTab: 'conductores', adm: {}
@@ -81,6 +81,7 @@ const I = {
   lock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
   phone: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
   shield: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  doc: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
   info: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
   starOn: '<svg width="40" height="40" viewBox="0 0 24 24" fill="#C9A227" stroke="#A8841A" stroke-width="1.2" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z"/></svg>',
   starOff: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--star-off)" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z"/></svg>'
@@ -221,9 +222,9 @@ function vMenu() {
   else if (st === 'ninguno') h += '<button data-act="go" data-v="registroC" aria-current="false">' + I.lock + 'Modo conductor</button>';
   else h += '<button disabled aria-current="false">' + I.lock + 'No habilitado</button>';
   h += '</div></div><div class="pad">' + bannerHTML(S.banner) + errHTML() + installCard();
-  if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes motocarro? Conduce con JNF Moto</div><div class="muted">Regístrate y el administrador verificará tus documentos en persona antes de habilitarte.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
-  if (st === 'pendiente') h += '<div class="card"><div class="h2">Tu registro está en revisión</div><div class="muted">Lleva tu cédula, licencia de conducción vigente, SOAT, técnico-mecánica (si aplica) y tarjeta de propiedad a la oficina de JNF S.A.S. Cuando el administrador te apruebe, esta opción se habilita sola.</div></div>';
-  if (st === 'rechazado' || st === 'suspendido') h += '<div class="card"><div class="h2">Modo conductor no habilitado</div><div class="muted">Tu cuenta de conductor está ' + st + '. Comunícate con la oficina de JNF S.A.S.</div></div>';
+  if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes motocarro? Conduce con JNF Moto</div><div class="muted">Regístrate con los datos de tu motocarro y las fotos de tu licencia, tarjeta de propiedad, SOAT y una foto tuya. El administrador las revisará antes de habilitarte.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
+  if (st === 'pendiente') h += '<div class="card"><div class="h2">Tu registro está en revisión</div><div class="muted">El administrador está revisando tus documentos. Cuando te apruebe, esta opción se habilita sola.</div><button class="btn btn-ghost" data-act="go" data-v="registroC">Ver mis documentos</button></div>';
+  if (st === 'rechazado' || st === 'suspendido') h += '<div class="card"><div class="h2">Modo conductor no habilitado</div><div class="muted">Tu cuenta de conductor está ' + st + '. Revisa tus documentos y comunícate con la oficina de JNF S.A.S.</div><button class="btn btn-ghost" data-act="go" data-v="registroC">Ver mis documentos</button></div>';
   if (st === 'aprobado') h += '<div class="card"><div class="row between"><div class="h2">Modo conductor habilitado</div><span class="pill p-ok">Aprobado</span></div><div class="banner warn">' + I.info + '<div class="grow">En esta versión de prueba, tu ubicación se comparte solo mientras la app está abierta y estás conectado.</div></div>' + (pOn ? '<button class="btn btn-gold" data-act="modeC">Conectarme como conductor</button>' : '<button class="btn btn-ghost" data-act="modeP">Volver a modo pasajero</button>') + '</div>';
   const items = [['historial', 'Mis viajes'], ['contactos', 'Contactos de emergencia']];
   if (st === 'aprobado') items.push(['transfer', 'Mis datos para transferencias'], ['micalif', 'Mi calificación como conductor'], ['suscripcion', 'Mi suscripción']);
@@ -254,13 +255,63 @@ function vTransfer() {
     '<button class="btn btn-navy" data-act="saveTransfer"' + busyAttr() + '>Guardar datos</button></div></div>';
 }
 const vTexto = (t, b) => '<div class="screen">' + subTop(t) + '<div class="pad"><div class="card">' + b + '</div></div></div>';
+const DOCS_C = [['licencia', 'Licencia de conducción', 'Foto clara del documento vigente'], ['foto', 'Foto del conductor', 'Rostro visible, de frente y sin gafas'], ['tarjeta', 'Tarjeta de propiedad', 'Licencia de tránsito del motocarro'], ['soat', 'SOAT', 'Póliza vigente del motocarro']];
 function vRegistroC() {
-  return '<div class="screen">' + subTop('Registro de conductor') + '<div class="pad">' + errHTML() + '<div class="muted">En la versión de prueba, los documentos se verifican en persona en la oficina de JNF S.A.S. Aquí solo registras los datos de tu motocarro.</div>' +
-    '<div class="field"><label for="rm">Marca y modelo del motocarro</label><input type="text" id="rm" data-in="moto" placeholder="Marca y modelo" value="' + fv('moto') + '"></div>' +
-    '<div class="field"><label for="rc">Color</label><input type="text" id="rc" data-in="color" placeholder="Ej. Negra" value="' + fv('color') + '"></div>' +
-    '<div class="field"><label for="rp">Placa</label><input type="text" id="rp" data-in="placa" placeholder="Ej. ABC12D" autocapitalize="characters" value="' + fv('placa') + '"></div>' +
-    '<div class="banner info">' + I.info + '<div class="grow">Documentos a presentar: cédula, licencia de conducción vigente, SOAT vigente, técnico-mecánica (si aplica) y tarjeta de propiedad.</div></div>' +
-    '<button class="btn btn-navy" data-act="saveConductor"' + busyAttr() + '>Enviar registro</button></div></div>';
+  const c = S.conductor, reg = !!c, locked = reg && c.estado === 'aprobado';
+  const lab = { pendiente: ['p-warn', 'En revisión'], aprobado: ['p-ok', 'Aprobado'], rechazado: ['p-danger', 'Rechazado'], suspendido: ['p-danger', 'Suspendido'] };
+  let h = '<div class="screen">' + subTop(reg ? 'Mis documentos' : 'Registro de conductor') + '<div class="pad">' + errHTML() + bannerHTML(S.banner);
+  if (!reg) {
+    h += '<div class="field"><label for="rm">Marca y modelo del motocarro</label><input type="text" id="rm" data-in="moto" placeholder="Marca y modelo" value="' + fv('moto') + '"></div>' +
+      '<div class="field"><label for="rc">Color</label><input type="text" id="rc" data-in="color" placeholder="Ej. Blanco" value="' + fv('color') + '"></div>' +
+      '<div class="field"><label for="rp">Placa</label><input type="text" id="rp" data-in="placa" placeholder="Ej. ABC12D" autocapitalize="characters" value="' + fv('placa') + '"></div>';
+  } else {
+    const l = lab[c.estado] || ['p-info', c.estado];
+    h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.moto) + ' ' + esc(c.color) + '</div><div class="muted small">Placa ' + esc(c.placa) + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' +
+      (locked ? '<div class="muted small">Tus documentos fueron aprobados y ya no se pueden cambiar.</div>' : '<div class="muted small">Si cambias una foto, se envía de inmediato al administrador.</div>') + '</div>';
+  }
+  h += '<span class="lbl">Documentos (los 4 son obligatorios)</span>';
+  if (reg && S.docsFor !== S.user.uid) return h + '<div class="spinner" role="status" aria-label="Cargando documentos"></div></div></div>';
+  h += '<div class="card" style="gap:0;padding:4px 14px">';
+  DOCS_C.forEach(d => {
+    const x = S.docs[d[0]];
+    const pill = !x ? '<span style="align-self:flex-start" class="pill p-warn">Falta</span>' : x.estado === 'local' ? '<span style="align-self:flex-start" class="pill p-info">Lista para enviar</span>' : '<span style="align-self:flex-start" class="pill p-ok">Enviada</span>';
+    const thumb = x ? '<img src="' + x.img + '" alt="' + d[1] + '" style="width:52px;height:52px;object-fit:cover;border-radius:8px;flex-shrink:0;border:1px solid var(--line)">' : '<span style="width:52px;height:52px;border-radius:8px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--muted)">' + I.doc + '</span>';
+    const btn = locked ? '' : '<label class="upl">' + (x ? 'Cambiar' : 'Subir') + '<input class="vh" type="file" accept="image/*" data-docup="' + d[0] + '"' + (d[0] === 'foto' ? ' capture="user"' : '') + ' aria-label="' + (x ? 'Cambiar ' : 'Subir ') + d[1] + '"></label>';
+    h += '<div class="docrow">' + thumb + '<div class="col grow"><div class="strong" style="font-size:14px">' + d[1] + '</div><div class="muted small">' + d[2] + '</div>' + pill + '</div>' + btn + '</div>';
+  });
+  h += '</div>';
+  if (S.docMsg) h += '<div class="banner info" role="status">' + I.info + '<div class="grow">' + esc(S.docMsg) + '</div></div>';
+  if (!reg) h += '<button class="btn btn-navy" data-act="saveConductor"' + busyAttr() + '>Enviar registro</button>';
+  return h + '</div></div>';
+}
+// Reduce la foto en el celular (JPEG, máx. 1.280 px) para que quepa en Firestore sin usar Storage
+function compressImage(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      let max = 1280, q = 0.8, out = '';
+      for (let i = 0; i < 10; i++) {
+        const sc = Math.min(1, max / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(img.width * sc)); cv.height = Math.max(1, Math.round(img.height * sc));
+        const cx = cv.getContext('2d'); cx.fillStyle = '#FFFFFF'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+        out = cv.toDataURL('image/jpeg', q);
+        if (out.length < 900000) break;
+        if (q > 0.55) q -= 0.1; else max = Math.round(max * 0.8);
+      }
+      URL.revokeObjectURL(url);
+      out.length < 900000 ? res(out) : rej(new Error('La foto es demasiado pesada. Intenta con otra.'));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('No se pudo leer la imagen. Intenta con otra foto.')); };
+    img.src = url;
+  });
+}
+async function loadMyDocs() {
+  try {
+    const qs = await getDocs(collection(db, 'conductores', S.user.uid, 'documentos'));
+    const d = {}; qs.docs.forEach(x => { d[x.id] = { img: x.data().img, estado: 'subido' }; });
+    Object.keys(S.docs).forEach(k => { if (S.docs[k].estado === 'local') d[k] = S.docs[k]; });
+    S.docs = d; S.docsFor = S.user.uid; if (S.screen === 'registroC') render();
+  } catch (e) { fail(e); }
 }
 /* ---------- pantallas: conductor ---------- */
 function vSolicitudes() {
@@ -337,8 +388,19 @@ function vAdmin() {
     if (!L.length) h += '<div class="card"><div class="muted">Aún no hay conductores registrados.</div></div>';
     L.slice().sort((a, b) => (a.estado === 'pendiente' ? 0 : 1) - (b.estado === 'pendiente' ? 0 : 1)).forEach(c => {
       const l = lab[c.estado] || ['p-info', c.estado];
-      h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.nombre) + '</div><div class="muted small">' + esc(c.moto) + ' ' + esc(c.color) + ' · Placa ' + esc(c.placa) + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div><div class="row">' +
-        (c.estado !== 'aprobado' ? '<button class="btn btn-gold btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="aprobado"' + busyAttr() + '>Aprobar</button>' : '') +
+      const open = S.admOpen === c.id, dl = S.admDocs[c.id], nDocs = dl && dl !== 'cargando' ? Object.keys(dl).length : null;
+      h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.nombre) + '</div><div class="muted small">' + esc(c.moto) + ' ' + esc(c.color) + ' · Placa ' + esc(c.placa) + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' +
+        '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="admDocs" data-v="' + c.id + '" aria-expanded="' + open + '">' + (open ? 'Ocultar documentos' : 'Ver documentos') + '</button>';
+      if (open) {
+        if (!dl || dl === 'cargando') h += '<div class="spinner" role="status" aria-label="Cargando documentos"></div>';
+        else h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + DOCS_C.map(d => {
+          const x = dl[d[0]], big = S.admBig === c.id + ':' + d[0];
+          return '<div class="col" style="gap:4px' + (big ? ';grid-column:1 / -1' : '') + '"><span class="small strong">' + d[1] + '</span>' + (x ? '<button data-act="admBig" data-v="' + c.id + ':' + d[0] + '" aria-label="' + (big ? 'Reducir ' : 'Ampliar ') + d[1] + '" style="padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--field)"><img src="' + x + '" alt="' + d[1] + ' de ' + esc(c.nombre) + '" style="width:100%;' + (big ? 'height:auto' : 'height:110px;object-fit:cover') + ';display:block"></button>' : '<div class="pill p-danger" style="align-self:flex-start">Falta</div>') + '</div>';
+        }).join('') + '</div>';
+      }
+      const canApprove = nDocs === 4;
+      h += (c.estado !== 'aprobado' && !canApprove ? '<div class="muted small">' + (nDocs === null ? 'Revisa los documentos antes de aprobar.' : 'Faltan ' + (4 - nDocs) + ' documento(s); no se puede aprobar.') + '</div>' : '') + '<div class="row">' +
+        (c.estado !== 'aprobado' ? '<button class="btn btn-gold btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="aprobado"' + (S.busy || !canApprove ? ' disabled' : '') + '>Aprobar</button>' : '') +
         (c.estado === 'pendiente' ? '<button class="btn btn-ghost btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="rechazado"' + busyAttr() + '>Rechazar</button>' : '') +
         (c.estado === 'aprobado' ? '<button class="btn btn-ghost btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="suspendido"' + busyAttr() + '>Suspender</button>' : '') + '</div></div>';
     });
@@ -631,6 +693,7 @@ function enter(s) {
     }));
     startWatch(); refreshRoute();
   }
+  if (s === 'registroC' && S.conductor) { if (S.docsFor !== S.user.uid) loadMyDocs(); }
   if (s === 'micalif') { S.cal = null; delete S.ratings[S.user.uid]; loadRating(S.user.uid, ['conductores', S.user.uid, 'calificaciones']).then(r => { S.cal = r || { n: 0 }; if (S.screen === 'micalif') render(); }); }
   if (s === 'historial') {
     S.hist = null;
@@ -720,7 +783,23 @@ appEl.addEventListener('input', e => {
   if (k === 'cOtro') { const id = e.target.getAttribute('data-id'); S.cOtro[id] = Object.assign(S.cOtro[id] || { open: true }, { val: v }); return; }
   S.f[k] = v;
 });
-appEl.addEventListener('change', e => { const k = e.target.getAttribute('data-in'); if (k && e.target.type === 'checkbox') S.f[k] = e.target.checked; });
+appEl.addEventListener('change', async e => {
+  const k = e.target.getAttribute('data-in'); if (k && e.target.type === 'checkbox') S.f[k] = e.target.checked;
+  const t = e.target.getAttribute('data-docup');
+  if (t && e.target.files && e.target.files[0]) {
+    S.err = null; S.docMsg = 'Procesando la foto…'; render();
+    try {
+      const img = await compressImage(e.target.files[0]);
+      S.docs[t] = { img, estado: 'local' };
+      if (S.conductor && S.conductor.estado !== 'aprobado') {
+        S.docMsg = 'Enviando la foto…'; render();
+        await setDoc(doc(db, 'conductores', S.user.uid, 'documentos', t), { tipo: t, img, subido: serverTimestamp() });
+        S.docs[t].estado = 'subido';
+      }
+      S.docMsg = ''; render();
+    } catch (err) { S.docMsg = ''; S.err = err && err.code ? errMsg(err) : (err.message || 'No se pudo procesar la foto.'); render(); }
+  }
+});
 
 async function act(a, v, b) {
   const uid = S.user && S.user.uid;
@@ -737,12 +816,12 @@ async function act(a, v, b) {
     case 'closeBanner': S.banner = null; render(); break;
     case 'closeErr': S.err = null; render(); break;
     case 'toggleCrear': S.f.modoCrear = !S.f.modoCrear; S.err = null; render(); break;
-    case 'google': S.busy = true; S.err = null; render(); try { await signInWithPopup(auth, new GoogleAuthProvider()); S.busy = false; } catch (e) { fail(e); } break;
+    case 'google': S.busy = true; S.err = null; render(); try { await signInWithPopup(auth, new GoogleAuthProvider()); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'signin': case 'signup': {
       const em = (S.f.email || '').trim(), pw = S.f.pass || '';
       if (!em || !pw) { S.err = 'Escribe tu correo y tu contraseña.'; render(); break; }
       S.busy = true; S.err = null; render();
-      try { if (a === 'signup') await createUserWithEmailAndPassword(auth, em, pw); else await signInWithEmailAndPassword(auth, em, pw); S.busy = false; S.f.pass = ''; } catch (e) { fail(e); }
+      try { if (a === 'signup') await createUserWithEmailAndPassword(auth, em, pw); else await signInWithEmailAndPassword(auth, em, pw); S.busy = false; render(); S.f.pass = ''; } catch (e) { fail(e); }
       break;
     }
     case 'reset': {
@@ -794,7 +873,7 @@ async function act(a, v, b) {
     }
     case 'cancelTrip':
       S.busy = true; render();
-      try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid }); S.busy = false; } catch (e) { fail(e); }
+      try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid }); S.busy = false; render(); } catch (e) { fail(e); }
       break;
     case 'accept':
       S.busy = true; render();
@@ -807,7 +886,7 @@ async function act(a, v, b) {
           const o = os.data();
           tx.update(vref, { estado: 'asignado', conductorId: v, precioFinal: o.precio, conductor: { nombre: o.nombre, moto: o.moto, color: o.color, placa: o.placa }, asignadoEn: serverTimestamp() });
         });
-        S.busy = false;
+        S.busy = false; render();
       } catch (e) { fail(e); }
       break;
     case 'sos': S.sos = S.sos === 'sent' ? 'sent' : 'confirm'; render(); break;
@@ -851,8 +930,18 @@ async function act(a, v, b) {
       if (moto.length < 2) { S.err = 'Escribe la marca y el modelo del motocarro.'; render(); break; }
       if (color.length < 2) { S.err = 'Escribe el color del motocarro.'; render(); break; }
       if (!/^[A-Z0-9]{5,7}$/.test(placa) || !/[A-Z]/.test(placa) || !/[0-9]/.test(placa)) { S.err = 'La placa debe tener entre 5 y 7 letras y números, por ejemplo ABC12D.'; render(); break; }
-      S.busy = true; render();
-      try { await setDoc(doc(db, 'conductores', uid), { nombre: S.perfil.nombre, moto, color, placa, estado: 'pendiente', creado: serverTimestamp() }); S.busy = false; S.banner = { kind: 'info', text: 'Registro enviado. Lleva tus documentos a la oficina de JNF S.A.S. para la verificación.' }; go('menu'); } catch (e) { fail(e); }
+      const falta = DOCS_C.filter(d => !S.docs[d[0]]).map(d => d[1]);
+      if (falta.length) { S.err = 'Falta subir: ' + falta.join(', ') + '.'; render(); break; }
+      S.busy = true; S.docMsg = 'Enviando registro…'; render();
+      try {
+        if (!S.conductor) await setDoc(doc(db, 'conductores', uid), { nombre: S.perfil.nombre, moto, color, placa, estado: 'pendiente', creado: serverTimestamp() });
+        let n = 0;
+        for (const d of DOCS_C) {
+          n++; S.docMsg = 'Subiendo documentos (' + n + ' de 4)…'; render();
+          if (S.docs[d[0]].estado === 'local') { await setDoc(doc(db, 'conductores', uid, 'documentos', d[0]), { tipo: d[0], img: S.docs[d[0]].img, subido: serverTimestamp() }); S.docs[d[0]].estado = 'subido'; }
+        }
+        S.docMsg = ''; S.busy = false; S.banner = { kind: 'info', text: 'Registro enviado. El administrador revisará tus documentos.' }; go('menu');
+      } catch (e) { S.docMsg = ''; fail(e); }
       break;
     }
     case 'online':
@@ -877,15 +966,21 @@ async function act(a, v, b) {
       try { await deleteDoc(doc(db, 'viajes', S.espera.viajeId, 'ofertas', uid)); } catch (e) { }
       S.espera = null; go('solicitudes'); break;
     case 'backToRequests': S.espera = null; go('solicitudes'); break;
-    case 'cStart': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'en_curso', iniciadoEn: serverTimestamp() }); S.busy = false; } catch (e) { fail(e); } break;
-    case 'cFinish': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'finalizado', finalizadoEn: serverTimestamp() }); S.busy = false; } catch (e) { fail(e); } break;
-    case 'cCancel': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid }); S.busy = false; } catch (e) { fail(e); } break;
+    case 'cStart': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'en_curso', iniciadoEn: serverTimestamp() }); S.busy = false; render(); } catch (e) { fail(e); } break;
+    case 'cFinish': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'finalizado', finalizadoEn: serverTimestamp() }); S.busy = false; render(); } catch (e) { fail(e); } break;
+    case 'cCancel': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid }); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'cSendRating':
       S.busy = true; render();
       try { await setDoc(doc(db, 'usuarios', S.viaje.pasajeroId, 'calificaciones', S.viaje.id), { estrellas: S.rating, aspectos: Object.keys(S.chips).filter(k => S.chips[k]), creado: serverTimestamp() }); S.busy = false; endDriverTrip(); } catch (e) { fail(e); }
       break;
     case 'cSkipRating': endDriverTrip(); break;
     case 'admTab': S.admTab = v; render(); break;
+    case 'admDocs':
+      if (S.admOpen === v) { S.admOpen = null; S.admBig = null; render(); break; }
+      S.admOpen = v; S.admBig = null; S.admDocs[v] = 'cargando'; render();
+      try { const qs = await getDocs(collection(db, 'conductores', v, 'documentos')); const m = {}; qs.docs.forEach(x => { m[x.id] = x.data().img; }); S.admDocs[v] = m; } catch (e) { S.admDocs[v] = {}; S.err = errMsg(e); }
+      render(); break;
+    case 'admBig': S.admBig = S.admBig === v ? null : v; render(); break;
     case 'admSet': S.busy = true; render(); try { await updateDoc(doc(db, 'conductores', v), { estado: b.getAttribute('data-p') }); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'admAlert': S.busy = true; render(); try { await updateDoc(doc(db, 'alertas', v), { estado: 'atendida' }); S.busy = false; render(); } catch (e) { fail(e); } break;
   }
