@@ -62,7 +62,7 @@ const S = {
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
   offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
-  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null,
+  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
   cal: null, hist: null, admTab: 'conductores', adm: {}
@@ -130,10 +130,14 @@ function vHome() {
   else gps = '<div class="banner warn">' + I.info + '<div class="grow">No pudimos obtener tu ubicación. Activa el GPS y el permiso de ubicación del navegador, o escribe con detalle dónde te recogen.</div><button data-act="retryGps">Reintentar</button></div>';
   let h = '<div class="screen"><div class="row between" style="padding:12px 16px;background:var(--bg)"><button class="iconbtn light" data-act="go" data-v="menu" aria-label="Abrir menú">' + I.menu + '</button>' +
     '<div class="row" style="background:#1A2580;border-radius:28px;padding:4px 16px 4px 4px"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">JNF Moto</span></div><div style="width:44px"></div></div>';
-  h += S.gps === 'ok' ? '<div id="map" class="lmap" role="img" aria-label="Mapa con tu ubicación"></div>' : '';
+  h += S.gps === 'ok' ? '<div id="map" class="lmap" role="img" aria-label="Mapa con tu ubicación' + (S.destPin ? ' y el destino' : '') + '"></div>' + legendHTML([['person', 'Tú'], ['otro', 'Conductores cerca']].concat(S.destPin ? [['dest', 'Destino']] : [])) : '';
   h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + '<h1 class="h1">¿A dónde vas?</h1>';
   h += '<div class="field"><label for="ref">Punto de recogida (referencia)</label><input type="text" id="ref" data-in="ref" placeholder="Ej. Frente a la tienda azul, Calle 5" value="' + fv('ref') + '">' + gps + '</div>';
-  h += '<div class="field"><label for="destino">Destino</label><input type="text" id="destino" data-in="destino" placeholder="Barrio, dirección o lugar" value="' + fv('destino') + '" autocomplete="off"></div>';
+  h += '<div class="field"><label for="destino">Destino</label><input type="text" id="destino" data-in="destino" placeholder="Barrio, dirección o lugar" value="' + fv('destino') + '" autocomplete="off">';
+  if (S.pickDest) h += '<div class="banner info">' + I.info + '<div class="grow">Toca el mapa en el punto exacto de tu destino.</div><button data-act="pickDest">Cancelar</button></div>';
+  else if (S.destPin) h += '<div class="row between" style="flex-wrap:wrap;gap:6px"><span class="muted small">Destino marcado · recorrido estimado: <b data-eta>' + esc(etaText()) + '</b></span><button class="link" data-act="clearDest" style="font-size:13px;min-height:36px">Quitar</button></div>';
+  else if (S.gps === 'ok') h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))"><button class="btn btn-ghost btn-sm" style="width:100%" data-act="geoDest"' + busyAttr() + '>Ubicar en el mapa</button><button class="btn btn-ghost btn-sm" style="width:100%" data-act="pickDest">Marcar en el mapa</button></div>';
+  h += '</div>';
   const sel = {}; sel[S.f.destino] = true;
   h += '<div class="col" style="gap:8px"><span class="lbl">Lugares frecuentes</span>' + chipsHTML(FREQ, sel, 'freq') + '</div>';
   h += '<div class="offerbox"><span class="lbl">Tu oferta</span><div class="stepper"><button class="round" data-act="minus" aria-label="Bajar oferta 500 pesos"' + (S.offer <= MIN ? ' disabled' : '') + '>−</button><div class="amount" id="amount">' + money(S.offer) + '</div><button class="round solid" data-act="plus" aria-label="Subir oferta 500 pesos">+</button></div>' +
@@ -172,11 +176,11 @@ function sosBlock() {
 }
 function vViaje() {
   const v = S.viaje || {}, c = v.conductor || {}, st = v.estado;
-  const title = st === 'asignado' ? 'Tu conductor va en camino' : st === 'en_curso' ? 'Vas en camino a' : 'Estado del viaje';
-  const km = distKm(S.drvPos, v.origen);
-  const big = st === 'asignado' ? (km != null ? 'A ' + fmtDist(km) : 'Ubicando conductor…') : esc(v.destino ? v.destino.texto : '');
-  let h = '<div class="screen"><div class="top" style="gap:10px"><div class="row between"><div class="col"><div class="sub">' + title + '</div><div class="h1" style="color:#C9A227" id="bigline">' + big + '</div></div><button class="sos" data-act="sos" aria-label="Botón de pánico">SOS</button></div></div>';
-  h += '<div id="map" class="lmap tall" role="img" aria-label="Mapa del viaje"></div>';
+  const hasDest = !!destOf(v);
+  const sub = st === 'asignado' ? 'Tu conductor llega en' : hasDest ? 'Llegas a ' + esc(v.destino.texto) + ' en' : 'Vas en camino a';
+  const big = st === 'asignado' ? '<span data-eta>' + esc(S.drvPos ? etaText() : 'Ubicando al conductor…') + '</span>' : hasDest ? '<span data-eta>' + esc(etaText()) + '</span>' : esc(v.destino ? v.destino.texto : '');
+  let h = '<div class="screen"><div class="top" style="gap:10px"><div class="row between"><div class="col"><div class="sub">' + sub + '</div><div class="h1" style="color:#C9A227">' + big + '</div></div><button class="sos" data-act="sos" aria-label="Botón de pánico">SOS</button></div></div>';
+  h += '<div id="map" class="lmap tall" role="img" aria-label="Mapa del viaje"></div>' + legendHTML(st === 'asignado' ? [['person', 'Tú'], ['moto', 'Tu conductor'], ['otro', 'Otros conductores']] : [['moto', 'Tu conductor']].concat(hasDest ? [['dest', 'Destino']] : []));
   h += '<div class="sheet"><div class="handle"></div>' + sosBlock() + errHTML() + bannerHTML(S.banner);
   h += '<div class="row"><div class="avatar lg">' + esc(initials(c.nombre)) + '</div><div class="col grow"><div class="strong" style="font-size:16px">' + esc(c.nombre) + '</div><div class="muted">' + ratingLine(S.ratings[v.conductorId]) + '</div><div class="muted">' + esc(c.moto) + ' ' + esc(c.color) + '</div></div><div class="plate">' + esc(c.placa) + '</div></div>';
   h += S.cPhone ? '<a class="btn btn-ghost" href="tel:' + esc(S.cPhone) + '">' + I.phone + 'Llamar al conductor</a>' : '';
@@ -257,6 +261,8 @@ function vSolicitudes() {
     const o = S.cOtro[r.id] || {}, pr = S.ratings['p_' + r.pasajeroId], km = distKm(S.pos, r.origen);
     h += '<div class="card"><div class="row between" style="align-items:flex-start"><div class="col"><div class="strong">' + esc(r.pasajeroNombre) + ' <span class="muted" style="font-weight:500">' + (pr ? '★ ' + fmtRating(pr.avg) : '') + '</span></div><div class="muted small">' + (km != null ? 'A ' + fmtDist(km) + ' de ti' : 'Distancia no disponible') + '</div></div><div class="col" style="align-items:flex-end;gap:4px"><div class="price">' + money(r.oferta) + '</div><span class="pill ' + (r.pago === 'transferencia' ? 'p-info' : 'p-ok') + '">' + pagoTxt(r) + '</span></div></div>' +
       '<div class="col" style="gap:6px"><div class="row"><span class="dot"></span>' + esc(r.origen.texto) + '</div><div class="row"><span class="sq"></span>' + esc(r.destino.texto) + '</div>' + (r.nota ? '<div class="muted small">Nota: ' + esc(r.nota) + '</div>' : '') + '</div>' +
+      (pickupOf(r) ? '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="reqMap" data-v="' + r.id + '" aria-expanded="' + (S.reqMap === r.id) + '">' + (S.reqMap === r.id ? 'Ocultar mapa' : 'Ver ubicación del pasajero') + '</button>' : '<div class="muted small">El pasajero no compartió su GPS; usa la referencia.</div>') +
+      (S.reqMap === r.id ? '<div style="border-radius:12px;overflow:hidden;border:1px solid var(--line)"><div id="map" class="lmap" style="height:220px" role="img" aria-label="Mapa con la ubicación del pasajero"></div>' + legendHTML([['person', 'Pasajero'], ['moto', 'Tú']].concat(destOf(r) ? [['dest', 'Destino']] : [])) + '</div>' : '') +
       '<button class="btn btn-gold" data-act="cOffer" data-v="' + r.id + '" data-p="' + r.oferta + '" style="min-height:48px;font-size:15px"' + busyAttr() + '>Aceptar ' + money(r.oferta) + '</button>' +
       '<div class="col" style="gap:6px"><span class="lbl">O contraoferta</span><div class="grid4">' + [500, 1000, 1500].map(d => '<button class="cbtn" data-act="cOffer" data-v="' + r.id + '" data-p="' + (r.oferta + d) + '"' + busyAttr() + '>' + money(r.oferta + d) + '</button>').join('') +
       '<button class="cbtn other" data-act="cOtroToggle" data-v="' + r.id + '" aria-expanded="' + !!o.open + '" aria-label="Escribir otro valor">Otro</button></div></div>';
@@ -274,12 +280,14 @@ function vEspera() {
   return h + '<div class="card"><div class="spinner" aria-hidden="true"></div><div class="row"><span class="dot"></span>' + esc(e.origen) + '</div><div class="row"><span class="sq"></span>' + esc(e.destino) + '</div></div><button class="btn btn-ghost" data-act="cWithdraw"' + busyAttr() + '>Retirar oferta</button></div></div>';
 }
 function vCViaje() {
-  const v = S.viaje || {}, st = v.estado, o = v.origen || {}, target = st === 'asignado' ? o : null;
-  const q = target && target.lat != null ? target.lat + ',' + target.lng : encodeURIComponent(st === 'asignado' ? o.texto : v.destino.texto);
-  const waze = target && target.lat != null ? 'https://waze.com/ul?ll=' + q + '&navigate=yes' : 'https://waze.com/ul?q=' + q + '&navigate=yes';
+  const v = S.viaje || {}, st = v.estado, o = v.origen || {}, live = S.paxPos || pickupOf(v), dst = destOf(v), target = st === 'asignado' ? live : dst;
+  const q = target ? target.lat + ',' + target.lng : encodeURIComponent(st === 'asignado' ? o.texto : v.destino.texto);
+  const waze = target ? 'https://waze.com/ul?ll=' + q + '&navigate=yes' : 'https://waze.com/ul?q=' + q + '&navigate=yes';
   const gm = 'https://www.google.com/maps/dir/?api=1&destination=' + q;
   let h = '<div class="screen"><div class="top" style="gap:10px"><div class="row between"><div class="col"><div class="sub">' + (st === 'asignado' ? 'Recoge a' : 'Lleva a') + '</div><div class="h1" style="color:#C9A227">' + esc(st === 'asignado' ? v.pasajeroNombre : v.destino.texto) + '</div></div><button class="sos" data-act="sos" aria-label="Botón de pánico">SOS</button></div></div>';
-  h += '<div id="map" class="lmap" role="img" aria-label="Mapa del viaje"></div><div class="sheet"><div class="handle"></div>' + sosBlock() + errHTML() + bannerHTML(S.banner);
+  h += '<div id="map" class="lmap" role="img" aria-label="Mapa del viaje"></div>' + legendHTML(st === 'asignado' ? [['moto', 'Tú'], ['person', 'Pasajero'], ['otro', 'Otros conductores']] : [['moto', 'Tú']].concat(dst ? [['dest', 'Destino']] : [])) + '<div class="sheet"><div class="handle"></div>' + sosBlock() + errHTML() + bannerHTML(S.banner);
+  if (st === 'asignado') h += live ? '<div class="row between"><span class="muted">Ruta hasta el pasajero</span><span class="strong" data-eta>' + esc(S.pos ? etaText() : 'Ubicándote…') + '</span></div>' : '<div class="banner warn">' + I.info + '<div class="grow">El pasajero no compartió su GPS. Guíate por la referencia y llámalo.</div></div>';
+  if (st === 'en_curso') h += dst ? '<div class="row between"><span class="muted">Ruta hasta el destino</span><span class="strong" data-eta>' + esc(S.pos ? etaText() : 'Ubicándote…') + '</span></div>' : '<div class="banner warn">' + I.info + '<div class="grow">El destino no está marcado en el mapa. Usa Waze o Google Maps con la dirección.</div></div>';
   h += '<div class="row"><div class="avatar">' + esc(initials(v.pasajeroNombre)) + '</div><div class="col grow"><div class="strong">' + esc(v.pasajeroNombre) + '</div><div class="muted small">' + (S.ratings['p_' + v.pasajeroId] ? '★ ' + fmtRating(S.ratings['p_' + v.pasajeroId].avg) + ' como pasajero' : 'Pasajero') + '</div></div><div class="col" style="align-items:flex-end"><span class="muted small">' + cobroTxt(v) + '</span><span class="price">' + money(v.precioFinal || 0) + '</span></div></div>';
   h += '<div class="offerbox" style="gap:8px"><div class="row"><span class="dot"></span>' + esc(o.texto) + '</div><div class="row"><span class="sq"></span>' + esc(v.destino.texto) + '</div>' + (v.nota ? '<div class="muted small">Nota: ' + esc(v.nota) + '</div>' : '') + '</div>';
   h += '<div class="row"><a class="btn btn-ghost" style="flex:1" target="_blank" rel="noopener" href="' + waze + '">Navegar con Waze</a><a class="btn btn-ghost" style="flex:1" target="_blank" rel="noopener" href="' + gm + '">Google Maps</a></div>';
@@ -347,28 +355,134 @@ const V = {
   terminos: () => vTexto('Términos y tratamiento de datos', '<div class="muted">Asesorías y Consultorías JNF S.A.S. trata tus datos personales (nombre, celular y ubicación durante los viajes) conforme a la Ley 1581 de 2012, únicamente para prestar el servicio de la app.</div><div class="muted">[Texto completo de la política de tratamiento de datos]</div>')
 };
 
-/* ---------- mapa (Leaflet + OpenStreetMap) ---------- */
+/* ---------- mapa (Leaflet + OpenStreetMap), íconos y rutas (OSRM) ---------- */
+const GOLD = '#C9A227', GREEN = '#1F6F43', GREY = '#8A919E';
+// Azul que se adapta al tema: marino en modo claro, azul claro en modo oscuro (variable --route del tema)
+const navyCol = () => (getComputedStyle(document.documentElement).getPropertyValue('--route') || '').trim() || '#1A2580';
+const SVG = {
+  moto: '<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="16.5" r="3"/><circle cx="18.5" cy="16.5" r="3"/><path d="M5.5 16.5l3.5-6h5l4.5 6"/><path d="M13.5 10.5l1.5-3.5h3"/><path d="M9 10.5h-2"/></svg>',
+  person: '<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.6" fill="#FFFFFF"/><path d="M12 9v6.5"/><path d="M7.5 12h9"/><path d="M12 15.5l-3.2 5"/><path d="M12 15.5l3.2 5"/></svg>',
+  flag: '<svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6" fill="#FFFFFF"/></svg>'
+};
+const KIND = {
+  moto: () => ({ svg: SVG.moto, bg: GOLD, size: 36, op: 1 }),
+  otro: () => ({ svg: SVG.moto, bg: GREY, size: 28, op: 0.55 }),
+  person: () => ({ svg: SVG.person, bg: navyCol(), size: 34, op: 1 }),
+  dest: () => ({ svg: SVG.flag, bg: GREEN, size: 34, op: 1 })
+};
+const badge = (k, px) => { const s = KIND[k](), n = px || s.size; return '<span class="jm-badge" style="width:' + n + 'px;height:' + n + 'px;background:' + s.bg + ';opacity:' + s.op + '">' + s.svg + '</span>'; };
+const pickupOf = v => v && v.origen && v.origen.lat != null ? { lat: v.origen.lat, lng: v.origen.lng } : null;
+const destOf = v => v && v.destino && v.destino.lat != null ? { lat: v.destino.lat, lng: v.destino.lng } : null;
+// Marcadores de cada pantalla: [clave, posición, tipo, etiqueta]
+function mapPoints() {
+  const v = S.viaje, st = v && v.estado, m = [];
+  if (S.screen === 'home') { if (S.pos) m.push(['me', S.pos, 'person', 'Tú']); if (S.destPin) m.push(['dest', S.destPin, 'dest', 'Destino']); }
+  if (S.screen === 'solicitudes' && S.reqMap) { const r = S.requests.find(x => x.id === S.reqMap); if (r) { const p = pickupOf(r), d = destOf(r); if (p) m.push(['pax', p, 'person', 'Pasajero']); if (d) m.push(['dest', d, 'dest', 'Destino']); if (S.pos) m.push(['me', S.pos, 'moto', 'Tú']); } }
+  if (S.screen === 'viaje') {
+    const me = S.pos || pickupOf(v); if (me && st === 'asignado') m.push(['me', me, 'person', 'Tú']);
+    if (S.drvPos) m.push(['drv', S.drvPos, 'moto', 'Tu conductor']);
+    if (st === 'en_curso' && destOf(v)) m.push(['dest', destOf(v), 'dest', 'Destino']);
+  }
+  if (S.screen === 'cviaje') {
+    if (S.pos) m.push(['me', S.pos, 'moto', 'Tú']);
+    if (st === 'asignado') { const p = S.paxPos || pickupOf(v); if (p) m.push(['pax', p, 'person', 'Pasajero']); }
+    if (st === 'en_curso' && destOf(v)) m.push(['dest', destOf(v), 'dest', 'Destino']);
+  }
+  return m;
+}
 function mountMap() {
   const el = document.getElementById('map'); if (!el || !window.L) return;
-  const L = window.L; mk = {};
-  const v = S.viaje, center = (S.screen === 'home' ? S.pos : (v && v.origen && v.origen.lat != null ? v.origen : S.pos)) || null;
-  if (!center) { el.outerHTML = ''; return; }
-  map = L.map(el, { zoomControl: true, attributionControl: true, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, inertia: false }).setView([center.lat, center.lng], 16);
+  const pts = mapPoints(); mk = {};
+  if (!pts.length) { el.innerHTML = '<div class="muted small" style="padding:16px">Esperando la ubicación GPS…</div>'; return; }
+  const L = window.L;
+  map = L.map(el, { zoomControl: true, attributionControl: true, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, inertia: false }).setView([pts[0][1].lat, pts[0][1].lng], 16);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
-  const dot = (color, r) => ({ radius: r, color: '#FFFFFF', weight: 3, fillColor: color, fillOpacity: 1 });
-  if (S.screen === 'home') mk.me = L.circleMarker([center.lat, center.lng], dot('#1A2580', 9)).addTo(map);
-  else {
-    if (v && v.origen && v.origen.lat != null) mk.origen = L.circleMarker([v.origen.lat, v.origen.lng], dot('#1A2580', 9)).addTo(map).bindTooltip('Recogida');
-    const d = S.screen === 'cviaje' ? S.pos : S.drvPos;
-    if (d) mk.moto = L.circleMarker([d.lat, d.lng], dot('#C9A227', 11)).addTo(map).bindTooltip(S.screen === 'cviaje' ? 'Tú' : 'Conductor');
-    fitMap();
-  }
+  pts.forEach(p => setMarker(p[0], p[1], p[2], p[3]));
+  syncOthers(); drawRoute(); fitMap();
+  if (S.screen === 'home') map.on('click', e => { if (!S.pickDest) return; S.destPin = { lat: e.latlng.lat, lng: e.latlng.lng }; S.pickDest = false; S.route = null; render(); });
+  if (S.screen === 'home' && S.pickDest) el.style.cursor = 'crosshair';
 }
-function fitMap() { if (!map || !window.L) return; const pts = []; if (mk.origen) pts.push(mk.origen.getLatLng()); if (mk.moto) pts.push(mk.moto.getLatLng()); if (pts.length === 2) map.fitBounds(window.L.latLngBounds(pts), { padding: [40, 40], maxZoom: 17, animate: false }); }
-function moveMoto(p) {
-  if (!map || !p || !window.L || !document.getElementById('map')) return;
-  if (mk.moto) mk.moto.setLatLng([p.lat, p.lng]); else mk.moto = window.L.circleMarker([p.lat, p.lng], { radius: 11, color: '#FFFFFF', weight: 3, fillColor: '#C9A227', fillOpacity: 1 }).addTo(map);
-  fitMap();
+function setMarker(key, pos, kind, label) {
+  if (!map || !pos || !window.L || !document.getElementById('map')) return;
+  if (mk[key]) { mk[key].setLatLng([pos.lat, pos.lng]); return; }
+  const s = KIND[kind]();
+  const icon = window.L.divIcon({ className: 'jm-icon', html: badge(kind), iconSize: [s.size, s.size], iconAnchor: [s.size / 2, s.size / 2] });
+  mk[key] = window.L.marker([pos.lat, pos.lng], { icon, keyboard: false, zIndexOffset: kind === 'otro' ? 0 : 500, title: label, alt: label }).addTo(map).bindTooltip(label);
+}
+function removeMarker(key) { if (mk[key] && map) { map.removeLayer(mk[key]); delete mk[key]; } }
+// Otros conductores conectados: motos grises y semitransparentes
+function syncOthers() {
+  if (!map) return;
+  const keep = {}, now = Date.now(), me = S.user && S.user.uid, assigned = S.viaje && S.viaje.conductorId;
+  const show = S.screen === 'home' || S.screen === 'viaje' || S.screen === 'cviaje' || (S.screen === 'solicitudes' && S.reqMap);
+  if (show) Object.keys(S.others || {}).forEach(uid => {
+    const o = S.others[uid];
+    if (!o || o.rol !== 'conductor' || uid === me || uid === assigned || typeof o.ts !== 'number' || now - o.ts > 3 * 60 * 1000) return;
+    keep['o_' + uid] = true; setMarker('o_' + uid, { lat: o.lat, lng: o.lng }, 'otro', 'Otro conductor');
+  });
+  Object.keys(mk).forEach(k => { if (k.indexOf('o_') === 0 && !keep[k]) removeMarker(k); });
+}
+function fitMap() {
+  if (!map || !window.L) return;
+  const ll = Object.keys(mk).filter(k => k !== 'route' && k.indexOf('o_') !== 0).map(k => mk[k].getLatLng());
+  if (mk.route) ll.push(...mk.route.getLatLngs());
+  if (ll.length >= 2) map.fitBounds(window.L.latLngBounds(ll), { padding: [44, 44], maxZoom: 17, animate: false });
+}
+// Tramo que se dibuja: recogida mientras está asignado; destino durante el viaje; vista previa en el inicio
+function routeEnds() {
+  const v = S.viaje, st = v && v.estado;
+  if (S.screen === 'home') return [S.pos, S.destPin];
+  if (S.screen === 'viaje') return st === 'asignado' ? [S.drvPos, S.pos || pickupOf(v)] : st === 'en_curso' ? [S.drvPos || S.pos, destOf(v)] : [null, null];
+  if (S.screen === 'cviaje') return st === 'asignado' ? [S.pos, S.paxPos || pickupOf(v)] : st === 'en_curso' ? [S.pos, destOf(v)] : [null, null];
+  return [null, null];
+}
+const routeActive = () => { const e = routeEnds(); return !!(e[0] && e[1]) || (S.screen !== 'home' && S.viaje && S.viaje.estado === 'asignado'); };
+function drawRoute() {
+  if (!map || !window.L) return;
+  if (mk.route) { map.removeLayer(mk.route); delete mk.route; }
+  const e = routeEnds();
+  if (S.route && e[0] && e[1] && S.route.key === routeKey()) mk.route = window.L.polyline(S.route.coords, { color: S.route.straight ? '#8A93B8' : navyCol(), weight: 5, opacity: 0.85, dashArray: S.route.straight ? '8 8' : null }).addTo(map);
+}
+const routeKey = () => S.screen + ':' + (S.viaje ? S.viaje.estado : 'previa');
+let routeBusy = false;
+async function refreshRoute() {
+  if (routeBusy) return;
+  const [a, b] = routeEnds(); if (!a || !b) return;
+  const r = S.route, key = routeKey();
+  if (r && r.key === key && distKm(r.from, a) < 0.15 && distKm(r.to, b) < 0.05 && Date.now() - r.at < 60000) return;
+  routeBusy = true;
+  try {
+    const res = await fetch('https://router.project-osrm.org/route/v1/driving/' + a.lng + ',' + a.lat + ';' + b.lng + ',' + b.lat + '?overview=full&geometries=geojson');
+    const j = await res.json(); const rt = j && j.routes && j.routes[0]; if (!rt) throw new Error('sin ruta');
+    S.route = { key, coords: rt.geometry.coordinates.map(c => [c[1], c[0]]), dist: rt.distance / 1000, dur: rt.duration / 60, from: a, to: b, at: Date.now() };
+  } catch (e) {
+    S.route = { key, coords: [[a.lat, a.lng], [b.lat, b.lng]], dist: distKm(a, b), dur: null, straight: true, from: a, to: b, at: Date.now() };
+  }
+  routeBusy = false; drawRoute(); fitMap(); updateEta();
+}
+function etaText() {
+  const r = S.route; if (r && r.key === routeKey() && r.dur != null) return Math.max(1, Math.round(r.dur)) + ' min · ' + fmtDist(r.dist);
+  const e = routeEnds(), km = distKm(e[0], e[1]);
+  return km != null ? fmtDist(km) + ' en línea recta' : 'Ubicando…';
+}
+function updateEta() { document.querySelectorAll('[data-eta]').forEach(el => { el.textContent = etaText(); }); }
+function legendHTML(items) {
+  const e = routeEnds(), withRoute = !!(e[0] && e[1]);
+  return '<div class="row small" style="gap:14px;flex-wrap:wrap;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--line)">' +
+    items.map(it => '<span class="row" style="gap:6px">' + badge(it[0], 20) + it[1] + '</span>').join('') +
+    (withRoute ? '<span class="row" style="gap:6px"><span style="width:18px;height:4px;border-radius:2px;background:' + navyCol() + ';flex-shrink:0"></span>Ruta</span>' : '') + '</div>';
+}
+// Ubicaciones en vivo (conductores conectados y el pasajero del viaje)
+function listenOthers() {
+  addSub(onValue(ref(rtdb, 'ubicaciones'), snap => { S.others = snap.val() || {}; syncOthers(); }, () => { }));
+}
+// Búsqueda de dirección con Nominatim (OpenStreetMap), solo al tocar el botón
+async function geocodeDestino(q) {
+  let url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=co&q=' + encodeURIComponent(q);
+  if (S.pos) url += '&viewbox=' + (S.pos.lng - 0.08) + ',' + (S.pos.lat + 0.08) + ',' + (S.pos.lng + 0.08) + ',' + (S.pos.lat - 0.08) + '&bounded=1';
+  const res = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+  const j = await res.json();
+  return j && j[0] ? { lat: parseFloat(j[0].lat), lng: parseFloat(j[0].lon) } : null;
 }
 
 /* ---------- render y navegación ---------- */
@@ -376,6 +490,7 @@ function render() {
   if (map) { try { map.remove(); } catch (e) { } map = null; }
   appEl.innerHTML = V[S.screen]();
   mountMap();
+  const ends = routeEnds(); if (ends[0] && ends[1]) refreshRoute();
 }
 function go(s) { clearSubs(); if (S.banner && S.banner._seen) S.banner = null; S.screen = s; S.err = null; S.busy = false; render(); if (S.banner) S.banner._seen = true; window.scrollTo(0, 0); enter(s); }
 function fail(e) { S.busy = false; S.err = errMsg(e); render(); }
@@ -387,15 +502,31 @@ function getGps() {
   navigator.geolocation.getCurrentPosition(p => { S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; S.gps = 'ok'; if (S.screen === 'home') render(); },
     () => { if (!S.pos) { S.gps = 'error'; if (S.screen === 'home') render(); } }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
 }
+function gpsOnce(ms) {
+  return new Promise(res => {
+    if (!navigator.geolocation) return res(null);
+    let done = false; const t = setTimeout(() => { if (!done) { done = true; res(null); } }, ms);
+    navigator.geolocation.getCurrentPosition(p => { if (done) return; done = true; clearTimeout(t); S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; S.gps = 'ok'; res(S.pos); },
+      () => { if (done) return; done = true; clearTimeout(t); res(null); }, { enableHighAccuracy: true, timeout: ms, maximumAge: 30000 });
+  });
+}
+function pushPos(force) {
+  const now = Date.now();
+  if (!S.pos || !S.user || !(S.online || S.sharing)) return;
+  if (!force && now - lastPush < 10000) return;
+  lastPush = now; set(ref(rtdb, 'ubicaciones/' + S.user.uid), { lat: S.pos.lat, lng: S.pos.lng, ts: rtdbTime(), rol: S.online ? 'conductor' : 'pasajero' }).catch(() => { });
+}
 function startWatch() {
-  if (watchId != null || !navigator.geolocation) return;
+  if (watchId != null || !navigator.geolocation) { pushPos(true); return; }
   watchId = navigator.geolocation.watchPosition(p => {
     S.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
-    const now = Date.now();
-    if (S.online && now - lastPush > 10000) { lastPush = now; set(ref(rtdb, 'ubicaciones/' + S.user.uid), { lat: S.pos.lat, lng: S.pos.lng, ts: rtdbTime() }).catch(() => { }); }
-    if (S.screen === 'cviaje') moveMoto(S.pos);
+    pushPos(false);
+    if (S.screen === 'cviaje') { setMarker('me', S.pos, 'moto', 'Tú'); refreshRoute(); updateEta(); }
+    if (S.screen === 'viaje' && S.viaje && S.viaje.estado === 'asignado') { setMarker('me', S.pos, 'person', 'Tú'); refreshRoute(); updateEta(); }
+    if (S.screen === 'solicitudes' && S.reqMap) setMarker('me', S.pos, 'moto', 'Tú');
   }, () => { }, { enableHighAccuracy: true, maximumAge: 10000 });
   try { onDisconnect(ref(rtdb, 'ubicaciones/' + S.user.uid)).remove(); } catch (e) { }
+  pushPos(true);
 }
 function stopWatch() {
   if (watchId != null && navigator.geolocation) navigator.geolocation.clearWatch(watchId);
@@ -420,8 +551,9 @@ async function loadRating(key, path) {
 
 /* ---------- entrada a cada pantalla ---------- */
 function enter(s) {
-  if (s === 'home') getGps();
+  if (s === 'home') { if (S.sharing) { S.sharing = false; stopWatch(); } S.route = null; getGps(); listenOthers(); }
   if (s === 'buscando') {
+    S.sharing = true; startWatch();
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
       if (!d.exists()) return; S.viaje = Object.assign({ id: d.id }, d.data());
       if (S.viaje.estado === 'asignado') { go('viaje'); return; }
@@ -434,6 +566,7 @@ function enter(s) {
     }, fail));
   }
   if (s === 'viaje') {
+    listenOthers();
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
       const prev = S.viaje && S.viaje.estado; S.viaje = Object.assign({ id: d.id }, d.data());
       const st = S.viaje.estado;
@@ -442,14 +575,15 @@ function enter(s) {
       if (prev !== st) render();
     }, fail));
     addSub(onValue(ref(rtdb, 'ubicaciones/' + S.viaje.conductorId), snap => {
-      const p = snap.val(); if (!p) return; S.drvPos = { lat: p.lat, lng: p.lng }; moveMoto(S.drvPos);
-      const el = document.getElementById('bigline'); if (el && S.viaje && S.viaje.estado === 'asignado') { const km = distKm(S.drvPos, S.viaje.origen); if (km != null) el.textContent = 'A ' + fmtDist(km); }
+      const p = snap.val(); if (!p) return; const first = !S.drvPos; S.drvPos = { lat: p.lat, lng: p.lng };
+      setMarker('drv', S.drvPos, 'moto', 'Tu conductor'); if (first) fitMap(); refreshRoute(); updateEta();
     }));
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId, 'privado', S.viaje.conductorId), d => { if (d.exists()) { S.cPhone = d.data().telefono; S.cTransfer = d.data().transferencia || null; render(); } }, () => { }));
     loadRating(S.viaje.conductorId, ['conductores', S.viaje.conductorId, 'calificaciones']).then(() => { if (S.screen === 'viaje') render(); });
-    getGps();
+    S.sharing = true; startWatch();
   }
   if (s === 'solicitudes') {
+    listenOthers();
     loadStats();
     loadRating(S.user.uid, ['conductores', S.user.uid, 'calificaciones']).then(() => { if (S.screen === 'solicitudes') render(); });
     if (S.online) listenRequests();
@@ -462,6 +596,7 @@ function enter(s) {
     }, () => { S.espera.perdida = true; render(); }));
   }
   if (s === 'cviaje') {
+    listenOthers();
     const priv = { telefono: S.perfil.telefono, nombre: S.perfil.nombre }; if (S.perfil.transferencia) priv.transferencia = S.perfil.transferencia;
     setDoc(doc(db, 'viajes', S.viajeId, 'privado', S.user.uid), priv).catch(() => { });
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
@@ -472,7 +607,11 @@ function enter(s) {
     }, fail));
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId, 'privado', S.viaje.pasajeroId), d => { if (d.exists()) { S.pPhone = d.data().telefono; render(); } }, () => { }));
     loadRating('p_' + S.viaje.pasajeroId, ['usuarios', S.viaje.pasajeroId, 'calificaciones']).then(() => { if (S.screen === 'cviaje') render(); });
-    startWatch();
+    addSub(onValue(ref(rtdb, 'ubicaciones/' + S.viaje.pasajeroId), snap => {
+      const p = snap.val(); if (!p || !S.viaje || S.viaje.estado !== 'asignado') return; const first = !S.paxPos; S.paxPos = { lat: p.lat, lng: p.lng };
+      setMarker('pax', S.paxPos, 'person', 'Pasajero'); if (first) fitMap(); refreshRoute(); updateEta();
+    }));
+    startWatch(); refreshRoute();
   }
   if (s === 'micalif') { S.cal = null; delete S.ratings[S.user.uid]; loadRating(S.user.uid, ['conductores', S.user.uid, 'calificaciones']).then(r => { S.cal = r || { n: 0 }; if (S.screen === 'micalif') render(); }); }
   if (s === 'historial') {
@@ -600,7 +739,17 @@ async function act(a, v, b) {
     }
     case 'logout': S.online = false; await stopWatch(); await signOut(auth); break;
     case 'retryGps': S.gps = 'pendiente'; render(); getGps(); break;
-    case 'freq': S.f.destino = v; S.err = null; render(); break;
+    case 'freq': S.f.destino = v; S.err = null; S.destPin = null; S.route = null; render(); break;
+    case 'pickDest': S.pickDest = !S.pickDest; S.err = null; render(); if (S.pickDest) { const m = document.getElementById('map'); if (m) m.scrollIntoView({ block: 'center' }); } break;
+    case 'clearDest': S.destPin = null; S.route = null; render(); break;
+    case 'geoDest': {
+      const q = (S.f.destino || '').trim();
+      if (q.length < 3) { S.err = 'Escribe primero el destino y luego toca "Ubicar en el mapa".'; render(); break; }
+      S.busy = true; S.err = null; render();
+      try { const p = await geocodeDestino(q); S.busy = false; if (p) { S.destPin = p; S.route = null; render(); } else { S.err = 'No encontramos esa dirección en el mapa. Toca "Marcar en el mapa" y señala el punto.'; render(); } }
+      catch (e) { S.busy = false; S.err = 'No se pudo buscar la dirección. Toca "Marcar en el mapa" y señala el punto.'; render(); }
+      break;
+    }
     case 'minus': S.offer = Math.max(MIN, S.offer - 500); render(); break;
     case 'plus': S.offer += 500; render(); break;
     case 'otroToggle': S.otroOpen = !S.otroOpen; S.f.otroErr = ''; render(); break;
@@ -610,10 +759,11 @@ async function act(a, v, b) {
     case 'buscar': {
       const dest = (S.f.destino || '').trim(), refTxt = (S.f.ref || '').trim();
       if (dest.length < 2) { S.err = 'Escribe o elige el destino del viaje.'; render(); break; }
-      if (!S.pos && refTxt.length < 3) { S.err = 'Sin GPS necesitamos una referencia del punto de recogida.'; render(); break; }
       S.busy = true; S.err = null; S.banner = null; render();
+      if (!S.pos) await gpsOnce(8000);
+      if (!S.pos && refTxt.length < 3) { S.busy = false; S.err = 'No pudimos obtener tu ubicación GPS. Escribe una referencia del punto de recogida.'; render(); break; }
       try {
-        const data = { pasajeroId: uid, pasajeroNombre: S.perfil.nombre, origen: { texto: refTxt || 'Ubicación GPS', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null }, destino: { texto: dest }, oferta: S.offer, nota: S.notaOpen ? (S.f.nota || '').trim().slice(0, 200) : '', pago: S.pago, estado: 'buscando', creado: serverTimestamp(), conductorId: null, precioFinal: null, conductor: null };
+        const data = { pasajeroId: uid, pasajeroNombre: S.perfil.nombre, origen: { texto: refTxt || 'Ubicación GPS', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null }, destino: S.destPin ? { texto: dest, lat: S.destPin.lat, lng: S.destPin.lng } : { texto: dest }, oferta: S.offer, nota: S.notaOpen ? (S.f.nota || '').trim().slice(0, 200) : '', pago: S.pago, estado: 'buscando', creado: serverTimestamp(), conductorId: null, precioFinal: null, conductor: null };
         const r = await addDoc(collection(db, 'viajes'), data);
         await setDoc(doc(db, 'viajes', r.id, 'privado', uid), { telefono: S.perfil.telefono, nombre: S.perfil.nombre });
         S.viajeId = r.id; S.viaje = Object.assign({ id: r.id }, data); S.ofertas = []; S.busy = false; go('buscando');
@@ -687,6 +837,7 @@ async function act(a, v, b) {
       S.online = !S.online;
       if (S.online) { beepUnlock(); go('solicitudes'); } else { S.requests = []; stopWatch(); go('solicitudes'); }
       break;
+    case 'reqMap': S.reqMap = S.reqMap === v ? null : v; render(); break;
     case 'cIgnore': S.ignored[v] = true; S.requests = S.requests.filter(r => r.id !== v); render(); break;
     case 'cOtroToggle': { const cur = S.cOtro[v] || {}; S.cOtro[v] = { open: !cur.open, val: cur.val || '', err: '' }; render(); break; }
     case 'cOffer': case 'cOtroSend': {
@@ -718,8 +869,8 @@ async function act(a, v, b) {
   }
 }
 function beepUnlock() { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { } }
-function endPassengerTrip() { S.viajeId = null; S.viaje = null; S.ofertas = []; S.sos = null; S.cPhone = null; S.cTransfer = null; S.pago = 'efectivo'; S.drvPos = null; S.offer = MIN; S.f.destino = ''; S.f.ref = ''; S.f.nota = ''; S.notaOpen = false; go('home'); }
-function endDriverTrip() { S.viajeId = null; S.viaje = null; S.sos = null; S.pPhone = null; S.stats = null; S.banner = { kind: 'ok', text: 'Viaje finalizado. Sigues conectado.' }; go('solicitudes'); }
+function endPassengerTrip() { S.viajeId = null; S.viaje = null; S.ofertas = []; S.sos = null; S.cPhone = null; S.cTransfer = null; S.pago = 'efectivo'; S.drvPos = null; S.route = null; S.destPin = null; S.pickDest = false; S.sharing = false; stopWatch(); S.offer = MIN; S.f.destino = ''; S.f.ref = ''; S.f.nota = ''; S.notaOpen = false; go('home'); }
+function endDriverTrip() { S.viajeId = null; S.viaje = null; S.sos = null; S.pPhone = null; S.paxPos = null; S.route = null; S.stats = null; S.banner = { kind: 'ok', text: 'Viaje finalizado. Sigues conectado.' }; go('solicitudes'); }
 appEl.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b || b.disabled) return; act(b.getAttribute('data-act'), b.getAttribute('data-v'), b); });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => { });
