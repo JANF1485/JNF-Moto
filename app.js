@@ -29,6 +29,8 @@ const validAmount = n => isNaN(n) ? 'Escribe un valor en pesos.' : n < MIN ? 'El
 const initials = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0] || '').join('').toUpperCase() || '?';
 const tsMs = t => t && typeof t.toMillis === 'function' ? t.toMillis() : Date.now();
 const fmtRating = v => v.toFixed(1).replace('.', ',');
+const pagoTxt = v => (v && v.pago === 'transferencia') ? 'Transferencia' : 'Efectivo';
+const cobroTxt = v => (v && v.pago === 'transferencia') ? 'Cobrar por transferencia' : 'Cobrar en efectivo';
 function distKm(a, b) {
   if (!a || !b || a.lat == null || b.lat == null) return null;
   const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
@@ -59,7 +61,7 @@ const S = {
   screen: 'cargando', user: null, perfil: null, conductor: null, admin: false, mode: 'pasajero',
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
-  offer: MIN, otroOpen: false, notaOpen: false,
+  offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
   viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
@@ -137,14 +139,16 @@ function vHome() {
   h += '<div class="offerbox"><span class="lbl">Tu oferta</span><div class="stepper"><button class="round" data-act="minus" aria-label="Bajar oferta 500 pesos"' + (S.offer <= MIN ? ' disabled' : '') + '>−</button><div class="amount" id="amount">' + money(S.offer) + '</div><button class="round solid" data-act="plus" aria-label="Subir oferta 500 pesos">+</button></div>' +
     '<div class="row between" style="flex-wrap:wrap;gap:4px"><span class="muted small">Mínimo ' + money(MIN) + ' · sin tope</span><button class="link" data-act="otroToggle" aria-expanded="' + S.otroOpen + '" style="font-size:13px">' + (S.otroOpen ? 'Cerrar' : 'Escribir otro valor') + '</button></div>';
   if (S.otroOpen) h += '<div class="field"><label for="otro">Valor que ofreces</label><div class="row"><input type="text" inputmode="numeric" id="otro" data-in="otroVal" placeholder="Ej. 2.300" value="' + fv('otroVal') + '"><button class="btn btn-navy btn-sm" data-act="otroUse" style="min-height:48px">Usar</button></div>' + (S.f.otroErr ? '<div class="err" role="alert">' + esc(S.f.otroErr) + '</div>' : '') + '</div>';
-  h += '</div><div class="row"><button class="chip" aria-pressed="true" style="flex:1">Efectivo</button><button class="chip" data-act="notaToggle" aria-expanded="' + S.notaOpen + '" style="flex:1">' + (S.notaOpen ? 'Ocultar nota' : 'Nota al conductor') + '</button></div>';
+  h += '</div><div class="col" style="gap:8px"><span class="lbl" id="lblpago">Forma de pago</span><div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))" role="group" aria-labelledby="lblpago">' +
+    '<button class="chip" data-act="pago" data-v="efectivo" aria-pressed="' + (S.pago === 'efectivo') + '">Efectivo</button><button class="chip" data-act="pago" data-v="transferencia" aria-pressed="' + (S.pago === 'transferencia') + '">Transferencia</button></div></div>' +
+    '<button class="chip" data-act="notaToggle" aria-expanded="' + S.notaOpen + '" style="align-self:flex-start">' + (S.notaOpen ? 'Ocultar nota' : 'Agregar nota al conductor') + '</button>';
   if (S.notaOpen) h += '<div class="field"><label for="nota">Nota para el conductor</label><textarea id="nota" data-in="nota" maxlength="200" placeholder="Ej. Llevo un paquete pequeño">' + fv('nota') + '</textarea></div>';
   h += '<button class="btn btn-gold" data-act="buscar"' + busyAttr() + '>Buscar mototaxi · ' + money(S.offer) + '</button></div></div>';
   return h;
 }
 function vBuscando() {
   const v = S.viaje || {};
-  let h = '<div class="screen"><div class="top"><div class="row"><h1 class="h1">Ofertas recibidas</h1></div><div class="sub">Tu oferta: <span style="color:#C9A227;font-weight:800">' + money(v.oferta || S.offer) + '</span> hacia ' + esc(v.destino ? v.destino.texto : '') + '</div>' +
+  let h = '<div class="screen"><div class="top"><div class="row"><h1 class="h1">Ofertas recibidas</h1></div><div class="sub">Tu oferta: <span style="color:#C9A227;font-weight:800">' + money(v.oferta || S.offer) + '</span> hacia ' + esc(v.destino ? v.destino.texto : '') + ' · ' + pagoTxt(v) + '</div>' +
     '<div class="sub">' + (S.ofertas.length ? S.ofertas.length + (S.ofertas.length === 1 ? ' conductor respondió' : ' conductores respondieron') : 'Esperando respuesta de los conductores cercanos…') + '</div></div><div class="pad">' + errHTML();
   if (!S.ofertas.length) h += '<div class="card"><div class="spinner" aria-hidden="true"></div><div class="strong center">Enviamos tu solicitud a los conductores conectados.</div><div class="muted center">Las ofertas aparecen aquí a medida que llegan. Mantén esta pantalla abierta.</div></div>';
   S.ofertas.forEach(o => {
@@ -176,13 +180,14 @@ function vViaje() {
   h += '<div class="sheet"><div class="handle"></div>' + sosBlock() + errHTML() + bannerHTML(S.banner);
   h += '<div class="row"><div class="avatar lg">' + esc(initials(c.nombre)) + '</div><div class="col grow"><div class="strong" style="font-size:16px">' + esc(c.nombre) + '</div><div class="muted">' + ratingLine(S.ratings[v.conductorId]) + '</div><div class="muted">' + esc(c.moto) + ' ' + esc(c.color) + '</div></div><div class="plate">' + esc(c.placa) + '</div></div>';
   h += S.cPhone ? '<a class="btn btn-ghost" href="tel:' + esc(S.cPhone) + '">' + I.phone + 'Llamar al conductor</a>' : '';
-  h += '<div class="offerbox" style="gap:8px"><div class="row"><span class="dot"></span>' + esc(v.origen ? v.origen.texto : '') + '</div><div class="row"><span class="sq"></span>' + esc(v.destino ? v.destino.texto : '') + '</div><div class="row between" style="border-top:1px solid var(--line);padding-top:8px"><span class="muted">Efectivo</span><span class="strong">' + money(v.precioFinal || 0) + '</span></div></div>';
+  h += '<div class="offerbox" style="gap:8px"><div class="row"><span class="dot"></span>' + esc(v.origen ? v.origen.texto : '') + '</div><div class="row"><span class="sq"></span>' + esc(v.destino ? v.destino.texto : '') + '</div><div class="row between" style="border-top:1px solid var(--line);padding-top:8px"><span class="muted">' + pagoTxt(v) + '</span><span class="strong">' + money(v.precioFinal || 0) + '</span></div></div>';
+  if (v.pago === 'transferencia') h += S.cTransfer ? '<div class="banner info">' + I.info + '<div class="grow">Transfiere <b>' + money(v.precioFinal || 0) + '</b> a: <b>' + esc(S.cTransfer) + '</b></div></div>' : '<div class="banner warn">' + I.info + '<div class="grow">El conductor no ha registrado datos para transferencia. Acuérdenlo por llamada o paga en efectivo.</div></div>';
   if (st === 'asignado') h += '<button class="link danger" data-act="cancelTrip" style="align-self:center"' + busyAttr() + '>Cancelar viaje</button>';
   return h + '</div></div>';
 }
 function vCalificar() {
   const v = S.viaje || {}, c = v.conductor || {};
-  let h = '<div class="screen"><div class="top" style="padding-bottom:22px">' + brandRow() + '<div class="sub">Viaje finalizado · ' + money(v.precioFinal || 0) + ' en efectivo</div><h1 class="h1">¿Cómo estuvo tu viaje?</h1></div><div class="pad">' + errHTML();
+  let h = '<div class="screen"><div class="top" style="padding-bottom:22px">' + brandRow() + '<div class="sub">Viaje finalizado · ' + money(v.precioFinal || 0) + (v.pago === 'transferencia' ? ' por transferencia' : ' en efectivo') + '</div><h1 class="h1">¿Cómo estuvo tu viaje?</h1></div><div class="pad">' + errHTML();
   h += '<div class="card" style="align-items:center;text-align:center"><div class="avatar lg">' + esc(initials(c.nombre)) + '</div><div class="col" style="align-items:center"><div class="strong" style="font-size:16px">' + esc(c.nombre) + '</div><div class="muted">' + esc(c.moto) + ' · Placa ' + esc(c.placa) + '</div></div>' + starsHTML(S.rating, 'rate') + '<div class="strong">' + LABELS[S.rating] + '</div></div>';
   h += '<div class="col" style="gap:8px"><span class="lbl">¿Qué destacas del conductor?</span>' + chipsHTML(ASP_C, S.chips, 'chip') + '</div>';
   h += '<div class="field"><label for="com">Comentario (opcional)</label><textarea id="com" data-in="comentario" maxlength="500" placeholder="Cuéntanos más sobre el servicio">' + fv('comentario') + '</textarea></div>';
@@ -204,7 +209,7 @@ function vMenu() {
   if (st === 'rechazado' || st === 'suspendido') h += '<div class="card"><div class="h2">Modo conductor no habilitado</div><div class="muted">Tu cuenta de conductor está ' + st + '. Comunícate con la oficina de JNF S.A.S.</div></div>';
   if (st === 'aprobado') h += '<div class="card"><div class="row between"><div class="h2">Modo conductor habilitado</div><span class="pill p-ok">Aprobado</span></div><div class="banner warn">' + I.info + '<div class="grow">En esta versión de prueba, tu ubicación se comparte solo mientras la app está abierta y estás conectado.</div></div>' + (pOn ? '<button class="btn btn-gold" data-act="modeC">Conectarme como conductor</button>' : '<button class="btn btn-ghost" data-act="modeP">Volver a modo pasajero</button>') + '</div>';
   const items = [['historial', 'Mis viajes'], ['contactos', 'Contactos de emergencia']];
-  if (st === 'aprobado') items.push(['micalif', 'Mi calificación como conductor'], ['suscripcion', 'Mi suscripción']);
+  if (st === 'aprobado') items.push(['transfer', 'Mis datos para transferencias'], ['micalif', 'Mi calificación como conductor'], ['suscripcion', 'Mi suscripción']);
   if (S.admin) items.push(['admin', 'Panel de administración']);
   items.push(['ayuda', 'Ayuda y soporte'], ['terminos', 'Términos y tratamiento de datos']);
   h += '<nav aria-label="Opciones">' + items.map(it => '<button class="menuitem" data-act="go" data-v="' + it[0] + '">' + it[1] + I.chev + '</button>').join('') + '</nav>';
@@ -225,6 +230,12 @@ function vContactos() {
   if (cs.length < 5) h += '<div class="card"><div class="h2">Agregar contacto</div><div class="field"><label for="cn">Nombre</label><input type="text" id="cn" data-in="cNombre" value="' + fv('cNombre') + '"></div><div class="field"><label for="cp">Celular</label><input type="tel" inputmode="numeric" id="cp" data-in="cTel" placeholder="10 dígitos" value="' + fv('cTel') + '"></div>' + (S.f.cErr ? '<div class="err" role="alert">' + esc(S.f.cErr) + '</div>' : '') + '<button class="btn btn-navy" data-act="addContact"' + busyAttr() + '>Agregar contacto</button></div>';
   return h + '</div></div>';
 }
+function vTransfer() {
+  return '<div class="screen">' + subTop('Datos para transferencias') + '<div class="pad">' + errHTML() + bannerHTML(S.banner) +
+    '<div class="muted">Cuando un pasajero elija pagar por transferencia, verá estos datos durante el viaje. Nadie más puede verlos.</div>' +
+    '<div class="field"><label for="tr">Entidad y número</label><input type="text" id="tr" data-in="transferencia" maxlength="80" placeholder="Ej. Nequi 300 123 4567" value="' + fv('transferencia') + '"></div>' +
+    '<button class="btn btn-navy" data-act="saveTransfer"' + busyAttr() + '>Guardar datos</button></div></div>';
+}
 const vTexto = (t, b) => '<div class="screen">' + subTop(t) + '<div class="pad"><div class="card">' + b + '</div></div></div>';
 function vRegistroC() {
   return '<div class="screen">' + subTop('Registro de conductor') + '<div class="pad">' + errHTML() + '<div class="muted">En la versión de prueba, los documentos se verifican en persona en la oficina de JNF S.A.S. Aquí solo registras los datos de tu moto.</div>' +
@@ -244,7 +255,7 @@ function vSolicitudes() {
   else if (!S.requests.length) h += '<div class="card"><div class="spinner" aria-hidden="true"></div><div class="strong center">Buscando pasajeros…</div><div class="muted center">Las solicitudes aparecen aquí con un sonido. Puedes aceptar el precio o contraofertar.</div></div>';
   if (S.online) S.requests.forEach(r => {
     const o = S.cOtro[r.id] || {}, pr = S.ratings['p_' + r.pasajeroId], km = distKm(S.pos, r.origen);
-    h += '<div class="card"><div class="row between" style="align-items:flex-start"><div class="col"><div class="strong">' + esc(r.pasajeroNombre) + ' <span class="muted" style="font-weight:500">' + (pr ? '★ ' + fmtRating(pr.avg) : '') + '</span></div><div class="muted small">' + (km != null ? 'A ' + fmtDist(km) + ' de ti' : 'Distancia no disponible') + '</div></div><div class="price">' + money(r.oferta) + '</div></div>' +
+    h += '<div class="card"><div class="row between" style="align-items:flex-start"><div class="col"><div class="strong">' + esc(r.pasajeroNombre) + ' <span class="muted" style="font-weight:500">' + (pr ? '★ ' + fmtRating(pr.avg) : '') + '</span></div><div class="muted small">' + (km != null ? 'A ' + fmtDist(km) + ' de ti' : 'Distancia no disponible') + '</div></div><div class="col" style="align-items:flex-end;gap:4px"><div class="price">' + money(r.oferta) + '</div><span class="pill ' + (r.pago === 'transferencia' ? 'p-info' : 'p-ok') + '">' + pagoTxt(r) + '</span></div></div>' +
       '<div class="col" style="gap:6px"><div class="row"><span class="dot"></span>' + esc(r.origen.texto) + '</div><div class="row"><span class="sq"></span>' + esc(r.destino.texto) + '</div>' + (r.nota ? '<div class="muted small">Nota: ' + esc(r.nota) + '</div>' : '') + '</div>' +
       '<button class="btn btn-gold" data-act="cOffer" data-v="' + r.id + '" data-p="' + r.oferta + '" style="min-height:48px;font-size:15px"' + busyAttr() + '>Aceptar ' + money(r.oferta) + '</button>' +
       '<div class="col" style="gap:6px"><span class="lbl">O contraoferta</span><div class="grid4">' + [500, 1000, 1500].map(d => '<button class="cbtn" data-act="cOffer" data-v="' + r.id + '" data-p="' + (r.oferta + d) + '"' + busyAttr() + '>' + money(r.oferta + d) + '</button>').join('') +
@@ -257,7 +268,7 @@ function vSolicitudes() {
 function vEspera() {
   const e = S.espera || {};
   let h = '<div class="screen"><div class="top"><h1 class="h1">' + (e.perdida ? 'Solicitud no disponible' : 'Oferta enviada') + '</h1>';
-  if (!e.perdida) h += '<div class="sub">Esperando que ' + esc(e.nombre) + ' acepte tu oferta de <span style="color:#C9A227;font-weight:800">' + money(e.precio) + '</span></div>';
+  if (!e.perdida) h += '<div class="sub">Esperando que ' + esc(e.nombre) + ' acepte tu oferta de <span style="color:#C9A227;font-weight:800">' + money(e.precio) + '</span> · ' + pagoTxt(e) + '</div>';
   h += '</div><div class="pad">' + errHTML();
   if (e.perdida) return h + '<div class="card"><div class="strong">El pasajero eligió otra oferta o canceló la solicitud.</div><button class="btn btn-gold" data-act="backToRequests">Ver más solicitudes</button></div></div></div>';
   return h + '<div class="card"><div class="spinner" aria-hidden="true"></div><div class="row"><span class="dot"></span>' + esc(e.origen) + '</div><div class="row"><span class="sq"></span>' + esc(e.destino) + '</div></div><button class="btn btn-ghost" data-act="cWithdraw"' + busyAttr() + '>Retirar oferta</button></div></div>';
@@ -269,7 +280,7 @@ function vCViaje() {
   const gm = 'https://www.google.com/maps/dir/?api=1&destination=' + q;
   let h = '<div class="screen"><div class="top" style="gap:10px"><div class="row between"><div class="col"><div class="sub">' + (st === 'asignado' ? 'Recoge a' : 'Lleva a') + '</div><div class="h1" style="color:#C9A227">' + esc(st === 'asignado' ? v.pasajeroNombre : v.destino.texto) + '</div></div><button class="sos" data-act="sos" aria-label="Botón de pánico">SOS</button></div></div>';
   h += '<div id="map" class="lmap" role="img" aria-label="Mapa del viaje"></div><div class="sheet"><div class="handle"></div>' + sosBlock() + errHTML() + bannerHTML(S.banner);
-  h += '<div class="row"><div class="avatar">' + esc(initials(v.pasajeroNombre)) + '</div><div class="col grow"><div class="strong">' + esc(v.pasajeroNombre) + '</div><div class="muted small">' + (S.ratings['p_' + v.pasajeroId] ? '★ ' + fmtRating(S.ratings['p_' + v.pasajeroId].avg) + ' como pasajero' : 'Pasajero') + '</div></div><div class="col" style="align-items:flex-end"><span class="muted small">Cobrar en efectivo</span><span class="price">' + money(v.precioFinal || 0) + '</span></div></div>';
+  h += '<div class="row"><div class="avatar">' + esc(initials(v.pasajeroNombre)) + '</div><div class="col grow"><div class="strong">' + esc(v.pasajeroNombre) + '</div><div class="muted small">' + (S.ratings['p_' + v.pasajeroId] ? '★ ' + fmtRating(S.ratings['p_' + v.pasajeroId].avg) + ' como pasajero' : 'Pasajero') + '</div></div><div class="col" style="align-items:flex-end"><span class="muted small">' + cobroTxt(v) + '</span><span class="price">' + money(v.precioFinal || 0) + '</span></div></div>';
   h += '<div class="offerbox" style="gap:8px"><div class="row"><span class="dot"></span>' + esc(o.texto) + '</div><div class="row"><span class="sq"></span>' + esc(v.destino.texto) + '</div>' + (v.nota ? '<div class="muted small">Nota: ' + esc(v.nota) + '</div>' : '') + '</div>';
   h += '<div class="row"><a class="btn btn-ghost" style="flex:1" target="_blank" rel="noopener" href="' + waze + '">Navegar con Waze</a><a class="btn btn-ghost" style="flex:1" target="_blank" rel="noopener" href="' + gm + '">Google Maps</a></div>';
   if (S.pPhone) h += '<a class="btn btn-ghost" href="tel:' + esc(S.pPhone) + '">' + I.phone + 'Llamar al pasajero</a>';
@@ -278,7 +289,7 @@ function vCViaje() {
 }
 function vCCalificar() {
   const v = S.viaje || {};
-  let h = '<div class="screen"><div class="top">' + brandRow() + '<div class="row between" style="align-items:flex-end"><div class="col"><div class="sub">Cobra al pasajero</div><div class="amount" style="color:#C9A227">' + money(v.precioFinal || 0) + '</div></div><div class="sub" style="text-align:right">Efectivo</div></div></div><div class="pad">' + errHTML();
+  let h = '<div class="screen"><div class="top">' + brandRow() + '<div class="row between" style="align-items:flex-end"><div class="col"><div class="sub">Cobra al pasajero</div><div class="amount" style="color:#C9A227">' + money(v.precioFinal || 0) + '</div></div><div class="sub" style="text-align:right">' + pagoTxt(v) + '</div></div></div><div class="pad">' + errHTML();
   h += '<div class="card" style="align-items:center;text-align:center"><div class="h2">Califica a ' + esc(v.pasajeroNombre) + '</div><div class="muted">Solo los conductores ven la calificación de los pasajeros.</div>' + starsHTML(S.rating, 'rate') + '<div class="strong">' + LABELS[S.rating] + '</div></div>';
   h += '<div class="col" style="gap:8px"><span class="lbl">¿Qué destacas del pasajero?</span>' + chipsHTML(ASP_P, S.chips, 'chip') + '</div>';
   return h + '<button class="btn btn-gold" data-act="cSendRating"' + busyAttr() + '>Enviar y seguir conectado</button><button class="link" data-act="cSkipRating" style="align-self:center">Ahora no</button></div></div>';
@@ -321,7 +332,7 @@ function vAdmin() {
     if (!L.length) h += '<div class="card"><div class="muted">Aún no hay viajes.</div></div>';
     const fin = L.filter(v => v.estado === 'finalizado');
     h += '<div class="card"><div class="row between"><span class="muted">Viajes finalizados (últimos 100)</span><span class="strong">' + fin.length + '</span></div><div class="row between"><span class="muted">Valor movido</span><span class="strong">' + money(fin.reduce((s, v) => s + (v.precioFinal || 0), 0)) + '</span></div></div>';
-    L.forEach(v => { h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(v.pasajeroNombre) + ' → ' + esc(v.destino.texto) + '</div><div class="muted small">' + (v.conductor ? 'Conductor: ' + esc(v.conductor.nombre) + ' · ' : '') + new Date(tsMs(v.creado)).toLocaleString('es-CO') + '</div></div><div class="col" style="align-items:flex-end"><span class="strong">' + money(v.precioFinal || v.oferta) + '</span><span class="pill p-info">' + esc(v.estado) + '</span></div></div></div>'; });
+    L.forEach(v => { h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(v.pasajeroNombre) + ' → ' + esc(v.destino.texto) + '</div><div class="muted small">' + (v.conductor ? 'Conductor: ' + esc(v.conductor.nombre) + ' · ' : '') + new Date(tsMs(v.creado)).toLocaleString('es-CO') + '</div></div><div class="col" style="align-items:flex-end"><span class="strong">' + money(v.precioFinal || v.oferta) + '</span><span class="muted small">' + pagoTxt(v) + '</span><span class="pill p-info">' + esc(v.estado) + '</span></div></div></div>'; });
   }
   return h + '</div></div>';
 }
@@ -330,7 +341,7 @@ const V = {
   sinConexion: vSinConexion,
   cargando: vCargando, login: vLogin, onboarding: vOnboarding, home: vHome, buscando: vBuscando, viaje: vViaje, calificar: vCalificar,
   menu: vMenu, historial: vHistorial, contactos: vContactos, registroC: vRegistroC, solicitudes: vSolicitudes, espera: vEspera, cviaje: vCViaje,
-  ccalificar: vCCalificar, micalif: vMiCalif, admin: vAdmin,
+  ccalificar: vCCalificar, micalif: vMiCalif, admin: vAdmin, transfer: vTransfer,
   suscripcion: () => vTexto('Mi suscripción', '<div class="row between"><div class="h2">Periodo de prueba</div><span class="pill p-ok">Activa</span></div><div class="muted">Durante la prueba no se cobra la cuota. La cuota semanal y las formas de pago (Nequi, Daviplata, PSE o efectivo en oficina) se definen al terminar la prueba.</div>'),
   ayuda: () => vTexto('Ayuda y soporte', '<div class="h2">¿Necesitas ayuda?</div><div class="muted">Comunícate con Asesorías y Consultorías JNF S.A.S. al [número de soporte].</div>'),
   terminos: () => vTexto('Términos y tratamiento de datos', '<div class="muted">Asesorías y Consultorías JNF S.A.S. trata tus datos personales (nombre, celular y ubicación durante los viajes) conforme a la Ley 1581 de 2012, únicamente para prestar el servicio de la app.</div><div class="muted">[Texto completo de la política de tratamiento de datos]</div>')
@@ -434,7 +445,7 @@ function enter(s) {
       const p = snap.val(); if (!p) return; S.drvPos = { lat: p.lat, lng: p.lng }; moveMoto(S.drvPos);
       const el = document.getElementById('bigline'); if (el && S.viaje && S.viaje.estado === 'asignado') { const km = distKm(S.drvPos, S.viaje.origen); if (km != null) el.textContent = 'A ' + fmtDist(km); }
     }));
-    addSub(onSnapshot(doc(db, 'viajes', S.viajeId, 'privado', S.viaje.conductorId), d => { if (d.exists()) { S.cPhone = d.data().telefono; render(); } }, () => { }));
+    addSub(onSnapshot(doc(db, 'viajes', S.viajeId, 'privado', S.viaje.conductorId), d => { if (d.exists()) { S.cPhone = d.data().telefono; S.cTransfer = d.data().transferencia || null; render(); } }, () => { }));
     loadRating(S.viaje.conductorId, ['conductores', S.viaje.conductorId, 'calificaciones']).then(() => { if (S.screen === 'viaje') render(); });
     getGps();
   }
@@ -451,7 +462,8 @@ function enter(s) {
     }, () => { S.espera.perdida = true; render(); }));
   }
   if (s === 'cviaje') {
-    setDoc(doc(db, 'viajes', S.viajeId, 'privado', S.user.uid), { telefono: S.perfil.telefono, nombre: S.perfil.nombre }).catch(() => { });
+    const priv = { telefono: S.perfil.telefono, nombre: S.perfil.nombre }; if (S.perfil.transferencia) priv.transferencia = S.perfil.transferencia;
+    setDoc(doc(db, 'viajes', S.viajeId, 'privado', S.user.uid), priv).catch(() => { });
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
       const prev = S.viaje && S.viaje.estado; S.viaje = Object.assign({ id: d.id }, d.data());
       if (S.viaje.estado === 'cancelado') { S.banner = { kind: 'warn', text: S.viaje.canceladoPor === S.user.uid ? 'Cancelaste el viaje.' : 'El pasajero canceló el viaje.' }; S.viajeId = null; go('solicitudes'); return; }
@@ -558,6 +570,7 @@ async function act(a, v, b) {
   switch (a) {
     case 'go':
       if (v === 'contactos') { S.f.cNombre = ''; S.f.cTel = ''; S.f.cErr = ''; }
+      if (v === 'transfer') S.f.transferencia = S.perfil.transferencia || '';
       go(v); break;
     case 'retryLogin': go('cargando'); afterLogin(S.user); break;
     case 'closeBanner': S.banner = null; render(); break;
@@ -593,13 +606,14 @@ async function act(a, v, b) {
     case 'otroToggle': S.otroOpen = !S.otroOpen; S.f.otroErr = ''; render(); break;
     case 'otroUse': { const n = parseMoney(S.f.otroVal), er = validAmount(n); if (er) { S.f.otroErr = er; render(); break; } S.offer = n; S.otroOpen = false; S.f.otroVal = ''; S.f.otroErr = ''; render(); break; }
     case 'notaToggle': S.notaOpen = !S.notaOpen; render(); break;
+    case 'pago': S.pago = v === 'transferencia' ? 'transferencia' : 'efectivo'; render(); break;
     case 'buscar': {
       const dest = (S.f.destino || '').trim(), refTxt = (S.f.ref || '').trim();
       if (dest.length < 2) { S.err = 'Escribe o elige el destino del viaje.'; render(); break; }
       if (!S.pos && refTxt.length < 3) { S.err = 'Sin GPS necesitamos una referencia del punto de recogida.'; render(); break; }
       S.busy = true; S.err = null; S.banner = null; render();
       try {
-        const data = { pasajeroId: uid, pasajeroNombre: S.perfil.nombre, origen: { texto: refTxt || 'Ubicación GPS', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null }, destino: { texto: dest }, oferta: S.offer, nota: S.notaOpen ? (S.f.nota || '').trim().slice(0, 200) : '', estado: 'buscando', creado: serverTimestamp(), conductorId: null, precioFinal: null, conductor: null };
+        const data = { pasajeroId: uid, pasajeroNombre: S.perfil.nombre, origen: { texto: refTxt || 'Ubicación GPS', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null }, destino: { texto: dest }, oferta: S.offer, nota: S.notaOpen ? (S.f.nota || '').trim().slice(0, 200) : '', pago: S.pago, estado: 'buscando', creado: serverTimestamp(), conductorId: null, precioFinal: null, conductor: null };
         const r = await addDoc(collection(db, 'viajes'), data);
         await setDoc(doc(db, 'viajes', r.id, 'privado', uid), { telefono: S.perfil.telefono, nombre: S.perfil.nombre });
         S.viajeId = r.id; S.viaje = Object.assign({ id: r.id }, data); S.ofertas = []; S.busy = false; go('buscando');
@@ -648,6 +662,13 @@ async function act(a, v, b) {
       try { await updateDoc(doc(db, 'usuarios', uid), { contactos: cs }); S.perfil.contactos = cs; S.f.cNombre = ''; S.f.cTel = ''; S.f.cErr = ''; S.busy = false; render(); } catch (e) { fail(e); }
       break;
     }
+    case 'saveTransfer': {
+      const t = (S.f.transferencia || '').trim().slice(0, 80);
+      if (t.length < 5) { S.err = 'Escribe la entidad y el número, por ejemplo: Nequi 300 123 4567.'; render(); break; }
+      S.busy = true; render();
+      try { await updateDoc(doc(db, 'usuarios', uid), { transferencia: t }); S.perfil.transferencia = t; S.busy = false; S.banner = { kind: 'ok', text: 'Datos guardados.' }; go('menu'); } catch (e) { fail(e); }
+      break;
+    }
     case 'delContact': {
       const cs = (S.perfil.contactos || []).filter((c, i) => i !== +v);
       try { await updateDoc(doc(db, 'usuarios', uid), { contactos: cs }); S.perfil.contactos = cs; render(); } catch (e) { fail(e); }
@@ -675,7 +696,7 @@ async function act(a, v, b) {
       S.busy = true; render();
       try {
         await setDoc(doc(db, 'viajes', v, 'ofertas', uid), { conductorId: uid, nombre: S.conductor.nombre, moto: S.conductor.moto, color: S.conductor.color, placa: S.conductor.placa, precio: price, creado: serverTimestamp(), lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null });
-        S.busy = false; S.espera = { viajeId: v, nombre: r.pasajeroNombre, precio: price, origen: r.origen.texto, destino: r.destino.texto }; go('espera');
+        S.busy = false; S.espera = { viajeId: v, nombre: r.pasajeroNombre, precio: price, origen: r.origen.texto, destino: r.destino.texto, pago: r.pago }; go('espera');
       } catch (e) { fail(e); }
       break;
     }
@@ -697,7 +718,7 @@ async function act(a, v, b) {
   }
 }
 function beepUnlock() { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { } }
-function endPassengerTrip() { S.viajeId = null; S.viaje = null; S.ofertas = []; S.sos = null; S.cPhone = null; S.drvPos = null; S.offer = MIN; S.f.destino = ''; S.f.ref = ''; S.f.nota = ''; S.notaOpen = false; go('home'); }
+function endPassengerTrip() { S.viajeId = null; S.viaje = null; S.ofertas = []; S.sos = null; S.cPhone = null; S.cTransfer = null; S.pago = 'efectivo'; S.drvPos = null; S.offer = MIN; S.f.destino = ''; S.f.ref = ''; S.f.nota = ''; S.notaOpen = false; go('home'); }
 function endDriverTrip() { S.viajeId = null; S.viaje = null; S.sos = null; S.pPhone = null; S.stats = null; S.banner = { kind: 'ok', text: 'Viaje finalizado. Sigues conectado.' }; go('solicitudes'); }
 appEl.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b || b.disabled) return; act(b.getAttribute('data-act'), b.getAttribute('data-v'), b); });
 
