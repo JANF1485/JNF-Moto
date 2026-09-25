@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import { getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import { getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, runTransaction, serverTimestamp, getCountFromServer, getAggregateFromServer, count, average } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 import { getDatabase, ref, set, remove, onValue, onDisconnect, serverTimestamp as rtdbTime } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 
 const firebaseConfig = {
@@ -64,7 +64,7 @@ const S = {
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
   offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
-  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, topDest: null, docMsg: '', admOpen: null, admDocs: {}, admBig: null,
+  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, topDest: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
   cal: null, hist: null, admTab: 'conductores', adm: {}
@@ -84,12 +84,22 @@ const I = {
   phone: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
   shield: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
   doc: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+  eye: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  eyeOff: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6C3.9 8.3 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.6 4.9-1.4"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
   info: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
   starOn: '<svg width="40" height="40" viewBox="0 0 24 24" fill="#C9A227" stroke="#A8841A" stroke-width="1.2" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z"/></svg>',
   starOff: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--star-off)" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z"/></svg>'
 };
 const LABELS = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
 const RADIO_KM = 2; // zona en la que se cuentan y muestran los conductores cercanos
+// Cancelaciones. Las reglas de Firestore usan 2 min, 5 min y ETA+10 min; la app usa márgenes para no contradecirlas.
+const GRACIA_S = 105, ESPERA_S = 310, TARDE_EXTRA_MIN = 10.25;
+const REC = st => st === 'asignado' || st === 'en_punto'; // fase de recogida
+const fmtClock = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const MOTIVOS = {
+  pasajero: [['ya_no', 'Ya no lo necesito'], ['no_llega', 'El conductor no llega'], ['inseguro', 'Me siento inseguro'], ['otro', 'Otro motivo']],
+  conductor: [['inconveniente', 'Tuve un inconveniente'], ['inseguro', 'Me siento inseguro'], ['otro', 'Otro motivo']]
+};
 const ASP_C = ['Conducción segura', 'Puntualidad', 'Amabilidad', 'Vehículo limpio', 'Mototour en buen estado'];
 const ASP_P = ['Pagó completo', 'Puntual en el punto', 'Respetuoso', 'Cuidó el vehículo'];
 
@@ -110,6 +120,13 @@ const isStandalone = () => (window.matchMedia && window.matchMedia('(display-mod
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (['login', 'home', 'menu'].includes(S.screen)) render(); });
 window.addEventListener('appinstalled', () => { installEvt = null; S.banner = { kind: 'ok', text: 'JNF Moto quedó instalada. Ábrela desde el ícono en tu celular.' }; render(); });
+function homeInstallCard() {
+  if (isStandalone() || S.hideInstall) return '';
+  const body = installEvt ? '<div class="muted small">Así se abre a pantalla completa, sin la barra del navegador.</div><div class="row"><button class="btn btn-gold btn-sm" style="flex:1" data-act="install">Instalar</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="hideInstall">Ahora no</button></div>'
+    : isIOS() ? '<div class="muted small">Ábrela en Safari, toca Compartir (el cuadro con la flecha) y elige "Agregar a inicio".</div><button class="link" data-act="hideInstall" style="align-self:flex-start;font-size:13px">Ahora no</button>'
+      : '<div class="muted small">En Chrome toca ⋮ y luego "Instalar app". Si la abriste desde WhatsApp, primero toca ⋮ y "Abrir en Chrome".</div><button class="link" data-act="hideInstall" style="align-self:flex-start;font-size:13px">Ahora no</button>';
+  return '<div class="card" style="gap:8px"><div class="strong">Estás usando JNF Moto desde el navegador</div>' + body + '</div>';
+}
 function installCard() {
   if (isStandalone()) return '';
   if (installEvt) return '<div class="card" style="flex-direction:row;align-items:center;gap:12px"><img src="' + LOGO + '" alt="" style="width:44px;height:44px;flex-shrink:0"><div class="col grow"><div class="strong">Instala JNF Moto</div><div class="muted small">Ábrela desde un ícono, como cualquier app.</div></div><button class="btn btn-gold btn-sm" data-act="install" style="flex-shrink:0">Instalar</button></div>';
@@ -125,7 +142,7 @@ function vLogin() {
     '<div class="pad">' + errHTML() + bannerHTML(S.banner) +
     '<button class="btn gbtn" data-act="google"' + busyAttr() + '>Entrar con Google</button><div class="divider">o con tu correo</div>' +
     '<div class="field"><label for="em">Correo electrónico</label><input type="email" id="em" data-in="email" autocomplete="email" value="' + fv('email') + '"></div>' +
-    '<div class="field"><label for="pw">Contraseña</label><input type="password" id="pw" data-in="pass" autocomplete="' + (crear ? 'new-password' : 'current-password') + '" value="' + fv('pass') + '">' + (crear ? '<span class="muted small">Mínimo 6 caracteres.</span>' : '') + '</div>' +
+    '<div class="field"><label for="pw">Contraseña</label><div class="row"><input type="' + (S.showPass ? 'text' : 'password') + '" id="pw" data-in="pass" autocomplete="' + (crear ? 'new-password' : 'current-password') + '" autocapitalize="off" spellcheck="false" value="' + fv('pass') + '"><button class="iconbtn light" style="width:48px;height:48px;border-radius:12px" data-act="togglePass" aria-controls="pw" aria-pressed="' + S.showPass + '" aria-label="' + (S.showPass ? 'Ocultar contraseña' : 'Mostrar contraseña') + '">' + (S.showPass ? I.eyeOff : I.eye) + '</button></div>' + (crear ? '<span class="muted small">Mínimo 6 caracteres.</span>' : '') + '</div>' +
     '<button class="btn btn-gold" data-act="' + (crear ? 'signup' : 'signin') + '"' + busyAttr() + '>' + (crear ? 'Crear cuenta' : 'Ingresar') + '</button>' +
     '<button class="link" data-act="toggleCrear" style="align-self:center">' + (crear ? 'Ya tengo cuenta: ingresar' : 'No tengo cuenta: crear una') + '</button>' +
     (crear ? '' : '<button class="link" data-act="reset" style="align-self:center;font-size:13px">Olvidé mi contraseña</button>') +
@@ -147,7 +164,7 @@ function vHome() {
   let h = '<div class="screen"><div class="row between" style="padding:12px 16px;background:var(--bg)"><button class="iconbtn light" data-act="go" data-v="menu" aria-label="Abrir menú">' + I.menu + '</button>' +
     '<div class="row" style="background:#1A2580;border-radius:28px;padding:4px 16px 4px 4px"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">JNF Moto</span></div><div style="width:44px"></div></div>';
   h += S.gps === 'ok' ? '<div id="map" class="lmap" role="img" aria-label="Mapa con tu ubicación' + (S.destPin ? ' y el destino' : '') + '"></div>' + legendHTML([['person', 'Tú'], ['otro', 'Conductores cerca']].concat(S.destPin ? [['dest', 'Destino']] : [])) : '';
-  h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + '<h1 class="h1">¿Dónde estás?</h1>';
+  h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + homeInstallCard() + '<h1 class="h1">¿Dónde estás?</h1>';
   h += '<div class="field"><label for="ref">Punto de recogida (referencia)</label><input type="text" id="ref" data-in="ref" placeholder="Ej. Frente a la tienda azul, Calle 5" value="' + fv('ref') + '">' + gps + '</div>';
   h += '<h2 class="h1" style="margin-top:6px">¿A dónde vas?</h2><div class="field"><label for="destino">Destino</label><input type="text" id="destino" data-in="destino" placeholder="Barrio, dirección o lugar" value="' + fv('destino') + '" autocomplete="off">';
   if (S.pickDest) h += '<div class="banner info">' + I.info + '<div class="grow">Toca el mapa en el punto exacto de tu destino.</div><button data-act="pickDest">Cancelar</button></div>';
@@ -163,7 +180,10 @@ function vHome() {
     '<button class="chip" data-act="pago" data-v="efectivo" aria-pressed="' + (S.pago === 'efectivo') + '">Efectivo</button><button class="chip" data-act="pago" data-v="transferencia" aria-pressed="' + (S.pago === 'transferencia') + '">Transferencia</button></div></div>' +
     '<button class="chip" data-act="notaToggle" aria-expanded="' + S.notaOpen + '" style="align-self:flex-start">' + (S.notaOpen ? 'Ocultar nota' : 'Agregar nota al conductor') + '</button>';
   if (S.notaOpen) h += '<div class="field"><label for="nota">Nota para el conductor</label><textarea id="nota" data-in="nota" maxlength="200" placeholder="Ej. Llevo un paquete pequeño">' + fv('nota') + '</textarea></div>';
-  h += '<button class="btn btn-gold" data-act="buscar"' + busyAttr() + '>Buscar mototour · ' + money(S.offer) + '</button></div></div>';
+  const bl = blockOf(S.user.uid, 'pasajero'), rt = rateOf(S.user.uid, 'pasajero');
+  if (!bl && rt && rt.pct != null && rt.pct > 15) h += '<div class="banner warn">' + I.info + '<div class="grow">Tu tasa de cancelación es de <b>' + rt.pct + ' %</b>. Si supera el 30 %, tu cuenta pasa a revisión del administrador.</div></div>';
+  h += bl ? blockCard('pasajero', bl) : '<button class="btn btn-gold" data-act="buscar"' + busyAttr() + '>Buscar mototour · ' + money(S.offer) + '</button>';
+  h += '</div></div>';
   return h;
 }
 function livePos(uid) { const o = S.others && S.others[uid]; return o && o.rol === 'conductor' && typeof o.ts === 'number' && Date.now() - o.ts < 3 * 60 * 1000 ? { lat: o.lat, lng: o.lng } : null; }
@@ -186,7 +206,7 @@ function vBuscando() {
   if (!no) h += '<div class="card" style="flex-direction:row;align-items:center;gap:12px"><div class="spinner" aria-hidden="true" style="flex-shrink:0"></div><div class="col"><div class="strong">Enviamos tu solicitud a los conductores de tu zona</div><div class="muted small">Las ofertas aparecen aquí y en el mapa a medida que llegan. Mantén esta pantalla abierta.</div></div></div>';
   S.ofertas.forEach(o => {
     const r = S.ratings[o.id], e = offerEta(o), tu = o.precio === v.oferta;
-    h += '<div class="card' + (tu ? ' sel' : '') + '"><div class="row"><div class="avatar">' + esc(initials(o.nombre)) + '</div><div class="col grow"><div class="strong">' + esc(o.nombre) + '</div><div class="muted small row" style="gap:6px;flex-wrap:wrap">' + ratingLine(r) + '</div></div>' +
+    h += '<div class="card' + (tu ? ' sel' : '') + '"><div class="row"><div class="avatar">' + esc(initials(o.nombre)) + '</div><div class="col grow"><div class="strong">' + esc(o.nombre) + '</div><div class="muted small row" style="gap:6px;flex-wrap:wrap">' + ratingLine(r) + ratePill(o.id, 'conductor') + '</div></div>' +
       '<div class="col" style="align-items:flex-end"><div class="price">' + money(o.precio) + '</div>' + (tu ? '<span class="pill p-warn">Tu precio</span>' : '') + '</div></div>' +
       (e ? '<div class="row" style="gap:8px;flex-wrap:wrap">' + chip(CLOCK, 'Llega en <span data-ofmin="' + esc(o.id) + '">' + e.min + '</span> min', '') + chip(PIN, 'a <span data-ofkm="' + esc(o.id) + '">' + fmtDist(e.km) + '</span>', '') + '</div>' : '<div class="muted small">Ubicación del conductor no disponible.</div>') +
       '<div class="col" style="gap:4px"><div class="muted">' + esc(o.moto) + ' ' + esc(o.color) + ' · Placa ' + esc(o.placa) + '</div>' +
@@ -194,6 +214,37 @@ function vBuscando() {
       '<button class="btn btn-gold" data-act="accept" data-v="' + esc(o.id) + '" style="min-height:48px;font-size:15px"' + busyAttr() + '>Aceptar ' + money(o.precio) + '</button></div>';
   });
   return h + '<button class="link danger" data-act="cancelTrip" style="align-self:center"' + busyAttr() + '>Cancelar solicitud</button></div></div>';
+}
+function graceLeft() { const v = S.viaje; return v && v.asignadoEn ? GRACIA_S - (Date.now() - tsMs(v.asignadoEn)) / 1000 : 0; }
+function penPasajero(v, motivo) {
+  if (motivo === 'inseguro') return null;
+  const el = (Date.now() - tsMs(v.asignadoEn)) / 1000;
+  if (el < GRACIA_S) return null;
+  if (motivo === 'no_llega' && v.estado === 'asignado' && el / 60 > (v.etaMin || 5) + TARDE_EXTRA_MIN) return 'conductor';
+  return 'pasajero';
+}
+function vCancelar() {
+  const v = S.viaje || {}, rol = S.cancelRol, m = S.cancel.motivo;
+  const quien = rol === 'pasajero' ? (v.conductor ? v.conductor.nombre : '') : v.pasajeroNombre;
+  let h = '<div class="screen"><div class="top" style="gap:4px"><h1 class="h1">Cancelar viaje</h1><div class="sub">' + esc(quien) + ' · ' + esc(v.destino ? v.destino.texto : '') + ' · ' + money(v.precioFinal || 0) + '</div></div><div class="pad">' + errHTML();
+  h += '<h2 class="h2">¿Por qué cancelas?</h2><div class="card" style="gap:0;padding:4px 14px" role="radiogroup" aria-label="Motivo de la cancelación">';
+  MOTIVOS[rol].forEach(o => {
+    const on = m === o[0];
+    h += '<button role="radio" aria-checked="' + on + '" class="menuitem" data-act="motivo" data-v="' + o[0] + '" style="justify-content:flex-start;gap:12px"><span style="width:22px;height:22px;border-radius:11px;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0">' + (on ? '<span style="width:12px;height:12px;border-radius:6px;background:var(--ink)"></span>' : '') + '</span>' + o[1] + '</button>';
+  });
+  h += '</div>';
+  if (m === 'otro') h += '<div class="field"><label for="mt">Escribe el motivo de la cancelación</label><textarea id="mt" data-in="motivoTexto" maxlength="200" placeholder="Cuéntanos qué pasó">' + fv('motivoTexto') + '</textarea></div>';
+  const ok = t => '<div class="banner ok">' + I.info + '<div class="grow">' + t + '</div></div>', inf = t => '<div class="banner info">' + I.info + '<div class="grow">' + t + '</div></div>';
+  if (rol === 'pasajero') {
+    const g = graceLeft();
+    if (m === 'inseguro') h += ok('No penaliza. El caso llega a revisión del administrador.');
+    else if (g > 0) h += ok('<b>Sin penalización:</b> estás dentro de los 2 minutos de gracia (quedan <span data-timer="gracia">' + fmtClock(g) + '</span>).');
+    else if (m === 'no_llega' && penPasajero(v, m) === 'conductor') h += ok('No cuenta en tu tasa: el conductor superó su tiempo de llegada.');
+    else h += inf('Esta cancelación contará en tu tasa de cancelación. "Me siento inseguro" nunca penaliza y llega a revisión del administrador.');
+  } else {
+    h += m === 'inseguro' ? ok('No penaliza. El caso llega a revisión del administrador.') : '<div class="banner warn">' + I.info + '<div class="grow">Esta cancelación contará en tu tasa de cancelación. Si el pasajero no se presentó, espera los 5 minutos en el punto y usa ese botón.</div></div>';
+  }
+  return h + '<button class="btn btn-danger" data-act="doCancel"' + busyAttr() + '>Cancelar viaje</button><button class="btn btn-ghost" data-act="backFromCancel">Volver al viaje</button></div></div>';
 }
 function sosBlock() {
   if (S.sos === 'confirm') return '<div class="banner danger" role="alertdialog" aria-label="Confirmar alerta de pánico">' + I.shield + '<div class="grow col" style="gap:10px"><div class="strong">¿Activar la alerta de pánico?</div><div>Se registra una alerta con tu ubicación para el administrador de JNF Moto' + ((S.perfil.contactos || []).length ? ' y podrás avisar a tus contactos por WhatsApp' : '') + '.</div><div class="row"><button class="btn btn-danger btn-sm" data-act="sosSend" style="flex:1;min-height:44px">Activar alerta</button><button class="btn btn-ghost btn-sm" data-act="sosCancel" style="flex:1;min-height:44px">Cancelar</button></div></div></div>';
@@ -208,16 +259,18 @@ function sosBlock() {
 function vViaje() {
   const v = S.viaje || {}, c = v.conductor || {}, st = v.estado;
   const hasDest = !!destOf(v);
-  const sub = st === 'asignado' ? 'Tu conductor llega en' : hasDest ? 'Llegas a ' + esc(v.destino.texto) + ' en' : 'Vas en camino a';
-  const big = st === 'asignado' ? '<span data-eta>' + esc(S.drvPos ? etaText() : 'Ubicando al conductor…') + '</span>' : hasDest ? '<span data-eta>' + esc(etaText()) + '</span>' : esc(v.destino ? v.destino.texto : '');
+  const sub = st === 'en_punto' ? 'Tu conductor llegó' : st === 'asignado' ? 'Tu conductor llega en' : hasDest ? 'Llegas a ' + esc(v.destino.texto) + ' en' : 'Vas en camino a';
+  const big = st === 'en_punto' ? 'Sal al punto de recogida' : st === 'asignado' ? '<span data-eta>' + esc(S.drvPos ? etaText() : 'Ubicando al conductor…') + '</span>' : hasDest ? '<span data-eta>' + esc(etaText()) + '</span>' : esc(v.destino ? v.destino.texto : '');
   let h = '<div class="screen"><div class="top" style="gap:10px"><div class="row between"><div class="col"><div class="sub">' + sub + '</div><div class="h1" style="color:#C9A227">' + big + '</div></div><button class="sos" data-act="sos" aria-label="Botón de pánico">SOS</button></div></div>';
-  h += '<div id="map" class="lmap tall" role="img" aria-label="Mapa del viaje"></div>' + legendHTML(st === 'asignado' ? [['person', 'Tú'], ['moto', 'Tu conductor'], ['otro', 'Otros conductores']] : [['moto', 'Tu conductor']].concat(hasDest ? [['dest', 'Destino']] : []));
+  h += '<div id="map" class="lmap tall" role="img" aria-label="Mapa del viaje"></div>' + legendHTML(REC(st) ? [['person', 'Tú'], ['moto', 'Tu conductor'], ['otro', 'Otros conductores']] : [['moto', 'Tu conductor']].concat(hasDest ? [['dest', 'Destino']] : []));
   h += '<div class="sheet"><div class="handle"></div>' + sosBlock() + errHTML() + bannerHTML(S.banner);
+  if (st === 'en_punto') h += '<div class="card" style="align-items:center;gap:6px"><div class="muted small strong">Tu conductor te espera</div><div class="amount" style="line-height:1.25" data-timer="espera">' + fmtClock(ESPERA_S - 10 - (Date.now() - tsMs(v.enPuntoEn)) / 1000) + '</div><div class="bar" style="width:100%"><div data-timerbar="espera" style="width:' + Math.min(100, (Date.now() - tsMs(v.enPuntoEn)) / 3000) + '%;background:#C9A227"></div></div></div>' +
+    '<div class="banner warn">' + I.info + '<div class="grow">Si no te presentas antes de que termine el tiempo, el conductor podrá cancelar y el viaje contará en tu tasa de cancelación.</div></div>';
   h += '<div class="row"><div class="avatar lg">' + esc(initials(c.nombre)) + '</div><div class="col grow"><div class="strong" style="font-size:16px">' + esc(c.nombre) + '</div><div class="muted">' + ratingLine(S.ratings[v.conductorId]) + '</div><div class="muted">' + esc(c.moto) + ' ' + esc(c.color) + '</div></div><div class="plate">' + esc(c.placa) + '</div></div>';
   h += S.cPhone ? '<a class="btn btn-ghost" href="tel:' + esc(S.cPhone) + '">' + I.phone + 'Llamar al conductor</a>' : '';
   h += '<div class="offerbox" style="gap:8px"><div class="row"><span class="dot"></span>' + esc(v.origen ? v.origen.texto : '') + '</div><div class="row"><span class="sq"></span>' + esc(v.destino ? v.destino.texto : '') + '</div><div class="row between" style="border-top:1px solid var(--line);padding-top:8px"><span class="muted">' + pagoTxt(v) + '</span><span class="strong">' + money(v.precioFinal || 0) + '</span></div></div>';
   if (v.pago === 'transferencia') h += S.cTransfer ? '<div class="banner info">' + I.info + '<div class="grow">Transfiere <b>' + money(v.precioFinal || 0) + '</b> a: <b>' + esc(S.cTransfer) + '</b></div></div>' : '<div class="banner warn">' + I.info + '<div class="grow">El conductor no ha registrado datos para transferencia. Acuérdenlo por llamada o paga en efectivo.</div></div>';
-  if (st === 'asignado') h += '<button class="link danger" data-act="cancelTrip" style="align-self:center"' + busyAttr() + '>Cancelar viaje</button>';
+  if (REC(st)) h += '<button class="link danger" data-act="openCancel" style="align-self:center"' + busyAttr() + '>Cancelar viaje</button>';
   return h + '</div></div>';
 }
 function vCalificar() {
@@ -337,11 +390,14 @@ function vSolicitudes() {
   let h = '<div class="screen"><div class="top"><div class="row between"><div class="row"><button class="iconbtn" data-act="go" data-v="menu" aria-label="Abrir menú">' + I.menu + '</button><div class="col"><div class="sub">Hola, ' + esc(S.perfil.nombre.split(' ')[0]) + '</div><h1 class="h1" style="white-space:nowrap">Solicitudes</h1></div></div>' +
     '<button class="toggle ' + (S.online ? 'on' : 'off') + '" data-act="online" aria-pressed="' + S.online + '">' + (S.online ? 'En línea' : 'Desconectado') + '<span class="knob"></span></button></div>' +
     '<div class="grid3"><div class="stat"><span class="k">Viajes hoy</span><span class="v">' + (st ? st.viajes : '…') + '</span></div><div class="stat"><span class="k">Ganado hoy</span><span class="v" style="color:#C9A227">' + (st ? money(st.ganado) : '…') + '</span></div><div class="stat"><span class="k">Calificación</span><span class="v">' + (S.ratings[S.user.uid] ? '★ ' + fmtRating(S.ratings[S.user.uid].avg) : '★ …') + '</span></div></div></div><div class="pad">' + errHTML() + bannerHTML(S.banner);
+  const blc = blockOf(S.user.uid, 'conductor'), rtc = rateOf(S.user.uid, 'conductor');
+  if (blc) return h + blockCard('conductor', blc) + '</div></div>';
+  if (rtc && rtc.pct != null && rtc.pct > 10) h += '<div class="banner warn">' + I.info + '<div class="grow">Tu tasa de cancelación es de <b>' + rtc.pct + ' %</b>. Si supera el 20 %, tu cuenta pasa a revisión del administrador.</div></div>';
   if (!S.online) h += '<div class="card"><div class="strong">Estás desconectado.</div><div class="muted">Conéctate para recibir solicitudes de pasajeros. La app debe permanecer abierta.</div><button class="btn btn-gold" data-act="online">Conectarme</button></div>';
   else if (!S.requests.length) h += '<div class="card"><div class="spinner" aria-hidden="true"></div><div class="strong center">Buscando pasajeros…</div><div class="muted center">Las solicitudes aparecen aquí con un sonido. Puedes aceptar el precio o contraofertar.</div></div>';
   if (S.online) S.requests.forEach(r => {
     const o = S.cOtro[r.id] || {}, pr = S.ratings['p_' + r.pasajeroId], km = distKm(S.pos, r.origen);
-    h += '<div class="card"><div class="row between" style="align-items:flex-start"><div class="col"><div class="strong">' + esc(r.pasajeroNombre) + ' <span class="muted" style="font-weight:500">' + (pr ? '★ ' + fmtRating(pr.avg) : '') + '</span></div><div class="muted small">' + (km != null ? 'A ' + fmtDist(km) + ' de ti' : 'Distancia no disponible') + '</div></div><div class="col" style="align-items:flex-end;gap:4px"><div class="price">' + money(r.oferta) + '</div><span class="pill ' + (r.pago === 'transferencia' ? 'p-info' : 'p-ok') + '">' + pagoTxt(r) + '</span></div></div>' +
+    h += '<div class="card"><div class="row between" style="align-items:flex-start"><div class="col"><div class="strong">' + esc(r.pasajeroNombre) + ' <span class="muted" style="font-weight:500">' + (pr ? '★ ' + fmtRating(pr.avg) : '') + '</span></div>' + ratePill(r.pasajeroId, 'pasajero') + '<div class="muted small">' + (km != null ? 'A ' + fmtDist(km) + ' de ti' : 'Distancia no disponible') + '</div></div><div class="col" style="align-items:flex-end;gap:4px"><div class="price">' + money(r.oferta) + '</div><span class="pill ' + (r.pago === 'transferencia' ? 'p-info' : 'p-ok') + '">' + pagoTxt(r) + '</span></div></div>' +
       '<div class="col" style="gap:6px"><div class="row"><span class="dot"></span>' + esc(r.origen.texto) + '</div><div class="row"><span class="sq"></span>' + esc(r.destino.texto) + '</div>' + (r.nota ? '<div class="muted small">Nota: ' + esc(r.nota) + '</div>' : '') + '</div>' +
       (pickupOf(r) ? '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="reqMap" data-v="' + r.id + '" aria-expanded="' + (S.reqMap === r.id) + '">' + (S.reqMap === r.id ? 'Ocultar mapa' : 'Ver ubicación del pasajero') + '</button>' : '<div class="muted small">El pasajero no compartió su GPS; usa la referencia.</div>') +
       (S.reqMap === r.id ? '<div style="border-radius:12px;overflow:hidden;border:1px solid var(--line)"><div id="map" class="lmap" style="height:220px" role="img" aria-label="Mapa con la ubicación del pasajero"></div>' + legendHTML([['person', 'Pasajero'], ['moto', 'Tú']].concat(destOf(r) ? [['dest', 'Destino']] : [])) + '</div>' : '') +
@@ -362,19 +418,31 @@ function vEspera() {
   return h + '<div class="card"><div class="spinner" aria-hidden="true"></div><div class="row"><span class="dot"></span>' + esc(e.origen) + '</div><div class="row"><span class="sq"></span>' + esc(e.destino) + '</div></div><button class="btn btn-ghost" data-act="cWithdraw"' + busyAttr() + '>Retirar oferta</button></div></div>';
 }
 function vCViaje() {
-  const v = S.viaje || {}, st = v.estado, o = v.origen || {}, live = S.paxPos || pickupOf(v), dst = destOf(v), target = st === 'asignado' ? live : dst;
-  const q = target ? target.lat + ',' + target.lng : encodeURIComponent(st === 'asignado' ? o.texto : v.destino.texto);
+  const v = S.viaje || {}, st = v.estado, o = v.origen || {}, live = S.paxPos || pickupOf(v), dst = destOf(v), target = REC(st) ? live : dst;
+  const q = target ? target.lat + ',' + target.lng : encodeURIComponent(REC(st) ? o.texto : v.destino.texto);
   const waze = target ? 'https://waze.com/ul?ll=' + q + '&navigate=yes' : 'https://waze.com/ul?q=' + q + '&navigate=yes';
   const gm = 'https://www.google.com/maps/dir/?api=1&destination=' + q;
-  let h = '<div class="screen"><div class="top" style="gap:10px"><div class="row between"><div class="col"><div class="sub">' + (st === 'asignado' ? 'Recoge a' : 'Lleva a') + '</div><div class="h1" style="color:#C9A227">' + esc(st === 'asignado' ? v.pasajeroNombre : v.destino.texto) + '</div></div><button class="sos" data-act="sos" aria-label="Botón de pánico">SOS</button></div></div>';
-  h += '<div id="map" class="lmap" role="img" aria-label="Mapa del viaje"></div>' + legendHTML(st === 'asignado' ? [['moto', 'Tú'], ['person', 'Pasajero'], ['otro', 'Otros conductores']] : [['moto', 'Tú']].concat(dst ? [['dest', 'Destino']] : [])) + '<div class="sheet"><div class="handle"></div>' + sosBlock() + errHTML() + bannerHTML(S.banner);
+  let h = '<div class="screen"><div class="top" style="gap:10px"><div class="row between"><div class="col"><div class="sub">' + (st === 'en_punto' ? 'Llegaste al punto de' : st === 'asignado' ? 'Recoge a' : 'Lleva a') + '</div><div class="h1" style="color:#C9A227">' + esc(REC(st) ? v.pasajeroNombre : v.destino.texto) + '</div></div><button class="sos" data-act="sos" aria-label="Botón de pánico">SOS</button></div></div>';
+  h += '<div id="map" class="lmap" role="img" aria-label="Mapa del viaje"></div>' + legendHTML(REC(st) ? [['moto', 'Tú'], ['person', 'Pasajero'], ['otro', 'Otros conductores']] : [['moto', 'Tú']].concat(dst ? [['dest', 'Destino']] : [])) + '<div class="sheet"><div class="handle"></div>' + sosBlock() + errHTML() + bannerHTML(S.banner);
+  if (st === 'en_punto') { const t = (Date.now() - tsMs(v.enPuntoEn)) / 1000; h += '<div class="card" style="align-items:center;gap:6px"><div class="muted small strong">El pasajero tiene para salir</div><div class="amount" style="line-height:1.25" data-timer="espera">' + fmtClock(ESPERA_S - 10 - t) + '</div><div class="bar" style="width:100%"><div data-timerbar="espera" style="width:' + Math.min(100, t / 3) + '%;background:#C9A227"></div></div></div>'; }
   if (st === 'asignado') h += live ? '<div class="row between"><span class="muted">Ruta hasta el pasajero</span><span class="strong" data-eta>' + esc(S.pos ? etaText() : 'Ubicándote…') + '</span></div>' : '<div class="banner warn">' + I.info + '<div class="grow">El pasajero no compartió su GPS. Guíate por la referencia y llámalo.</div></div>';
   if (st === 'en_curso') h += dst ? '<div class="row between"><span class="muted">Ruta hasta el destino</span><span class="strong" data-eta>' + esc(S.pos ? etaText() : 'Ubicándote…') + '</span></div>' : '<div class="banner warn">' + I.info + '<div class="grow">El destino no está marcado en el mapa. Usa Waze o Google Maps con la dirección.</div></div>';
   h += '<div class="row"><div class="avatar">' + esc(initials(v.pasajeroNombre)) + '</div><div class="col grow"><div class="strong">' + esc(v.pasajeroNombre) + '</div><div class="muted small">' + (S.ratings['p_' + v.pasajeroId] ? '★ ' + fmtRating(S.ratings['p_' + v.pasajeroId].avg) + ' como pasajero' : 'Pasajero') + '</div></div><div class="col" style="align-items:flex-end"><span class="muted small">' + cobroTxt(v) + '</span><span class="price">' + money(v.precioFinal || 0) + '</span></div></div>';
   h += '<div class="offerbox" style="gap:8px"><div class="row"><span class="dot"></span>' + esc(o.texto) + '</div><div class="row"><span class="sq"></span>' + esc(v.destino.texto) + '</div>' + (v.nota ? '<div class="muted small">Nota: ' + esc(v.nota) + '</div>' : '') + '</div>';
   h += '<div class="row"><a class="btn btn-ghost" style="flex:1" target="_blank" rel="noopener" href="' + waze + '">Navegar con Waze</a><a class="btn btn-ghost" style="flex:1" target="_blank" rel="noopener" href="' + gm + '">Google Maps</a></div>';
   if (S.pPhone) h += '<a class="btn btn-ghost" href="tel:' + esc(S.pPhone) + '">' + I.phone + 'Llamar al pasajero</a>';
-  h += st === 'asignado' ? '<button class="btn btn-gold" data-act="cStart"' + busyAttr() + '>Recogí al pasajero</button><button class="link danger" data-act="cCancel" style="align-self:center"' + busyAttr() + '>Cancelar viaje</button>' : '<button class="btn btn-gold" data-act="cFinish"' + busyAttr() + '>Finalizar viaje</button>';
+  if (st === 'asignado') {
+    const d = distKm(S.pos, live), cerca = !live || (d != null && d <= 0.1);
+    h += '<button class="btn btn-gold" data-act="llegue"' + (S.busy || !cerca ? ' disabled' : '') + '>Llegué al punto</button>' +
+      (cerca ? '' : '<div class="muted small center">Se habilita cuando estés a menos de 100 m del punto de recogida' + (d != null ? ' (estás a ' + fmtDist(d) + ')' : '') + '.</div>') +
+      '<button class="btn btn-ghost" data-act="cStart"' + busyAttr() + '>Recogí al pasajero</button>';
+  } else if (st === 'en_punto') {
+    const listo = (Date.now() - tsMs(v.enPuntoEn)) / 1000 >= ESPERA_S;
+    h += '<button class="btn btn-gold" data-act="cStart"' + busyAttr() + '>Recogí al pasajero</button>' +
+      '<button class="btn btn-ghost" data-act="noShow" data-noshow' + (S.busy || !listo ? ' disabled' : '') + '>El pasajero no se presentó</button>' +
+      '<div class="muted small center">' + (listo ? 'Cancelar por no presentarse no afecta tu tasa de cancelación.' : 'Se habilita al terminar los 5 minutos de espera. No afecta tu tasa de cancelación.') + '</div>';
+  } else h += '<button class="btn btn-gold" data-act="cFinish"' + busyAttr() + '>Finalizar viaje</button>';
+  if (REC(st)) h += '<button class="link danger" data-act="openCancel" style="align-self:center"' + busyAttr() + '>Cancelar viaje</button>';
   return h + '</div></div>';
 }
 function vCCalificar() {
@@ -399,7 +467,7 @@ function vMiCalif() {
 function vAdmin() {
   const t = S.admTab, A = S.adm;
   let h = '<div class="screen">' + subTop('Administración') + '<div class="pad">' + errHTML() + bannerHTML(S.banner) + '<div class="tabs" role="group" aria-label="Secciones">' +
-    [['conductores', 'Conductores'], ['alertas', 'Alertas' + (A.alertas && A.alertas.length ? ' (' + A.alertas.length + ')' : '')], ['viajes', 'Viajes']].map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0]) + '">' + x[1] + '</button>').join('') + '</div>';
+    [['usuarios', 'Usuarios'], ['conductores', 'Conductores'], ['alertas', 'Alertas' + (A.alertas && A.alertas.length ? ' (' + A.alertas.length + ')' : '')], ['viajes', 'Viajes']].map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0]) + '">' + x[1] + '</button>').join('') + '</div>';
   if (t === 'conductores') {
     const L = A.conductores; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div></div></div>';
     const lab = { pendiente: ['p-warn', 'Pendiente'], aprobado: ['p-ok', 'Aprobado'], rechazado: ['p-danger', 'Rechazado'], suspendido: ['p-danger', 'Suspendido'] };
@@ -417,11 +485,53 @@ function vAdmin() {
         }).join('') + '</div>';
       }
       const canApprove = nDocs === DOCS_C.length;
-      h += (c.estado !== 'aprobado' && !canApprove ? '<div class="muted small">' + (nDocs === null ? 'Revisa los documentos antes de aprobar.' : 'Faltan ' + (DOCS_C.length - nDocs) + ' documento(s); no se puede aprobar.') + '</div>' : '') + '<div class="row">' +
-        (c.estado !== 'aprobado' ? '<button class="btn btn-gold btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="aprobado"' + (S.busy || !canApprove ? ' disabled' : '') + '>Aprobar</button>' : '') +
+      const incompleto = nDocs !== null && !canApprove;
+      if (c.estado !== 'aprobado' && nDocs === null) h += '<div class="muted small">Revisa los documentos antes de aprobar.</div>';
+      if (c.estado !== 'aprobado' && incompleto) h += '<div class="muted small">Faltan ' + (DOCS_C.length - nDocs) + ' documento(s).</div>' +
+        '<label class="check"><input type="checkbox" data-in="force_' + c.id + '"' + (S.f['force_' + c.id] ? ' checked' : '') + '><span>Confirmo que verifiqué al conductor y lo apruebo sin documentos completos.</span></label>';
+      if (c.aprobadoSinDocs) h += '<span class="pill p-warn" style="align-self:flex-start">Aprobado sin documentos completos</span>';
+      h += '<div class="row">' +
+        (c.estado !== 'aprobado' ? (incompleto ? '<button class="btn btn-gold btn-sm" style="flex:1" data-act="admForce" data-v="' + c.id + '"' + (S.busy || !S.f['force_' + c.id] ? ' disabled' : '') + '>Aprobar sin documentos completos</button>'
+          : '<button class="btn btn-gold btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="aprobado"' + (S.busy || !canApprove ? ' disabled' : '') + '>Aprobar</button>') : '') +
         (c.estado === 'pendiente' ? '<button class="btn btn-ghost btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="rechazado"' + busyAttr() + '>Rechazar</button>' : '') +
         (c.estado === 'aprobado' ? '<button class="btn btn-ghost btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="suspendido"' + busyAttr() + '>Suspender</button>' : '') + '</div></div>';
     });
+  }
+  if (t === 'usuarios') {
+    const K = S.admKpi, U = S.admUsers;
+    const kpi = (k, v) => '<div class="card" style="gap:2px;padding:12px"><span class="muted small">' + k + '</span><span class="price" style="font-size:24px">' + (v == null ? '…' : v) + '</span></div>';
+    const enLinea = Object.keys(S.others || {}).filter(u => livePos(u)).length;
+    h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + kpi('Personas registradas', K && K.total) + kpi('Conductores en línea ahora', enLinea) + kpi('Conductores aprobados', K && K.aprob) + kpi('Conductores pendientes', K && K.pend) + '</div>';
+    if (!U) return h + '<div class="spinner" role="status" aria-label="Cargando"></div></div></div>';
+    const cmap = {}; (A.conductores || []).forEach(c => { cmap[c.id] = c; });
+    h += '<div class="muted small">Calidad de cada persona: calificación recibida como pasajero y como conductor, y tasa de cancelación histórica.</div>';
+    U.forEach(u => {
+      const q = S.admQ[u.id], c = cmap[u.id];
+      const st = c ? (c.estado === 'aprobado' ? '<span class="pill p-ok">Conductor' + (c.aprobadoSinDocs ? ' · sin documentos' : '') + '</span>' : '<span class="pill p-warn">Conductor ' + esc(c.estado) + '</span>') : '<span class="pill p-info">Pasajero</span>';
+      let ql = '<span class="muted small">Calculando calidad…</span>';
+      if (q) {
+        const pc = q.tot ? Math.round(q.pen * 100 / q.tot) : null;
+        ql = '<div class="col" style="gap:2px"><span class="small">' + (q.pN ? '★ ' + fmtRating(q.pAvg) + ' como pasajero (' + q.pN + ')' : 'Sin calificaciones como pasajero') + '</span>' +
+          (c ? '<span class="small">' + (q.cN ? '★ ' + fmtRating(q.cAvg) + ' como conductor (' + q.cN + ')' : 'Sin calificaciones como conductor') + '</span>' : '') +
+          '<span class="small">' + (pc == null ? 'Sin viajes aceptados' : 'Cancela ' + pc + ' % (' + q.tot + ' viajes)') + '</span></div>';
+        const alerta = (pc != null && q.tot >= 3 && pc > (c ? 20 : 30)) || (q.pN >= 5 && q.pAvg < 4.2) || (q.cN >= 5 && q.cAvg < 4.2);
+        if (alerta) ql += '<span class="pill p-danger" style="align-self:flex-start">Revisar</span>';
+      }
+      h += '<div class="card" style="gap:8px"><div class="row between" style="align-items:flex-start"><div class="col"><div class="strong">' + esc(u.nombre) + '</div><div class="muted small">' + esc(u.telefono || '') + '</div></div>' + st + '</div>' + ql;
+      if (!c) {
+        if (S.admMake === u.id) {
+          h += '<div class="col" style="gap:8px;border-top:1px solid var(--line);padding-top:10px"><div class="strong small">Habilitar como conductor</div>' +
+            '<div class="field"><label for="am">Marca y modelo del mototour</label><input type="text" id="am" data-in="amMoto" value="' + fv('amMoto') + '"></div>' +
+            '<div class="field"><label for="ac">Color</label><input type="text" id="ac" data-in="amColor" value="' + fv('amColor') + '"></div>' +
+            '<div class="field"><label for="ap">Placa</label><input type="text" id="ap" data-in="amPlaca" autocapitalize="characters" value="' + fv('amPlaca') + '"></div>' +
+            '<div class="field"><label for="ar">Número de registro de tránsito (opcional)</label><input type="text" id="ar" data-in="amReg" autocapitalize="characters" value="' + fv('amReg') + '"></div>' +
+            '<label class="check"><input type="checkbox" data-in="amOk"' + (S.f.amOk ? ' checked' : '') + '><span>Confirmo que verifiqué a esta persona y la habilito como conductor sin documentos completos.</span></label>' +
+            '<div class="row"><button class="btn btn-gold btn-sm" style="flex:1" data-act="admMakeSave" data-v="' + u.id + '"' + (S.busy || !S.f.amOk ? ' disabled' : '') + '>Habilitar</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admMake" data-v="">Cancelar</button></div></div>';
+        } else h += '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="admMake" data-v="' + u.id + '">Habilitar como conductor</button>';
+      }
+      h += '</div>';
+    });
+    if (U.length >= S.admLimit) h += '<button class="btn btn-ghost" data-act="admMore">Ver más personas</button>';
   }
   if (t === 'alertas') {
     const L = A.alertas; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div></div></div>';
@@ -433,13 +543,14 @@ function vAdmin() {
     if (!L.length) h += '<div class="card"><div class="muted">Aún no hay viajes.</div></div>';
     const fin = L.filter(v => v.estado === 'finalizado');
     h += '<div class="card"><div class="row between"><span class="muted">Viajes finalizados (últimos 100)</span><span class="strong">' + fin.length + '</span></div><div class="row between"><span class="muted">Valor movido</span><span class="strong">' + money(fin.reduce((s, v) => s + (v.precioFinal || 0), 0)) + '</span></div></div>';
-    L.forEach(v => { h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(v.pasajeroNombre) + ' → ' + esc(v.destino.texto) + '</div><div class="muted small">' + (v.conductor ? 'Conductor: ' + esc(v.conductor.nombre) + ' · ' : '') + new Date(tsMs(v.creado)).toLocaleString('es-CO') + '</div></div><div class="col" style="align-items:flex-end"><span class="strong">' + money(v.precioFinal || v.oferta) + '</span><span class="muted small">' + pagoTxt(v) + '</span><span class="pill p-info">' + esc(v.estado) + '</span></div></div></div>'; });
+    L.forEach(v => { h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(v.pasajeroNombre) + ' → ' + esc(v.destino.texto) + '</div><div class="muted small">' + (v.conductor ? 'Conductor: ' + esc(v.conductor.nombre) + ' · ' : '') + new Date(tsMs(v.creado)).toLocaleString('es-CO') + '</div></div><div class="col" style="align-items:flex-end"><span class="strong">' + money(v.precioFinal || v.oferta) + '</span><span class="muted small">' + pagoTxt(v) + '</span><span class="pill p-info">' + esc(v.estado) + '</span></div></div>' + (v.estado === 'cancelado' && v.motivo ? '<div class="muted small">Motivo: ' + esc({ ya_no: 'Ya no lo necesitaba', no_llega: 'El conductor no llegaba', inseguro: 'Se sintió inseguro', otro: 'Otro', inconveniente: 'Inconveniente del conductor', no_se_presento: 'El pasajero no se presentó' }[v.motivo] || v.motivo) + (v.motivoTexto ? ': ' + esc(v.motivoTexto) : '') + (v.penalizaA ? ' · penaliza al ' + esc(v.penalizaA) : ' · sin penalización') + '</div>' : '') + '</div>'; });
   }
   return h + '</div></div>';
 }
 function vSinConexion() { return '<div class="screen"><div class="pad" style="flex:1;justify-content:center"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px;align-self:center"><div class="card"><div class="h2">No pudimos conectar con el servidor</div><div class="muted">' + esc(S.connErr || '') + '</div><button class="btn btn-gold" data-act="retryLogin">Reintentar</button><button class="link" data-act="logout" style="align-self:center">Cerrar sesión</button></div></div></div>'; }
 const V = {
   sinConexion: vSinConexion,
+  cancelar: vCancelar,
   cargando: vCargando, login: vLogin, onboarding: vOnboarding, home: vHome, buscando: vBuscando, viaje: vViaje, calificar: vCalificar,
   menu: vMenu, historial: vHistorial, contactos: vContactos, registroC: vRegistroC, solicitudes: vSolicitudes, espera: vEspera, cviaje: vCViaje,
   ccalificar: vCCalificar, micalif: vMiCalif, admin: vAdmin, transfer: vTransfer,
@@ -478,13 +589,13 @@ function mapPoints() {
   if (S.screen === 'buscando') { const c = pickupOf(v) || S.pos; if (c) m.push(['me', c, 'person', 'Tú']); S.ofertas.forEach(o => { const p = livePos(o.id) || (o.lat != null ? { lat: o.lat, lng: o.lng } : null); if (p) m.push(['of_' + o.id, p, 'oferta', money(o.precio)]); }); }
   if (S.screen === 'solicitudes' && S.reqMap) { const r = S.requests.find(x => x.id === S.reqMap); if (r) { const p = pickupOf(r), d = destOf(r); if (p) m.push(['pax', p, 'person', 'Pasajero']); if (d) m.push(['dest', d, 'dest', 'Destino']); if (S.pos) m.push(['me', S.pos, 'moto', 'Tú']); } }
   if (S.screen === 'viaje') {
-    const me = S.pos || pickupOf(v); if (me && st === 'asignado') m.push(['me', me, 'person', 'Tú']);
+    const me = S.pos || pickupOf(v); if (me && REC(st)) m.push(['me', me, 'person', 'Tú']);
     if (S.drvPos) m.push(['drv', S.drvPos, 'moto', 'Tu conductor']);
     if (st === 'en_curso' && destOf(v)) m.push(['dest', destOf(v), 'dest', 'Destino']);
   }
   if (S.screen === 'cviaje') {
     if (S.pos) m.push(['me', S.pos, 'moto', 'Tú']);
-    if (st === 'asignado') { const p = S.paxPos || pickupOf(v); if (p) m.push(['pax', p, 'person', 'Pasajero']); }
+    if (REC(st)) { const p = S.paxPos || pickupOf(v); if (p) m.push(['pax', p, 'person', 'Pasajero']); }
     if (st === 'en_curso' && destOf(v)) m.push(['dest', destOf(v), 'dest', 'Destino']);
   }
   return m;
@@ -545,11 +656,11 @@ function fitMap() {
 function routeEnds() {
   const v = S.viaje, st = v && v.estado;
   if (S.screen === 'home') return [S.pos, S.destPin];
-  if (S.screen === 'viaje') return st === 'asignado' ? [S.drvPos, S.pos || pickupOf(v)] : st === 'en_curso' ? [S.drvPos || S.pos, destOf(v)] : [null, null];
-  if (S.screen === 'cviaje') return st === 'asignado' ? [S.pos, S.paxPos || pickupOf(v)] : st === 'en_curso' ? [S.pos, destOf(v)] : [null, null];
+  if (S.screen === 'viaje') return REC(st) ? [S.drvPos, S.pos || pickupOf(v)] : st === 'en_curso' ? [S.drvPos || S.pos, destOf(v)] : [null, null];
+  if (S.screen === 'cviaje') return REC(st) ? [S.pos, S.paxPos || pickupOf(v)] : st === 'en_curso' ? [S.pos, destOf(v)] : [null, null];
   return [null, null];
 }
-const routeActive = () => { const e = routeEnds(); return !!(e[0] && e[1]) || (S.screen !== 'home' && S.viaje && S.viaje.estado === 'asignado'); };
+const routeActive = () => { const e = routeEnds(); return !!(e[0] && e[1]) || (S.screen !== 'home' && S.viaje && REC(S.viaje.estado)); };
 function drawRoute() {
   if (!map || !window.L) return;
   if (mk.route) { map.removeLayer(mk.route); delete mk.route; }
@@ -635,7 +746,7 @@ function startWatch() {
     S.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
     pushPos(false);
     if (S.screen === 'cviaje') { setMarker('me', S.pos, 'moto', 'Tú'); refreshRoute(); updateEta(); }
-    if (S.screen === 'viaje' && S.viaje && S.viaje.estado === 'asignado') { setMarker('me', S.pos, 'person', 'Tú'); refreshRoute(); updateEta(); }
+    if (S.screen === 'viaje' && S.viaje && REC(S.viaje.estado)) { setMarker('me', S.pos, 'person', 'Tú'); refreshRoute(); updateEta(); }
     if (S.screen === 'solicitudes' && S.reqMap) setMarker('me', S.pos, 'moto', 'Tú');
   }, () => { }, { enableHighAccuracy: true, maximumAge: 10000 });
   try { onDisconnect(ref(rtdb, 'ubicaciones/' + S.user.uid)).remove(); } catch (e) { }
@@ -648,6 +759,83 @@ function stopWatch() {
 }
 function beep() {
   try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.frequency.value = 880; g.gain.value = 0.15; o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.35); } catch (e) { }
+}
+
+/* ---------- panel: personas registradas y su calidad (consultas de agregación: 1 lectura cada una) ---------- */
+async function loadAdmUsers() {
+  try {
+    const [t, ap, pe] = await Promise.all([getCountFromServer(collection(db, 'usuarios')), getCountFromServer(query(collection(db, 'conductores'), where('estado', '==', 'aprobado'))), getCountFromServer(query(collection(db, 'conductores'), where('estado', '==', 'pendiente')))]);
+    S.admKpi = { total: t.data().count, aprob: ap.data().count, pend: pe.data().count };
+  } catch (e) { S.admKpi = { total: '—', aprob: '—', pend: '—' }; }
+  if (S.screen === 'admin') render();
+  try {
+    const qs = await getDocs(query(collection(db, 'usuarios'), limit(S.admLimit)));
+    S.admUsers = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((x, y) => String(x.nombre).localeCompare(String(y.nombre), 'es'));
+  } catch (e) { S.admUsers = []; S.err = errMsg(e); }
+  if (S.screen === 'admin') render();
+  for (const u of S.admUsers) {
+    if (S.admQ[u.id]) continue;
+    try {
+      const esC = (S.adm.conductores || []).some(c => c.id === u.id);
+      const [p, cc, tot, pen] = await Promise.all([
+        getAggregateFromServer(collection(db, 'usuarios', u.id, 'calificaciones'), { n: count(), avg: average('estrellas') }),
+        esC ? getAggregateFromServer(collection(db, 'conductores', u.id, 'calificaciones'), { n: count(), avg: average('estrellas') }) : Promise.resolve(null),
+        getCountFromServer(collection(db, 'stats', u.id, 'viajes')),
+        getCountFromServer(query(collection(db, 'stats', u.id, 'viajes'), where('pen', '==', true)))]);
+      S.admQ[u.id] = { pN: p.data().n, pAvg: p.data().avg || 0, cN: cc ? cc.data().n : 0, cAvg: cc ? cc.data().avg || 0 : 0, tot: tot.data().count, pen: pen.data().count };
+    } catch (e) { S.admQ[u.id] = { pN: 0, pAvg: 0, cN: 0, cAvg: 0, tot: 0, pen: 0 }; }
+    if (S.screen === 'admin' && S.admTab === 'usuarios') render();
+  }
+}
+
+/* ---------- cancelaciones: temporizadores, resultados, tasa y restricciones ---------- */
+function startTick() { const id = setInterval(tick, 1000); addSub(() => clearInterval(id)); }
+function tick() {
+  const v = S.viaje;
+  if (v && v.estado === 'en_punto') {
+    const t = (Date.now() - tsMs(v.enPuntoEn)) / 1000;
+    document.querySelectorAll('[data-timer="espera"]').forEach(el => { el.textContent = fmtClock(ESPERA_S - 10 - t); });
+    document.querySelectorAll('[data-timerbar="espera"]').forEach(el => { el.style.width = Math.min(100, t / 3) + '%'; });
+    const b = document.querySelector('[data-noshow]'); if (b && b.disabled && t >= ESPERA_S && !S.busy) render();
+  }
+  if (S.screen === 'cancelar') { const g = graceLeft(); document.querySelectorAll('[data-timer="gracia"]').forEach(el => { el.textContent = fmtClock(g); }); if (S._gWas > 0 && g <= 0) render(); S._gWas = g; }
+  if (S.screen === 'cviaje' && v && v.estado === 'asignado') { const btn = document.querySelector('[data-act="llegue"]'), live = S.paxPos || pickupOf(v), d = distKm(S.pos, live), cerca = !live || (d != null && d <= 0.1); if (btn && !S.busy && btn.disabled === cerca) render(); }
+  document.querySelectorAll('[data-timer="block"]').forEach(el => { const u = +el.getAttribute('data-until'), s = (u - Date.now()) / 1000; if (s <= 0) render(); else el.textContent = s > 3600 ? Math.floor(s / 3600) + ' h ' + Math.floor(s % 3600 / 60) + ' min' : fmtClock(s); });
+}
+// Resultado de cada viaje aceptado (finalizado o cancelado) para la tasa de cancelación de ambos
+function cancelMsg(v, yoRol) {
+  const yo = v.canceladoPor === S.user.uid, pen = v.penalizaA || null;
+  if (yo) return 'Cancelaste el viaje.' + (pen === yoRol ? ' Cuenta en tu tasa de cancelación.' : ' Sin penalización.');
+  if (v.motivo === 'no_se_presento') return 'El conductor canceló porque no te presentaste en el punto. Cuenta en tu tasa de cancelación.';
+  return (yoRol === 'pasajero' ? 'El conductor canceló el viaje. Puedes pedir otro.' : 'El pasajero canceló el viaje.') + (pen === yoRol ? '' : ' No afecta tu tasa.');
+}
+function writeStats(v) {
+  if (!v || !v.conductorId || !v.id) return;
+  [[v.pasajeroId, 'pasajero'], [v.conductorId, 'conductor']].forEach(([u, rol]) => {
+    setDoc(doc(db, 'stats', u, 'viajes', v.id), { pen: (v.penalizaA || null) === rol, rol, ts: serverTimestamp() }).catch(() => { });
+    delete S.rates[u];
+  });
+}
+async function loadRate(uid) {
+  if (S.rates[uid]) return S.rates[uid];
+  try { const qs = await getDocs(query(collection(db, 'stats', uid, 'viajes'), orderBy('ts', 'desc'), limit(20))); S.rates[uid] = { items: qs.docs.map(d => d.data()) }; }
+  catch (e) { S.rates[uid] = { items: [] }; }
+  return S.rates[uid];
+}
+function rateOf(uid, rol) { const r = S.rates[uid]; if (!r) return null; const it = r.items.filter(x => x.rol === rol); if (it.length < 3) return { n: it.length, pct: null }; return { n: it.length, pct: Math.round(it.filter(x => x.pen).length * 100 / it.length) }; }
+function ratePill(uid, rol) { const r = rateOf(uid, rol); if (!r || r.pct == null) return ''; return '<span class="pill ' + (r.pct < 10 ? 'p-ok' : r.pct < 20 ? 'p-warn' : 'p-danger') + '">Cancela ' + r.pct + ' %</span>'; }
+function blockOf(uid, rol) {
+  const r = S.rates[uid]; if (!r) return null; const now = Date.now();
+  const pens = r.items.filter(x => x.rol === rol && x.pen && now - tsMs(x.ts) < 86400000).map(x => tsMs(x.ts)).sort((p, q) => q - p);
+  if (pens.length < 3) return null;
+  const until = pens[0] + (rol === 'pasajero' ? 30 * 60000 : 86400000);
+  return until > now ? { until, n: pens.length } : null;
+}
+function blockCard(rol, bl) {
+  const s = (bl.until - Date.now()) / 1000, t = s > 3600 ? Math.floor(s / 3600) + ' h ' + Math.floor(s % 3600 / 60) + ' min' : fmtClock(s);
+  return rol === 'pasajero'
+    ? '<div class="card" style="border:2px solid #B42318"><div class="h2">No puedes pedir viajes por ahora</div><div class="muted">Cancelaste ' + bl.n + ' viajes en las últimas 24 horas después del periodo de gracia.</div><div class="col" style="align-items:center;gap:4px"><span class="muted small strong">Podrás pedir de nuevo en</span><span class="amount" style="line-height:1.25" data-timer="block" data-until="' + bl.until + '">' + t + '</span></div></div>'
+    : '<div class="card" style="border:2px solid #B42318"><div class="h2">Modo conductor pausado</div><div class="muted">Cancelaste ' + bl.n + ' viajes aceptados en las últimas 24 horas. Podrás conectarte de nuevo en <b data-timer="block" data-until="' + bl.until + '">' + t + '</b>.</div></div>';
 }
 
 /* ---------- sitios frecuentes (los 5 destinos más pedidos) ---------- */
@@ -683,7 +871,7 @@ async function loadRating(key, path) {
 
 /* ---------- entrada a cada pantalla ---------- */
 function enter(s) {
-  if (s === 'home') { if (S.sharing) { S.sharing = false; stopWatch(); } S.route = null; getGps(); listenOthers(); loadTopDest(); }
+  if (s === 'home') { if (S.sharing) { S.sharing = false; stopWatch(); } S.route = null; getGps(); listenOthers(); loadTopDest(); delete S.rates[S.user.uid]; loadRate(S.user.uid).then(() => { if (S.screen === 'home') render(); }); startTick(); }
   if (s === 'buscando') {
     S.sharing = true; startWatch(); listenOthers();
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
@@ -692,18 +880,26 @@ function enter(s) {
       if (S.viaje.estado === 'cancelado') { S.banner = { kind: 'info', text: 'Cancelaste la solicitud.' }; S.viajeId = null; go('home'); return; }
     }, fail));
     addSub(onSnapshot(collection(db, 'viajes', S.viajeId, 'ofertas'), qs => {
-      S.ofertas = qs.docs.map(d => { const o = Object.assign({ id: d.id }, d.data()); const km = distKm(S.viaje && S.viaje.origen, o.lat != null ? o : null); o.distTxt = km != null ? fmtDist(km) : ''; return o; }).sort((a, b) => a.precio - b.precio);
-      S.ofertas.forEach(o => { if (!S.ratings[o.id]) loadRating(o.id, ['conductores', o.id, 'calificaciones']).then(() => { if (S.screen === 'buscando') render(); }); });
+      S.ofertas = qs.docs.map(d => { const o = Object.assign({ id: d.id }, d.data()); const km = distKm(S.viaje && S.viaje.origen, o.lat != null ? o : null); o.distTxt = km != null ? fmtDist(km) : ''; return o; }).sort((a, b) => a.precio - b.precio || (((rateOf(a.id, 'conductor') || {}).pct || 0) - ((rateOf(b.id, 'conductor') || {}).pct || 0)));
+      S.ofertas.forEach(o => { if (!S.ratings[o.id]) loadRating(o.id, ['conductores', o.id, 'calificaciones']).then(() => { if (S.screen === 'buscando') render(); }); if (!S.rates[o.id]) loadRate(o.id).then(() => { if (S.screen === 'buscando') { S.ofertas.sort((a, b) => a.precio - b.precio || (((rateOf(a.id, 'conductor') || {}).pct || 0) - ((rateOf(b.id, 'conductor') || {}).pct || 0))); render(); } }); });
       if (S.screen === 'buscando') render();
     }, fail));
   }
+  if (s === 'cancelar') {
+    startTick();
+    addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
+      const prev = S.viaje && S.viaje.estado; S.viaje = Object.assign({ id: d.id }, d.data());
+      if (!REC(S.viaje.estado)) { go(S.cancelBack || (S.cancelRol === 'conductor' ? 'cviaje' : 'viaje')); return; }
+      if (prev !== S.viaje.estado) render();
+    }, fail));
+  }
   if (s === 'viaje') {
-    listenOthers();
+    listenOthers(); startTick();
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
       const prev = S.viaje && S.viaje.estado; S.viaje = Object.assign({ id: d.id }, d.data());
       const st = S.viaje.estado;
-      if (st === 'finalizado') { S.rating = 5; S.chips = {}; S.f.comentario = ''; go('calificar'); return; }
-      if (st === 'cancelado') { S.banner = { kind: 'warn', text: S.viaje.canceladoPor === S.user.uid ? 'Cancelaste el viaje.' : 'El conductor canceló el viaje. Puedes pedir otro.' }; S.viajeId = null; S.viaje = null; go('home'); return; }
+      if (st === 'finalizado') { writeStats(S.viaje); S.rating = 5; S.chips = {}; S.f.comentario = ''; go('calificar'); return; }
+      if (st === 'cancelado') { writeStats(S.viaje); S.banner = { kind: 'warn', text: cancelMsg(S.viaje, 'pasajero') }; S.viajeId = null; S.viaje = null; go('home'); return; }
       if (prev !== st) render();
     }, fail));
     addSub(onValue(ref(rtdb, 'ubicaciones/' + S.viaje.conductorId), snap => {
@@ -715,7 +911,8 @@ function enter(s) {
     S.sharing = true; startWatch();
   }
   if (s === 'solicitudes') {
-    listenOthers();
+    listenOthers(); startTick();
+    delete S.rates[S.user.uid]; loadRate(S.user.uid).then(() => { if (blockOf(S.user.uid, 'conductor') && S.online) { S.online = false; stopWatch(); } if (S.screen === 'solicitudes') render(); });
     loadStats();
     loadRating(S.user.uid, ['conductores', S.user.uid, 'calificaciones']).then(() => { if (S.screen === 'solicitudes') render(); });
     if (S.online) listenRequests();
@@ -728,19 +925,19 @@ function enter(s) {
     }, () => { S.espera.perdida = true; render(); }));
   }
   if (s === 'cviaje') {
-    listenOthers();
+    listenOthers(); startTick();
     const priv = { telefono: S.perfil.telefono, nombre: S.perfil.nombre }; if (S.perfil.transferencia) priv.transferencia = S.perfil.transferencia;
     setDoc(doc(db, 'viajes', S.viajeId, 'privado', S.user.uid), priv).catch(() => { });
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
       const prev = S.viaje && S.viaje.estado; S.viaje = Object.assign({ id: d.id }, d.data());
-      if (S.viaje.estado === 'cancelado') { S.banner = { kind: 'warn', text: S.viaje.canceladoPor === S.user.uid ? 'Cancelaste el viaje.' : 'El pasajero canceló el viaje.' }; S.viajeId = null; go('solicitudes'); return; }
-      if (S.viaje.estado === 'finalizado') { S.rating = 5; S.chips = {}; go('ccalificar'); return; }
+      if (S.viaje.estado === 'cancelado') { writeStats(S.viaje); S.banner = { kind: 'warn', text: cancelMsg(S.viaje, 'conductor') }; S.viajeId = null; go('solicitudes'); return; }
+      if (S.viaje.estado === 'finalizado') { writeStats(S.viaje); S.rating = 5; S.chips = {}; go('ccalificar'); return; }
       if (prev !== S.viaje.estado) render();
     }, fail));
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId, 'privado', S.viaje.pasajeroId), d => { if (d.exists()) { S.pPhone = d.data().telefono; render(); } }, () => { }));
     loadRating('p_' + S.viaje.pasajeroId, ['usuarios', S.viaje.pasajeroId, 'calificaciones']).then(() => { if (S.screen === 'cviaje') render(); });
     addSub(onValue(ref(rtdb, 'ubicaciones/' + S.viaje.pasajeroId), snap => {
-      const p = snap.val(); if (!p || !S.viaje || S.viaje.estado !== 'asignado') return; const first = !S.paxPos; S.paxPos = { lat: p.lat, lng: p.lng };
+      const p = snap.val(); if (!p || !S.viaje || !REC(S.viaje.estado)) return; const first = !S.paxPos; S.paxPos = { lat: p.lat, lng: p.lng };
       setMarker('pax', S.paxPos, 'person', 'Pasajero'); if (first) fitMap(); refreshRoute(); updateEta();
     }));
     startWatch(); refreshRoute();
@@ -755,6 +952,7 @@ function enter(s) {
       .catch(fail);
   }
   if (s === 'admin') {
+    listenOthers(); if (S.admTab === 'usuarios') loadAdmUsers();
     addSub(onSnapshot(query(collection(db, 'conductores'), limit(200)), qs => { S.adm.conductores = qs.docs.map(d => Object.assign({ id: d.id }, d.data())); if (S.screen === 'admin') render(); }, fail));
     addSub(onSnapshot(query(collection(db, 'alertas'), where('estado', '==', 'activa'), limit(50)), qs => { S.adm.alertas = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => tsMs(b.creado) - tsMs(a.creado)); if (S.screen === 'admin') render(); }, fail));
     getDocs(query(collection(db, 'viajes'), limit(100))).then(qs => { S.adm.viajes = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => tsMs(b.creado) - tsMs(a.creado)); if (S.screen === 'admin') render(); }).catch(fail);
@@ -770,6 +968,7 @@ function listenRequests() {
     const fresh = S.requests.some(r => !known.has(r.id));
     if (fresh && !first) beep();
     first = false; known = new Set(S.requests.map(r => r.id));
+    S.requests.forEach(r => { if (!S.rates[r.pasajeroId]) loadRate(r.pasajeroId).then(() => { if (S.screen === 'solicitudes') render(); }); });
     S.requests.forEach(r => { const k = 'p_' + r.pasajeroId; if (!S.ratings[k]) loadRating(k, ['usuarios', r.pasajeroId, 'calificaciones']).then(() => { if (S.screen === 'solicitudes') render(); }); });
     if (S.screen === 'solicitudes') render();
   }, fail));
@@ -813,11 +1012,11 @@ async function afterLogin(user) {
       if (before === 'aprobado' && now !== 'aprobado' && S.mode === 'conductor') { S.online = false; stopWatch(); S.mode = 'pasajero'; S.banner = { kind: 'warn', text: 'Tu modo conductor fue ' + now + '.' }; go('home'); }
     }, () => { }));
     // Retomar un viaje en curso (si la consulta falla, se continúa normalmente)
-    const pv = await findActive('pasajeroId', user.uid, ['buscando', 'asignado', 'en_curso']);
+    const pv = await findActive('pasajeroId', user.uid, ['buscando', 'asignado', 'en_punto', 'en_curso']);
     if (pv) { S.viajeId = pv.id; S.viaje = pv; S.mode = 'pasajero'; go(pv.estado === 'buscando' ? 'buscando' : 'viaje'); return; }
     const cond = await getDoc(doc(db, 'conductores', user.uid));
     if (cond.exists() && cond.data().estado === 'aprobado') {
-      const cv = await findActive('conductorId', user.uid, ['asignado', 'en_curso']);
+      const cv = await findActive('conductorId', user.uid, ['asignado', 'en_punto', 'en_curso']);
       if (cv) { S.viajeId = cv.id; S.viaje = cv; S.mode = 'conductor'; S.online = true; go('cviaje'); return; }
     }
     go('home');
@@ -836,7 +1035,7 @@ appEl.addEventListener('input', e => {
   S.f[k] = v;
 });
 appEl.addEventListener('change', async e => {
-  const k = e.target.getAttribute('data-in'); if (k && e.target.type === 'checkbox') S.f[k] = e.target.checked;
+  const k = e.target.getAttribute('data-in'); if (k && e.target.type === 'checkbox') { S.f[k] = e.target.checked; if (k.indexOf('force_') === 0 || k === 'amOk') render(); }
   const t = e.target.getAttribute('data-docup');
   if (t && e.target.files && e.target.files[0]) {
     S.err = null; S.docMsg = 'Procesando la foto…'; render();
@@ -861,12 +1060,14 @@ async function act(a, v, b) {
       if (v === 'transfer') S.f.transferencia = S.perfil.transferencia || '';
       go(v); break;
     case 'retryLogin': go('cargando'); afterLogin(S.user); break;
+    case 'hideInstall': S.hideInstall = true; render(); break;
     case 'install':
       if (!installEvt) break;
       try { installEvt.prompt(); await installEvt.userChoice; } catch (e) { }
       installEvt = null; render(); break;
     case 'closeBanner': S.banner = null; render(); break;
     case 'closeErr': S.err = null; render(); break;
+    case 'togglePass': { const pos = (document.getElementById('pw') || {}).selectionStart; S.showPass = !S.showPass; render(); const p = document.getElementById('pw'); if (p) { p.focus(); try { p.setSelectionRange(pos, pos); } catch (e) { } } break; }
     case 'toggleCrear': S.f.modoCrear = !S.f.modoCrear; S.err = null; render(); break;
     case 'google': S.busy = true; S.err = null; render(); try { await signInWithPopup(auth, new GoogleAuthProvider()); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'signin': case 'signup': {
@@ -910,6 +1111,7 @@ async function act(a, v, b) {
     case 'notaToggle': S.notaOpen = !S.notaOpen; render(); break;
     case 'pago': S.pago = v === 'transferencia' ? 'transferencia' : 'efectivo'; render(); break;
     case 'buscar': {
+      if (blockOf(uid, 'pasajero')) { S.err = 'Tu cuenta tiene una restricción temporal por cancelaciones.'; render(); break; }
       const dest = (S.f.destino || '').trim(), refTxt = (S.f.ref || '').trim();
       if (dest.length < 2) { S.err = 'Escribe o elige el destino del viaje.'; render(); break; }
       S.busy = true; S.err = null; S.banner = null; render();
@@ -936,8 +1138,8 @@ async function act(a, v, b) {
           const vs = await tx.get(vref), os = await tx.get(oref);
           if (!vs.exists() || vs.data().estado !== 'buscando') throw new Error('Esta solicitud ya no está disponible.');
           if (!os.exists()) throw new Error('El conductor retiró su oferta. Elige otra.');
-          const o = os.data();
-          tx.update(vref, { estado: 'asignado', conductorId: v, precioFinal: o.precio, conductor: { nombre: o.nombre, moto: o.moto, color: o.color, placa: o.placa }, asignadoEn: serverTimestamp() });
+          const o = os.data(), e = offerEta(Object.assign({ id: v }, o));
+          tx.update(vref, { estado: 'asignado', conductorId: v, precioFinal: o.precio, conductor: { nombre: o.nombre, moto: o.moto, color: o.color, placa: o.placa }, asignadoEn: serverTimestamp(), etaMin: e ? e.min : 5 });
         });
         S.busy = false; render();
       } catch (e) { fail(e); }
@@ -1000,6 +1202,7 @@ async function act(a, v, b) {
       break;
     }
     case 'online':
+      if (!S.online && blockOf(uid, 'conductor')) { S.err = 'Tu modo conductor está pausado por cancelaciones.'; render(); break; }
       S.online = !S.online;
       if (S.online) { beepUnlock(); go('solicitudes'); } else { S.requests = []; stopWatch(); go('solicitudes'); }
       break;
@@ -1023,6 +1226,27 @@ async function act(a, v, b) {
       try { await deleteDoc(doc(db, 'viajes', S.espera.viajeId, 'ofertas', uid)); } catch (e) { }
       S.espera = null; go('solicitudes'); break;
     case 'backToRequests': S.espera = null; go('solicitudes'); break;
+    case 'llegue': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'en_punto', enPuntoEn: serverTimestamp() }); S.busy = false; render(); } catch (e) { fail(e); } break;
+    case 'openCancel': S.cancel = { motivo: null }; S.f.motivoTexto = ''; S.cancelRol = S.screen === 'cviaje' ? 'conductor' : 'pasajero'; S.cancelBack = S.screen; go('cancelar'); break;
+    case 'backFromCancel': go(S.cancelBack || (S.cancelRol === 'conductor' ? 'cviaje' : 'viaje')); break;
+    case 'motivo': S.cancel.motivo = v; S.err = null; render(); if (v === 'otro') { const t = document.getElementById('mt'); if (t) t.focus(); } break;
+    case 'doCancel': {
+      const m = S.cancel.motivo, txt = (S.f.motivoTexto || '').trim();
+      if (!m) { S.err = 'Elige el motivo de la cancelación.'; render(); break; }
+      if (m === 'otro' && txt.length < 5) { S.err = 'Escribe el motivo de la cancelación (mínimo 5 caracteres).'; render(); const t = document.getElementById('mt'); if (t) t.focus(); break; }
+      const v0 = S.viaje, rol = S.cancelRol, pen = rol === 'pasajero' ? penPasajero(v0, m) : (m === 'inseguro' ? null : 'conductor');
+      S.busy = true; render();
+      try {
+        await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid, motivo: m, motivoTexto: m === 'otro' ? txt.slice(0, 200) : '', penalizaA: pen });
+        if (m === 'inseguro') addDoc(collection(db, 'alertas'), { viajeId: v0.id, creadoPor: uid, nombre: S.perfil.nombre, rol: rol + ' (canceló: se siente inseguro)', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null, estado: 'activa', creado: serverTimestamp() }).catch(() => { });
+        S.busy = false; render();
+      } catch (e) { fail(e); }
+      break;
+    }
+    case 'noShow':
+      S.busy = true; render();
+      try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid, motivo: 'no_se_presento', motivoTexto: '', penalizaA: 'pasajero' }); S.busy = false; render(); } catch (e) { fail(e); }
+      break;
     case 'cStart': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'en_curso', iniciadoEn: serverTimestamp() }); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'cFinish': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'finalizado', finalizadoEn: serverTimestamp() }); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'cCancel': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid }); S.busy = false; render(); } catch (e) { fail(e); } break;
@@ -1031,7 +1255,27 @@ async function act(a, v, b) {
       try { await setDoc(doc(db, 'usuarios', S.viaje.pasajeroId, 'calificaciones', S.viaje.id), { estrellas: S.rating, aspectos: Object.keys(S.chips).filter(k => S.chips[k]), creado: serverTimestamp() }); S.busy = false; endDriverTrip(); } catch (e) { fail(e); }
       break;
     case 'cSkipRating': endDriverTrip(); break;
-    case 'admTab': S.admTab = v; render(); break;
+    case 'admTab': S.admTab = v; render(); if (v === 'usuarios' && !S.admUsers) loadAdmUsers(); break;
+    case 'admMore': S.admLimit += 30; S.admUsers = null; render(); loadAdmUsers(); break;
+    case 'admMake': S.admMake = v || null; S.f.amMoto = ''; S.f.amColor = ''; S.f.amPlaca = ''; S.f.amReg = ''; S.f.amOk = false; render(); break;
+    case 'admMakeSave': {
+      const u = (S.admUsers || []).find(x => x.id === v); if (!u) break;
+      const moto = (S.f.amMoto || '').trim(), color = (S.f.amColor || '').trim(), placa = (S.f.amPlaca || '').toUpperCase().replace(/[^A-Z0-9]/g, ''), reg = String(S.f.amReg || '').trim().replace(/\s+/g, ' ').toUpperCase();
+      if (moto.length < 2 || color.length < 2) { S.err = 'Escribe la marca, el modelo y el color del mototour.'; render(); break; }
+      if (!/^[A-Z0-9]{5,7}$/.test(placa) || !/[A-Z]/.test(placa) || !/[0-9]/.test(placa)) { S.err = 'La placa debe tener entre 5 y 7 letras y números, por ejemplo ABC12D.'; render(); break; }
+      if (reg && (reg.length < 2 || reg.length > 30)) { S.err = 'El número de registro de tránsito debe tener entre 2 y 30 caracteres.'; render(); break; }
+      S.busy = true; render();
+      try {
+        const d = { nombre: u.nombre, moto, color, placa, estado: 'aprobado', aprobadoSinDocs: true, creado: serverTimestamp() }; if (reg) d.registro = reg;
+        await setDoc(doc(db, 'conductores', v), d); S.admMake = null; S.busy = false; S.banner = { kind: 'ok', text: u.nombre + ' quedó habilitado como conductor.' }; render();
+      } catch (e) { fail(e); }
+      break;
+    }
+    case 'admForce':
+      if (!S.f['force_' + v]) break;
+      S.busy = true; render();
+      try { await updateDoc(doc(db, 'conductores', v), { estado: 'aprobado', aprobadoSinDocs: true }); S.busy = false; render(); } catch (e) { fail(e); }
+      break;
     case 'admDocs':
       if (S.admOpen === v) { S.admOpen = null; S.admBig = null; render(); break; }
       S.admOpen = v; S.admBig = null; S.admDocs[v] = 'cargando'; render();
