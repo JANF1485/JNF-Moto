@@ -101,6 +101,19 @@ const fv = k => esc(S.f[k] || '');
 function ratingLine(r) { if (!r) return '★ …'; return '★ ' + fmtRating(r.avg) + (r.n < 5 ? ' <span class="pill p-info">Nuevo</span>' : ' · ' + r.n + ' calificaciones'); }
 const busyAttr = () => S.busy ? ' disabled' : '';
 
+/* ---------- instalación en el celular ---------- */
+let installEvt = null;
+const isStandalone = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (['login', 'home', 'menu'].includes(S.screen)) render(); });
+window.addEventListener('appinstalled', () => { installEvt = null; S.banner = { kind: 'ok', text: 'JNF Moto quedó instalada. Ábrela desde el ícono en tu celular.' }; render(); });
+function installCard() {
+  if (isStandalone()) return '';
+  if (installEvt) return '<div class="card" style="flex-direction:row;align-items:center;gap:12px"><img src="' + LOGO + '" alt="" style="width:44px;height:44px;flex-shrink:0"><div class="col grow"><div class="strong">Instala JNF Moto</div><div class="muted small">Ábrela desde un ícono, como cualquier app.</div></div><button class="btn btn-gold btn-sm" data-act="install" style="flex-shrink:0">Instalar</button></div>';
+  if (isIOS()) return '<div class="card"><div class="strong">Instala JNF Moto en tu iPhone</div><div class="muted small">En Safari toca el botón Compartir (el cuadro con la flecha) y elige "Agregar a inicio".</div></div>';
+  return '';
+}
+
 /* ---------- pantallas: acceso ---------- */
 function vCargando() { return '<div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:96px;height:96px"><div class="spinner" role="status" aria-label="Cargando"></div></div></div>'; }
 function vLogin() {
@@ -113,7 +126,7 @@ function vLogin() {
     '<button class="btn btn-gold" data-act="' + (crear ? 'signup' : 'signin') + '"' + busyAttr() + '>' + (crear ? 'Crear cuenta' : 'Ingresar') + '</button>' +
     '<button class="link" data-act="toggleCrear" style="align-self:center">' + (crear ? 'Ya tengo cuenta: ingresar' : 'No tengo cuenta: crear una') + '</button>' +
     (crear ? '' : '<button class="link" data-act="reset" style="align-self:center;font-size:13px">Olvidé mi contraseña</button>') +
-    '</div><div class="demo">Versión de prueba · Asesorías y Consultorías JNF S.A.S.</div></div>';
+    installCard() + '</div><div class="demo">Versión de prueba · Asesorías y Consultorías JNF S.A.S.</div></div>';
 }
 function vOnboarding() {
   return '<div class="screen"><div class="top">' + brandRow() + '<h1 class="h1">Completa tu perfil</h1><div class="sub">Lo usamos para que conductores y pasajeros se identifiquen.</div></div><div class="pad">' + errHTML() +
@@ -207,7 +220,7 @@ function vMenu() {
   else if (st === 'pendiente') h += '<button disabled aria-current="false">' + I.lock + 'En revisión</button>';
   else if (st === 'ninguno') h += '<button data-act="go" data-v="registroC" aria-current="false">' + I.lock + 'Modo conductor</button>';
   else h += '<button disabled aria-current="false">' + I.lock + 'No habilitado</button>';
-  h += '</div></div><div class="pad">' + bannerHTML(S.banner) + errHTML();
+  h += '</div></div><div class="pad">' + bannerHTML(S.banner) + errHTML() + installCard();
   if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes moto? Conduce con JNF Moto</div><div class="muted">Regístrate y el administrador verificará tus documentos en persona antes de habilitarte.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
   if (st === 'pendiente') h += '<div class="card"><div class="h2">Tu registro está en revisión</div><div class="muted">Lleva tu cédula, licencia A2, SOAT, técnico-mecánica (si aplica) y tarjeta de propiedad a la oficina de JNF S.A.S. Cuando el administrador te apruebe, esta opción se habilita sola.</div></div>';
   if (st === 'rechazado' || st === 'suspendido') h += '<div class="card"><div class="h2">Modo conductor no habilitado</div><div class="muted">Tu cuenta de conductor está ' + st + '. Comunícate con la oficina de JNF S.A.S.</div></div>';
@@ -712,6 +725,10 @@ async function act(a, v, b) {
       if (v === 'transfer') S.f.transferencia = S.perfil.transferencia || '';
       go(v); break;
     case 'retryLogin': go('cargando'); afterLogin(S.user); break;
+    case 'install':
+      if (!installEvt) break;
+      try { installEvt.prompt(); await installEvt.userChoice; } catch (e) { }
+      installEvt = null; render(); break;
     case 'closeBanner': S.banner = null; render(); break;
     case 'closeErr': S.err = null; render(); break;
     case 'toggleCrear': S.f.modoCrear = !S.f.modoCrear; S.err = null; render(); break;
