@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import { getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, runTransaction, serverTimestamp, getCountFromServer, getAggregateFromServer, count, average } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import { getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, runTransaction, writeBatch, serverTimestamp, getCountFromServer, getAggregateFromServer, count, average } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 import { getDatabase, ref, set, remove, onValue, onDisconnect, serverTimestamp as rtdbTime } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 
 const firebaseConfig = {
@@ -18,7 +18,7 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '12';
+const APP_VERSION = '13';
 const LOGO = 'icon-192.png';
 const appEl = document.getElementById('app');
 
@@ -68,7 +68,8 @@ const S = {
   viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, topDest: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
-  cal: null, hist: null, admTab: 'resumen', adm: {}
+  cal: null, hist: null, admTab: 'resumen', adm: {},
+  masc: null, mascSrc: null, mascClosed: {}, mascList: null, mascThumbs: {}, mascImgData: {}, me: null, mascMsg: '', mascDel: null
 };
 let subs = [], gsubs = [], map = null, mk = {}, watchId = null, lastPush = 0, audioCtx = null;
 const addSub = u => subs.push(u);
@@ -142,7 +143,7 @@ function installCard() {
 function vCargando() { return '<div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:96px;height:96px"><div class="spinner" role="status" aria-label="Cargando"></div></div></div>'; }
 function vLogin() {
   const crear = S.f.modoCrear;
-  return '<div class="screen"><div class="top" style="align-items:center;text-align:center;padding:28px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px"><h1 class="h1" style="color:#C9A227">JNF Moto</h1><div class="sub">Tu mototour, al precio que acuerdas.</div></div>' +
+  return '<div class="screen"><div class="top" style="align-items:center;text-align:center;padding:28px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px"><h1 class="h1" style="color:#C9A227">JNF Moto</h1><div class="sub">Tu mototour, al precio que acuerdas.</div></div>' + mascLogin() +
     '<div class="pad">' + errHTML() + bannerHTML(S.banner) +
     '<button class="btn gbtn" data-act="google"' + busyAttr() + '>Entrar con Google</button><div class="divider">o con tu correo</div>' +
     '<div class="field"><label for="em">Correo electrónico</label><input type="email" id="em" data-in="email" autocomplete="email" value="' + fv('email') + '"></div>' +
@@ -165,10 +166,10 @@ function vHome() {
   if (S.gps === 'ok') gps = '<div class="muted small">Ubicación GPS detectada. Agrega una referencia para que el conductor te encuentre.</div>';
   else if (S.gps === 'pendiente') gps = '<div class="muted small">Buscando tu ubicación…</div>';
   else gps = '<div class="banner warn">' + I.info + '<div class="grow">No pudimos obtener tu ubicación. Activa el GPS y el permiso de ubicación del navegador, o escribe con detalle dónde te recogen.</div><button data-act="retryGps">Reintentar</button></div>';
-  let h = '<div class="screen"><div class="row between" style="padding:12px 16px;background:var(--bg)"><button class="iconbtn light" data-act="go" data-v="menu" aria-label="Abrir menú">' + I.menu + '</button>' +
-    '<div class="row" style="background:#1A2580;border-radius:28px;padding:4px 16px 4px 4px"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">JNF Moto</span></div><div style="width:44px"></div></div>';
+  let h = '<div class="screen"><div class="row between hdr" style="padding:12px 16px;background:var(--bg)"><button class="iconbtn light" data-act="go" data-v="menu" aria-label="Abrir menú">' + I.menu + '</button>' +
+    '<div class="row hpill" style="background:#1A2580;border-radius:28px;padding:4px 16px 4px 4px"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">JNF Moto</span></div>' + (mascBadge() || '<div style="width:44px"></div>') + '</div>' + mascBand();
   h += S.gps === 'ok' ? '<div id="map" class="lmap" role="img" aria-label="Mapa con tu ubicación' + (S.destPin ? ' y el destino' : '') + '"></div>' + legendHTML([['person', 'Tú'], ['otro', 'Conductores cerca']].concat(S.destPin ? [['dest', 'Destino']] : [])) : '';
-  h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + homeInstallCard() + '<h1 class="h1">¿Dónde estás?</h1>';
+  h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + mascBig() + mascNotice() + homeInstallCard() + '<h1 class="h1">¿Dónde estás?</h1>';
   h += '<div class="field"><label for="ref">Punto de recogida (referencia)</label><input type="text" id="ref" data-in="ref" placeholder="Ej. Frente a la tienda azul, Calle 5" value="' + fv('ref') + '">' + gps + '</div>';
   h += '<h2 class="h1" style="margin-top:6px">¿A dónde vas?</h2><div class="field"><label for="destino">Destino</label><input type="text" id="destino" data-in="destino" placeholder="Barrio, dirección o lugar" value="' + fv('destino') + '" autocomplete="off">';
   if (S.pickDest) h += '<div class="banner info">' + I.info + '<div class="grow">Toca el mapa en el punto exacto de tu destino.</div><button data-act="pickDest">Cancelar</button></div>';
@@ -393,7 +394,7 @@ function vSolicitudes() {
   const st = S.stats;
   let h = '<div class="screen"><div class="top"><div class="row between"><div class="row"><button class="iconbtn" data-act="go" data-v="menu" aria-label="Abrir menú">' + I.menu + '</button><div class="col"><div class="sub">Hola, ' + esc(S.perfil.nombre.split(' ')[0]) + '</div><h1 class="h1" style="white-space:nowrap">Solicitudes</h1></div></div>' +
     '<button class="toggle ' + (S.online ? 'on' : 'off') + '" data-act="online" aria-pressed="' + S.online + '">' + (S.online ? 'En línea' : 'Desconectado') + '<span class="knob"></span></button></div>' +
-    '<div class="grid3"><div class="stat"><span class="k">Viajes hoy</span><span class="v">' + (st ? st.viajes : '…') + '</span></div><div class="stat"><span class="k">Ganado hoy</span><span class="v" style="color:#C9A227">' + (st ? money(st.ganado) : '…') + '</span></div><div class="stat"><span class="k">Calificación</span><span class="v">' + (S.ratings[S.user.uid] ? '★ ' + fmtRating(S.ratings[S.user.uid].avg) : '★ …') + '</span></div></div></div><div class="pad">' + errHTML() + bannerHTML(S.banner);
+    '<div class="grid3"><div class="stat"><span class="k">Viajes hoy</span><span class="v">' + (st ? st.viajes : '…') + '</span></div><div class="stat"><span class="k">Ganado hoy</span><span class="v" style="color:#C9A227">' + (st ? money(st.ganado) : '…') + '</span></div><div class="stat"><span class="k">Calificación</span><span class="v">' + (S.ratings[S.user.uid] ? '★ ' + fmtRating(S.ratings[S.user.uid].avg) : '★ …') + '</span></div></div></div>' + mascBand() + '<div class="pad">' + errHTML() + bannerHTML(S.banner) + (mascOn() && S.masc.opcion !== 'B' ? mascNotice(true) : '');
   const blc = blockOf(S.user.uid, 'conductor'), rtc = rateOf(S.user.uid, 'conductor');
   if (blc) return h + blockCard('conductor', blc) + '</div></div>';
   if (rtc && rtc.pct != null && rtc.pct > 10) h += '<div class="banner warn">' + I.info + '<div class="grow">Tu tasa de cancelación es de <b>' + rtc.pct + ' %</b>. Si supera el 20 %, tu cuenta pasa a revisión del administrador.</div></div>';
@@ -467,20 +468,252 @@ function vMiCalif() {
   if (coms.length) { h += '<span class="lbl">Comentarios recientes</span>'; coms.slice(0, 10).forEach(x => { h += '<div class="card" style="gap:8px"><div class="row between small"><span class="strong">★ ' + x.estrellas + ' · Pasajero</span><span class="muted">' + new Date(tsMs(x.creado)).toLocaleDateString('es-CO') + '</span></div><div>' + esc(x.comentario) + '</div></div>'; }); }
   return h + '</div></div>';
 }
+/* ---------- máscaras de temporada ---------- */
+// Cada máscara: mascaras/{id} (datos, lectura pública) y mascaras/{id}/img/data (imagen, se descarga solo la visible).
+// Se muestra la programada que esté en sus fechas; si no hay, la activa (respetando sus fechas). Solo una activa a la vez.
+const OPC = {
+  A: ['Insignia y aviso', 'Logo pequeño arriba y aviso que se puede cerrar.'],
+  B: ['Franja de temporada', 'Banda con el logo sobre el mapa, en los colores de la imagen.'],
+  C: ['Aviso destacado', 'Logo grande al abrir la app, con mensaje.'],
+  D: ['Colores de la temporada', 'La app toma los colores de la imagen.']
+};
+const MASC_IMG_MAX = 350000; // caracteres del data URL (~260 KB)
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } };
+const lsDel = k => { try { localStorage.removeItem(k); } catch (e) { } };
+const enFechas = m => { const t = ymd(new Date()); return (!m.desde || m.desde <= t) && (!m.hasta || t <= m.hasta); };
+function mascVigente(list) {
+  const prog = list.filter(m => m.estado === 'programada' && m.desde && enFechas(m)).sort((a, b) => b.desde.localeCompare(a.desde));
+  if (prog.length) return prog[0];
+  return list.find(m => m.estado === 'activa' && enFechas(m)) || null;
+}
+const fmtYmd = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; };
+function fechasTxt(m) {
+  if (m.desde && m.hasta) return 'del ' + fmtYmd(m.desde) + ' al ' + fmtYmd(m.hasta);
+  if (m.desde) return 'desde el ' + fmtYmd(m.desde);
+  if (m.hasta) return 'hasta el ' + fmtYmd(m.hasta);
+  return 'sin fechas';
+}
+// Colores
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(String(h).slice(i, i + 2), 16) || 0);
+const rgb2hex = c => '#' + c.map(x => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('').toUpperCase();
+const relLum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; const r = c.map(f); return 0.2126 * r[0] + 0.7152 * r[1] + 0.0722 * r[2]; };
+const contrastW = c => 1.05 / (relLum(c) + 0.05);
+const cDist = (a, b) => Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2);
+// p: color principal (texto blanco encima con contraste ≥ 4,5:1) · a: acento · t: fondo suave
+function mascPal(m) {
+  const cols = ((m && m.colores) || []).map(hex2rgb);
+  if (!cols.length) return { p: '#1A2580', a: '#C9A227', t: '#E4E7F6' };
+  let p = cols.find(c => contrastW(c) >= 4.5) || cols.slice().sort((x, y) => contrastW(y) - contrastW(x))[0];
+  for (let i = 0; i < 40 && contrastW(p) < 4.6; i++) p = p.map(v => v * 0.92);
+  const a = cols.find(c => cDist(c, p) > 90) || [201, 162, 39];
+  return { p: rgb2hex(p), a: rgb2hex(a), t: rgb2hex(p.map(v => v + (255 - v) * 0.9)) };
+}
+// Colores dominantes de la imagen (ignora transparencia, blancos y grises)
+function detectColors(img) {
+  const n = 80, sc = n / Math.max(img.width || 1, img.height || 1), cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.round((img.width || n) * sc)); cv.height = Math.max(1, Math.round((img.height || n) * sc));
+  const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, cv.width, cv.height);
+  let d; try { d = cx.getImageData(0, 0, cv.width, cv.height).data; } catch (e) { return []; }
+  const B = {}; let tot = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 160) continue;
+    const r = d[i], g = d[i + 1], b = d[i + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    if (mn > 225) continue;
+    if (mx - mn < 20 && mx > 70) continue;
+    const k = (r >> 4) + ',' + (g >> 4) + ',' + (b >> 4), e = B[k] || (B[k] = { n: 0, s: [0, 0, 0] });
+    e.n++; e.s[0] += r; e.s[1] += g; e.s[2] += b; tot++;
+  }
+  const cl = [];
+  Object.values(B).sort((x, y) => y.n - x.n).forEach(e => {
+    const c = e.s.map(v => v / e.n), near = cl.find(k => cDist(k.c, c) < 60);
+    if (near) { near.s = near.s.map((v, i) => v + e.s[i]); near.n += e.n; } else cl.push({ c, n: e.n, s: e.s.slice() });
+  });
+  return cl.map(k => ({ c: k.s.map(v => v / k.n), n: k.n })).sort((x, y) => y.n - x.n).filter(k => k.n >= tot * 0.03).slice(0, 3).map(k => rgb2hex(k.c));
+}
+// Reduce la imagen conservando la transparencia (WebP o PNG) para guardarla en Firestore
+function prepMaskImage(file) {
+  return new Promise((res, rej) => {
+    if (!file || !/^image\//.test(file.type || '')) { rej(new Error('El archivo no es una imagen. Usa PNG, JPG, WebP o SVG.')); return; }
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const w0 = img.naturalWidth || img.width || 600, h0 = img.naturalHeight || img.height || 600;
+      let max = 800, q = 0.9, out = '';
+      const png = /png|svg|gif/.test(file.type);
+      for (let i = 0; i < 12; i++) {
+        const sc = Math.min(1, max / Math.max(w0, h0)), cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(w0 * sc)); cv.height = Math.max(1, Math.round(h0 * sc));
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        out = cv.toDataURL('image/webp', q);
+        if (out.indexOf('data:image/webp') !== 0) out = png ? cv.toDataURL('image/png') : cv.toDataURL('image/jpeg', q);
+        if (out.length <= MASC_IMG_MAX) break;
+        if (q > 0.65 && out.indexOf('data:image/png') !== 0) q -= 0.1; else max = Math.round(max * 0.8);
+      }
+      const colores = detectColors(img);
+      URL.revokeObjectURL(url);
+      out.length <= MASC_IMG_MAX ? res({ img: out, colores }) : rej(new Error('La imagen es demasiado pesada. Intenta con otra.'));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('No se pudo leer la imagen. Intenta con otra.')); };
+    img.src = url;
+  });
+}
+// data URL -> URL corta de blob (evita repetir cientos de KB en cada pintado de pantalla)
+async function toBlobUrl(dataUrl) { try { const r = await fetch(dataUrl); return URL.createObjectURL(await r.blob()); } catch (e) { return dataUrl; } }
+async function loadMasc() {
+  try {
+    const qs = await getDocs(query(collection(db, 'mascaras'), limit(30)));
+    const list = qs.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    const m = mascVigente(list);
+    if (!m) { S.masc = null; S.mascSrc = null; if (MASC_SCREENS.includes(S.screen)) render(); return; }
+    if (S.masc && S.masc.id === m.id && S.masc.iv === m.iv && S.mascSrc) { S.masc = m; if (MASC_SCREENS.includes(S.screen)) render(); return; }
+    const key = 'jnfm_mimg_' + m.id + '_' + m.iv;
+    let data = lsGet(key);
+    if (!data) {
+      const d = await getDoc(doc(db, 'mascaras', m.id, 'img', 'data'));
+      data = d.exists() ? d.data().img : null;
+      if (data) {
+        try { Object.keys(localStorage).filter(k => k.indexOf('jnfm_mimg_') === 0).forEach(lsDel); } catch (e) { }
+        lsSet(key, data);
+      }
+    }
+    if (!data) { S.masc = null; S.mascSrc = null; return; }
+    S.masc = m; S.mascSrc = await toBlobUrl(data);
+    if (MASC_SCREENS.includes(S.screen)) render();
+  } catch (e) { /* sin máscara: la app sigue normal */ }
+}
+const MASC_SCREENS = ['login', 'home', 'solicitudes', 'menu'];
+const mascOn = () => (S.masc && S.mascSrc ? S.masc : null);
+const mascKey = m => 'jnfm_mc_' + m.id + '_' + m.ver;
+const mascClosed = m => !!S.mascClosed[mascKey(m)] || !!lsGet(mascKey(m));
+const mImg = (src, alt, st) => '<img src="' + src + '" alt="' + esc(alt) + '" style="width:auto;max-width:100%;object-fit:contain;display:block;' + (st || '') + '">';
+// Piezas que se muestran en la app
+function mascBadge() { const m = mascOn(); if (!m || (m.opcion !== 'A' && m.opcion !== 'D')) return ''; return '<div class="mbadge">' + mImg(S.mascSrc, m.nombre, 'max-height:38px') + '</div>'; }
+function mascBand() {
+  const m = mascOn(); if (!m || m.opcion !== 'B') return ''; const c = mascPal(m);
+  return '<div class="mband" style="background:' + c.t + ';border-top:3px solid ' + c.p + ';border-bottom:3px solid ' + c.a + '">' + mImg(S.mascSrc, m.nombre, 'height:60px;max-width:38%;flex-shrink:0') +
+    '<div class="col" style="gap:2px"><div class="strong" style="color:' + c.p + ';font-size:15px">' + esc(m.nombre) + '</div>' + (m.mensaje ? '<div class="small" style="color:#2B3140">' + esc(m.mensaje) + '</div>' : '') + '</div></div>';
+}
+function mascNotice(force) { // aviso pequeño (opción A, y en la pantalla del conductor para A, C y D)
+  const m = mascOn(); if (!m || mascClosed(m) || !(m.opcion === 'A' || force)) return '';
+  return '<div class="card mnote" style="flex-direction:row;align-items:center;gap:12px;padding:10px 12px">' + mImg(S.mascSrc, m.nombre, 'height:52px;max-width:88px;flex-shrink:0') +
+    '<div class="col grow"><div class="strong">' + esc(m.nombre) + '</div>' + (m.mensaje ? '<div class="muted small">' + esc(m.mensaje) + '</div>' : '') + '</div>' +
+    '<button class="iconbtn light" style="border:none;width:40px;height:40px" data-act="mascClose" aria-label="Cerrar aviso de temporada">' + I.close + '</button></div>';
+}
+function mascBig() {
+  const m = mascOn(); if (!m || m.opcion !== 'C' || mascClosed(m)) return ''; const c = mascPal(m);
+  return '<div class="card" style="align-items:center;text-align:center;border:2px solid ' + c.p + ';gap:10px">' + mImg(S.mascSrc, m.nombre, 'max-height:150px') +
+    '<div class="strong" style="font-size:16px">' + esc(m.mensaje || m.nombre) + '</div>' +
+    '<button class="btn btn-ghost btn-sm" style="border:1px solid ' + c.p + '" data-act="mascClose">Cerrar aviso</button></div>';
+}
+function mascLogin() {
+  const m = mascOn(); if (!m) return ''; const c = mascPal(m);
+  return '<div class="mlogin">' + mImg(S.mascSrc, m.nombre, 'max-height:' + (m.opcion === 'C' ? 150 : 110) + 'px;margin:0 auto') + (m.mensaje ? '<div class="strong center" style="color:' + c.p + '">' + esc(m.mensaje) + '</div>' : '') + '</div>';
+}
+// Opción D: colores de la temporada en toda la app (menos en el panel de administración)
+function applyMascTheme() {
+  const m = mascOn(), on = !!(m && m.opcion === 'D' && S.screen !== 'admin');
+  appEl.classList.toggle('masc-d', on);
+  if (on) { const c = mascPal(m); appEl.style.setProperty('--m1', c.p); appEl.style.setProperty('--m2', c.a); }
+}
+// Vista previa en miniatura de cada opción (panel de administración)
+function miniPrev(op, src, c) {
+  const top = op === 'D' ? c.p : '#F6F4EE', pill = op === 'D' ? '#FFFFFF' : '#1A2580';
+  const badge = (op === 'A' || op === 'D') ? '<div style="width:26px;height:20px;border-radius:5px;background:#FFFFFF;border:1px solid #E3DECF;display:flex;align-items:center;justify-content:center;overflow:hidden"><img src="' + src + '" alt="" style="max-width:22px;max-height:16px;object-fit:contain"></div>' : '<div style="width:26px"></div>';
+  let h = '<div class="mini" aria-hidden="true"><div style="background:' + top + ';height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 8px' + (op === 'D' ? ';border-bottom:3px solid ' + c.a : '') + '"><div style="width:16px;height:16px;border-radius:8px;background:' + (op === 'D' ? 'rgba(255,255,255,.3)' : '#FFFFFF') + ';border:1px solid #E3DECF"></div><div style="width:54px;height:14px;border-radius:7px;background:' + pill + '"></div>' + badge + '</div>';
+  if (op === 'B') h += '<div style="background:' + c.t + ';border-top:2px solid ' + c.p + ';border-bottom:2px solid ' + c.a + ';height:36px;display:flex;align-items:center;gap:6px;padding:0 6px"><img src="' + src + '" alt="" style="max-height:28px;max-width:44px;object-fit:contain"><div style="height:5px;width:56px;border-radius:3px;background:' + c.p + '"></div></div>';
+  h += '<div style="background:#E7E3D6;height:' + (op === 'B' ? 40 : 56) + 'px"></div><div style="background:#FFFFFF;padding:8px;display:flex;flex-direction:column;gap:6px;flex:1">';
+  if (op === 'A') h += '<div style="border:1px solid #E3DECF;border-radius:6px;padding:4px;display:flex;align-items:center;gap:6px"><img src="' + src + '" alt="" style="max-height:22px;max-width:36px;object-fit:contain"><div style="height:4px;width:50px;border-radius:2px;background:#1A2580"></div></div>';
+  if (op === 'C') h += '<div style="border:2px solid ' + c.p + ';border-radius:8px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:4px"><img src="' + src + '" alt="" style="max-height:48px;max-width:100%;object-fit:contain"><div style="height:4px;width:60%;border-radius:2px;background:' + c.p + '"></div></div>';
+  const hd = op === 'D' ? c.p : '#1A2580';
+  h += '<div style="height:6px;width:60%;border-radius:3px;background:' + hd + '"></div><div style="height:12px;border-radius:4px;background:#F1EEE6;border:1px solid #E3DECF"></div><div style="height:12px;border-radius:4px;background:#F1EEE6;border:1px solid #E3DECF"></div>';
+  h += '<div style="height:14px;border-radius:5px;background:' + (op === 'D' ? c.p : '#C9A227') + ';margin-top:auto"></div>';
+  return h + '</div></div>';
+}
+function mascEstado(m, vig) {
+  const t = ymd(new Date()), fut = m.desde && m.desde > t, past = m.hasta && m.hasta < t;
+  if (vig && vig.id === m.id) return '<span class="pill p-ok">Se ve ahora</span>';
+  if (m.estado === 'activa') return fut ? '<span class="pill p-info">Activa desde ' + fmtYmd(m.desde) + '</span>' : past ? '<span class="pill p-warn">Vencida</span>' : '<span class="pill p-info">Activa</span>';
+  if (m.estado === 'programada') return past ? '<span class="pill p-warn">Vencida</span>' : '<span class="pill p-info">Programada</span>';
+  return '<span class="pill" style="background:var(--field);color:var(--muted);border:1px solid var(--line)">Guardada</span>';
+}
+function admMascaras() {
+  const L = S.mascList; if (!L) return '<div class="spinner" role="status" aria-label="Cargando"></div>';
+  const vig = mascVigente(L);
+  let h = '<div class="muted">Cambia la máscara de la app cuando quieras. Solo una máscara puede estar activa a la vez; las programadas se muestran solas en sus fechas y, mientras estén en sus fechas, reemplazan a la activa.</div><div class="mgrid">';
+  L.forEach(m => {
+    const th = S.mascThumbs[m.id];
+    h += '<div class="card" style="gap:10px"><div class="mthumb">' + (th ? mImg(th, m.nombre, 'max-height:110px;margin:0 auto') : '<div class="spinner" aria-hidden="true"></div>') + '</div>' +
+      '<div class="row between" style="gap:8px;align-items:flex-start"><div class="strong">' + esc(m.nombre) + '</div>' + mascEstado(m, vig) + '</div>' +
+      '<div class="muted small">Opción ' + m.opcion + ' · ' + OPC[m.opcion][0] + ' · ' + fechasTxt(m) + '</div>';
+    if (S.mascDel === m.id) h += '<div class="banner danger">' + I.info + '<div class="grow">¿Eliminar la máscara "' + esc(m.nombre) + '"? No se puede deshacer.</div></div><div class="row"><button class="btn btn-danger btn-sm" style="flex:1" data-act="mascDelOk" data-v="' + m.id + '"' + busyAttr() + '>Sí, eliminar</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="mascDel" data-v="">Cancelar</button></div>';
+    else h += '<div class="row mact">' + (m.estado === 'activa' ? '<button class="btn btn-ghost btn-sm" style="flex:1" data-act="mascOff" data-v="' + m.id + '"' + busyAttr() + '>Desactivar</button>' : '<button class="btn btn-gold btn-sm" style="flex:1" data-act="mascOnAct" data-v="' + m.id + '"' + busyAttr() + '>Activar</button>') +
+      '<button class="btn btn-ghost btn-sm" style="flex:1" data-act="mascEdit" data-v="' + m.id + '">Editar</button><button class="btn btn-ghost btn-sm" style="flex:1;color:var(--danger-text)" data-act="mascDel" data-v="' + m.id + '">Eliminar</button></div>';
+    h += '</div>';
+  });
+  h += '<button class="card mnew" data-act="mascNew"><span class="mplus" aria-hidden="true">+</span><span class="strong">Crear máscara con una imagen</span></button></div>';
+  return h;
+}
+function admMascEdit() {
+  const E = S.me || {};
+  let h = '<button class="link" data-act="admTab" data-v="mascaras" style="align-self:flex-start">← Volver a mis máscaras</button>';
+  h += '<section class="card"><h2 class="h2">1. Adjunta la imagen</h2><div class="row" style="gap:16px;flex-wrap:wrap;align-items:flex-start">';
+  h += '<div class="mdrop">' + (E.src ? mImg(E.src, 'Imagen de la máscara', 'max-height:120px;margin:auto') : '<span class="muted small center">Sin imagen</span>') + '</div><div class="col" style="gap:8px">';
+  if (E.src) h += '<span class="muted small">Colores detectados automáticamente:</span><div class="row" style="flex-wrap:wrap;gap:8px">' + (E.colores.length ? E.colores.map(c => '<span class="row small" style="gap:6px"><span style="width:22px;height:22px;border-radius:6px;background:' + c + ';border:1px solid var(--line);flex-shrink:0"></span>' + c + '</span>').join('') : '<span class="muted small">No se detectaron colores; se usarán los de JNF.</span>') + '</div>';
+  else h += '<span class="muted small">PNG con fondo transparente, JPG, WebP o SVG. La app la reduce sola y conserva la transparencia.</span>';
+  h += '<label class="upl" style="align-self:flex-start">' + (E.src ? 'Cambiar imagen' : 'Adjuntar imagen') + '<input type="file" accept="image/*" class="vh" data-mascup="1"></label>' + (S.mascMsg ? '<span class="muted small" role="status">' + esc(S.mascMsg) + '</span>' : '') + '</div></div></section>';
+  if (E.src) {
+    const c = mascPal({ colores: E.colores });
+    h += '<section class="card"><div class="row between" style="flex-wrap:wrap;gap:6px"><h2 class="h2">2. Elige cómo se verá</h2><span class="muted small">Opciones generadas con tu imagen y sus colores</span></div><div class="mopts">';
+    ['A', 'B', 'C', 'D'].forEach(op => {
+      const sel = E.opcion === op;
+      h += '<div class="card mopt' + (sel ? ' sel' : '') + '">' + miniPrev(op, E.src, c) + '<div class="strong">' + op + ' · ' + OPC[op][0] + '</div><div class="muted small" style="flex:1">' + OPC[op][1] + '</div>' +
+        '<button class="btn btn-sm ' + (sel ? 'btn-gold' : 'btn-ghost') + '" style="width:100%" data-act="mascOpc" data-v="' + op + '" aria-pressed="' + sel + '">' + (sel ? '✓ Seleccionada' : 'Usar esta opción') + '</button></div>';
+    });
+    h += '</div></section>';
+    const dt = 'min-height:48px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;color:var(--ink);background:var(--field);width:100%';
+    h += '<section class="card"><h2 class="h2">3. Datos de la máscara</h2><div class="mform">' +
+      '<div class="field"><label for="mn">Nombre</label><input type="text" id="mn" data-in="mNombre" maxlength="40" placeholder="Ej. Plato 400 años" value="' + fv('mNombre') + '"></div>' +
+      '<div class="field"><label for="mm">Mensaje</label><input type="text" id="mm" data-in="mMensaje" maxlength="90" placeholder="Ej. Celebremos juntos los 400 años" value="' + fv('mMensaje') + '"></div>' +
+      '<div class="field"><label for="md">Desde (opcional)</label><input type="date" id="md" data-in="mDesde" value="' + fv('mDesde') + '" style="' + dt + '"></div>' +
+      '<div class="field"><label for="mh">Hasta (opcional)</label><input type="date" id="mh" data-in="mHasta" value="' + fv('mHasta') + '" style="' + dt + '"></div></div>' +
+      '<div class="muted small">Con fecha inicial y "Guardar sin activar", la máscara queda programada y se muestra sola en esas fechas. Sin fechas, queda activa hasta que la desactives.</div>' +
+      '<div class="row" style="flex-wrap:wrap"><button class="btn btn-gold btn-sm" style="flex:1;min-height:48px" data-act="mascSave" data-v="1"' + busyAttr() + '>Guardar y activar</button><button class="btn btn-ghost btn-sm" style="flex:1;min-height:48px" data-act="mascSave" data-v="0"' + busyAttr() + '>Guardar sin activar</button></div></section>';
+  }
+  return h;
+}
+// Explica al administrador si la máscara que activó/guardó no es la que se ve hoy
+function mascAviso(id) {
+  const L = S.mascList || [], m = L.find(x => x.id === id), vig = mascVigente(L); if (!m) return;
+  if (m.estado === 'activa' && vig && vig.id !== id) S.banner = { kind: 'info', text: '"' + m.nombre + '" está activa, pero hoy se ve la programada "' + vig.nombre + '" (' + fechasTxt(vig) + '). Al terminar esas fechas se verá "' + m.nombre + '".' };
+  render();
+}
+async function loadMascAdmin() {
+  try {
+    const qs = await getDocs(query(collection(db, 'mascaras'), limit(30)));
+    const ord = { activa: 0, programada: 1, guardada: 2 };
+    S.mascList = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => (ord[a.estado] - ord[b.estado]) || String(a.nombre).localeCompare(String(b.nombre)));
+    if (S.screen === 'admin') render();
+    for (const m of S.mascList) {
+      if (S.mascThumbs[m.id] && S.mascThumbs[m.id + ':iv'] === m.iv) continue;
+      try { const d = await getDoc(doc(db, 'mascaras', m.id, 'img', 'data')); if (d.exists()) { S.mascThumbs[m.id] = await toBlobUrl(d.data().img); S.mascThumbs[m.id + ':iv'] = m.iv; S.mascImgData[m.id] = d.data().img; } } catch (e) { }
+      if (S.screen === 'admin') render();
+    }
+  } catch (e) { fail(e); }
+}
 /* ---------- panel de administración ---------- */
 const isWide = () => window.innerWidth >= 900;
-const ADM_SECS = () => [['resumen', 'Resumen'], ['usuarios', 'Usuarios'], ['conductores', 'Conductores'], ['viajes', 'Viajes'], ['alertas', 'Alertas de pánico' + (S.adm.alertas && S.adm.alertas.length ? ' (' + S.adm.alertas.length + ')' : '')]];
+const ADM_SECS = () => [['resumen', 'Resumen'], ['usuarios', 'Usuarios'], ['conductores', 'Conductores'], ['viajes', 'Viajes'], ['alertas', 'Alertas de pánico' + (S.adm.alertas && S.adm.alertas.length ? ' (' + S.adm.alertas.length + ')' : '')], ['mascaras', 'Máscaras']];
 function vAdmin() {
-  const t = S.admTab, secs = ADM_SECS(), title = t === 'detalle' ? 'Servicios e ingresos' : (secs.find(x => x[0] === t) || secs[0])[1].replace(/ \(\d+\)$/, '');
+  const t = S.admTab, secs = ADM_SECS(), title = t === 'detalle' ? 'Servicios e ingresos' : t === 'mascEdit' ? (S.me && S.me.id ? 'Editar máscara' : 'Crear máscara') : (secs.find(x => x[0] === t) || secs[0])[1].replace(/ \(\d+\)$/, '');
   if (isWide()) {
     return '<div class="adm-wrap"><nav class="adm-side" aria-label="Secciones del panel"><div class="row" style="gap:12px;padding:0 8px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:52px;height:52px"><div class="col" style="gap:2px"><span class="brandname" style="font-size:18px">JNF Moto</span><span class="small" style="color:#D8DEE8;font-weight:600">Administración</span></div></div>' +
-      secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0] || (t === 'detalle' && x[0] === S.admBack)) + '">' + x[1] + '</button>').join('') +
+      secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0] || (t === 'detalle' && x[0] === S.admBack) || (t === 'mascEdit' && x[0] === 'mascaras')) + '">' + x[1] + '</button>').join('') +
       '<button data-act="go" data-v="menu" style="margin-top:auto">← Volver a la app</button></nav>' +
       '<main class="adm-main"><div class="row between" style="flex-wrap:wrap;gap:8px"><h1 class="h1" style="font-size:28px">' + title + '</h1><span class="muted">Hoy · ' + new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '</span></div>' +
       errHTML() + bannerHTML(S.banner) + admBody(t) + '</main></div>';
   }
   return '<div class="screen">' + subTop('Administración') + '<div class="pad">' + errHTML() + bannerHTML(S.banner) + '<div class="tabs" role="group" aria-label="Secciones">' +
-    secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0]) + '">' + x[1].replace('Alertas de pánico', 'Alertas') + '</button>').join('') + '</div>' + admBody(t) + '</div></div>';
+    secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0] || (t === 'mascEdit' && x[0] === 'mascaras')) + '">' + x[1].replace('Alertas de pánico', 'Alertas') + '</button>').join('') + '</div>' + admBody(t) + '</div></div>';
 }
 function admBody(t) {
   const A = S.adm;
@@ -599,6 +832,8 @@ function admBody(t) {
     });
     if (U.length >= S.admLimit) h += '<button class="btn btn-ghost" data-act="admMore">Ver más personas</button>';
   }
+  if (t === 'mascaras') h += admMascaras();
+  if (t === 'mascEdit') h += admMascEdit();
   if (t === 'alertas') {
     const L = A.alertas; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div>';
     if (!L.length) h += '<div class="card"><div class="strong">Sin alertas activas.</div><div class="muted">Cuando alguien active el botón de pánico, aparece aquí con su ubicación.</div></div>';
@@ -779,7 +1014,7 @@ async function geocodeDestino(q) {
 let lastWide = null;
 window.addEventListener('resize', () => { const w = isWide(); if (S.screen === 'admin' && w !== lastWide) render(); });
 function render() {
-  lastWide = isWide(); appEl.classList.toggle('wide', S.screen === 'admin' && lastWide);
+  lastWide = isWide(); appEl.classList.toggle('wide', S.screen === 'admin' && lastWide); applyMascTheme();
   if (map) { try { map.remove(); } catch (e) { } map = null; }
   appEl.innerHTML = V[S.screen]();
   mountMap();
@@ -1053,7 +1288,7 @@ function enter(s) {
       .catch(fail);
   }
   if (s === 'admin') {
-    listenOthers(); loadAdmKpi(); if (S.admTab === 'usuarios') loadAdmUsers();
+    listenOthers(); loadAdmKpi(); if (S.admTab === 'usuarios') loadAdmUsers(); if (S.admTab === 'mascaras' || S.admTab === 'mascEdit') loadMascAdmin();
     addSub(onSnapshot(query(collection(db, 'conductores'), limit(200)), qs => { S.adm.conductores = qs.docs.map(d => Object.assign({ id: d.id }, d.data())); if (S.screen === 'admin') render(); loadDocCounts(); }, fail));
     addSub(onSnapshot(query(collection(db, 'alertas'), where('estado', '==', 'activa'), limit(50)), qs => { S.adm.alertas = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => tsMs(b.creado) - tsMs(a.creado)); if (S.screen === 'admin') render(); }, fail));
     getDocs(query(collection(db, 'viajes'), limit(100))).then(qs => { S.adm.viajes = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => tsMs(b.creado) - tsMs(a.creado)); if (S.screen === 'admin') render(); }).catch(fail);
@@ -1123,6 +1358,7 @@ async function afterLogin(user) {
     go('home');
   } catch (e) { S.connErr = errMsg(e); go('sinConexion'); }
 }
+loadMasc();
 onAuthStateChanged(auth, user => {
   if (user) afterLogin(user);
   else { clearSubs(); clearGSubs(); S.user = null; S.perfil = null; S.conductor = null; S.admin = false; S.mode = 'pasajero'; S.online = false; go('login'); }
@@ -1137,6 +1373,16 @@ appEl.addEventListener('input', e => {
 });
 appEl.addEventListener('change', async e => {
   const k = e.target.getAttribute('data-in'); if (k && e.target.type === 'checkbox') { S.f[k] = e.target.checked; if (k.indexOf('force_') === 0 || k === 'amOk') render(); }
+  if (e.target.getAttribute('data-mascup') && e.target.files && e.target.files[0] && S.me) {
+    const file = e.target.files[0]; S.err = null; S.mascMsg = 'Procesando la imagen…'; render();
+    try {
+      const r = await prepMaskImage(file);
+      S.me.img = r.img; S.me.colores = r.colores; S.me.src = await toBlobUrl(r.img); S.mascMsg = '';
+      if (!S.me.opcion) S.me.opcion = 'C';
+      render();
+    } catch (err) { S.mascMsg = ''; S.err = err.message || 'No se pudo procesar la imagen.'; render(); }
+    return;
+  }
   const t = e.target.getAttribute('data-docup');
   if (t && e.target.files && e.target.files[0]) {
     S.err = null; S.docMsg = 'Procesando la foto…'; render();
@@ -1356,7 +1602,72 @@ async function act(a, v, b) {
       try { await setDoc(doc(db, 'usuarios', S.viaje.pasajeroId, 'calificaciones', S.viaje.id), { estrellas: S.rating, aspectos: Object.keys(S.chips).filter(k => S.chips[k]), creado: serverTimestamp() }); S.busy = false; endDriverTrip(); } catch (e) { fail(e); }
       break;
     case 'cSkipRating': endDriverTrip(); break;
-    case 'admTab': S.admTab = v; S.err = null; render(); if (v === 'usuarios' && !S.admUsers) loadAdmUsers(); break;
+    case 'mascClose': { const m = mascOn(); if (m) { S.mascClosed[mascKey(m)] = true; lsSet(mascKey(m), '1'); } render(); break; }
+    case 'mascNew':
+      S.me = { id: null, src: null, img: null, colores: [], opcion: null, iv: null }; S.f.mNombre = ''; S.f.mMensaje = ''; S.f.mDesde = ''; S.f.mHasta = ''; S.mascMsg = ''; S.err = null; S.banner = null;
+      S.admTab = 'mascEdit'; render(); window.scrollTo(0, 0); break;
+    case 'mascEdit': {
+      const m = (S.mascList || []).find(x => x.id === v); if (!m) break;
+      S.me = { id: m.id, src: S.mascThumbs[m.id] || null, img: null, colores: (m.colores || []).slice(), opcion: m.opcion, iv: m.iv };
+      S.f.mNombre = m.nombre || ''; S.f.mMensaje = m.mensaje || ''; S.f.mDesde = m.desde || ''; S.f.mHasta = m.hasta || ''; S.mascMsg = S.me.src ? '' : 'Cargando la imagen…'; S.err = null; S.banner = null;
+      S.admTab = 'mascEdit'; render(); window.scrollTo(0, 0);
+      if (!S.me.src) { try { const d = await getDoc(doc(db, 'mascaras', m.id, 'img', 'data')); if (d.exists() && S.me && S.me.id === m.id) { S.me.src = await toBlobUrl(d.data().img); } } catch (e) { S.err = errMsg(e); } if (S.me) S.mascMsg = ''; render(); }
+      break;
+    }
+    case 'mascOpc': if (S.me) { S.me.opcion = v; render(); } break;
+    case 'mascSave': {
+      const E = S.me; if (!E) break;
+      const nom = (S.f.mNombre || '').trim().replace(/\s+/g, ' '), msj = (S.f.mMensaje || '').trim().replace(/\s+/g, ' '), de = S.f.mDesde || '', ha = S.f.mHasta || '', activar = v === '1', hoy = ymd(new Date());
+      let er = '';
+      if (!E.src) er = 'Adjunta la imagen de la máscara.';
+      else if (!E.opcion) er = 'Elige cómo se verá la máscara (opción A, B, C o D).';
+      else if (nom.length < 2) er = 'Escribe el nombre de la máscara.';
+      else if (de && ha && ha < de) er = 'La fecha final no puede ser anterior a la fecha inicial.';
+      else if (ha && ha < hoy) er = 'La fecha final ya pasó. Cámbiala o déjala vacía.';
+      if (er) { S.err = er; render(); window.scrollTo(0, 0); break; }
+      S.busy = true; S.err = null; render();
+      try {
+        const id = E.id || doc(collection(db, 'mascaras')).id, now = Date.now();
+        const data = { nombre: nom.slice(0, 40), mensaje: msj.slice(0, 90), opcion: E.opcion, colores: (E.colores || []).slice(0, 4), desde: de, hasta: ha, estado: activar ? 'activa' : (de ? 'programada' : 'guardada'), ver: now, iv: E.img ? now : (E.iv || now), actualizado: serverTimestamp() };
+        const bt = writeBatch(db);
+        if (activar) (S.mascList || []).forEach(m => { if (m.id !== id && m.estado === 'activa') bt.update(doc(db, 'mascaras', m.id), { estado: 'guardada' }); });
+        bt.set(doc(db, 'mascaras', id), data);
+        if (E.img) bt.set(doc(db, 'mascaras', id, 'img', 'data'), { img: E.img });
+        await bt.commit();
+        if (E.img) { S.mascThumbs[id] = E.src; S.mascThumbs[id + ':iv'] = data.iv; }
+        S.busy = false; S.me = null; S.admTab = 'mascaras';
+        const txt = activar ? (de && de > hoy ? 'Máscara guardada y activa. Se verá desde el ' + fmtYmd(de) + '.' : 'Máscara guardada y activa.') : data.estado === 'programada' ? 'Máscara programada ' + fechasTxt(data) + '.' : 'Máscara guardada sin activar.';
+        S.banner = { kind: 'ok', text: txt }; render(); window.scrollTo(0, 0);
+        await loadMascAdmin(); mascAviso(id); loadMasc();
+      } catch (e) { fail(e); }
+      break;
+    }
+    case 'mascOnAct': {
+      const m = (S.mascList || []).find(x => x.id === v); if (!m) break;
+      if (m.hasta && m.hasta < ymd(new Date())) { S.err = 'La fecha final de esta máscara ya pasó. Toca "Editar" para cambiarla.'; render(); break; }
+      S.busy = true; render();
+      try {
+        const bt = writeBatch(db);
+        (S.mascList || []).forEach(x => { if (x.id !== v && x.estado === 'activa') bt.update(doc(db, 'mascaras', x.id), { estado: 'guardada' }); });
+        bt.update(doc(db, 'mascaras', v), { estado: 'activa', actualizado: serverTimestamp() });
+        await bt.commit(); S.busy = false; S.banner = { kind: 'ok', text: '"' + m.nombre + '" quedó activa.' }; render();
+        await loadMascAdmin(); mascAviso(v); loadMasc();
+      } catch (e) { fail(e); }
+      break;
+    }
+    case 'mascOff':
+      S.busy = true; render();
+      try { await updateDoc(doc(db, 'mascaras', v), { estado: 'guardada', actualizado: serverTimestamp() }); S.busy = false; S.banner = { kind: 'ok', text: 'Máscara desactivada. La app se ve sin máscara (salvo que haya una programada en sus fechas).' }; render(); await loadMascAdmin(); loadMasc(); } catch (e) { fail(e); }
+      break;
+    case 'mascDel': S.mascDel = v || null; render(); break;
+    case 'mascDelOk':
+      S.busy = true; render();
+      try {
+        const bt = writeBatch(db); bt.delete(doc(db, 'mascaras', v, 'img', 'data')); bt.delete(doc(db, 'mascaras', v)); await bt.commit();
+        S.busy = false; S.mascDel = null; delete S.mascThumbs[v]; S.banner = { kind: 'ok', text: 'Máscara eliminada.' }; render(); await loadMascAdmin(); loadMasc();
+      } catch (e) { fail(e); }
+      break;
+    case 'admTab': S.admTab = v; S.err = null; S.mascDel = null; render(); if (v === 'usuarios' && !S.admUsers) loadAdmUsers(); if (v === 'mascaras') loadMascAdmin(); break;
     case 'admMore': S.admLimit += 30; S.admUsers = null; render(); loadAdmUsers(); break;
     case 'admMake': S.admMake = v || null; S.f.amMoto = ''; S.f.amColor = ''; S.f.amPlaca = ''; S.f.amReg = ''; S.f.amOk = false; render(); break;
     case 'admMakeSave': {

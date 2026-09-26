@@ -1,7 +1,7 @@
 // JNF Moto — service worker
 // Estrategia "red primero": siempre intenta descargar la versión publicada más reciente
 // (sin usar la caché HTTP del navegador) y solo usa la copia guardada si no hay conexión. Así las actualizaciones se ven de inmediato.
-const CACHE = 'jnf-moto-v2';
+const CACHE = 'jnf-moto-v3';
 const SHELL = ['./', './index.html', './app.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

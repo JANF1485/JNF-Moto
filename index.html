@@ -28,13 +28,13 @@
   :root:not([data-theme="light"]){
     --bg:#0F1433;--surface:#181F4D;--ink:#E9ECFA;--muted:#B3BAD6;--line:#2C3570;--field:#11173D;--map:#1B2250;--road:#2D3673;--park:#1F3A3A;
     --warn-bg:#3A3212;--warn-ink:#F3DE9A;--ok-bg:#133526;--ok-ink:#8FE0B3;--info-bg:#232B66;--info-ink:#E9ECFA;--danger-text:#FF8A80;--danger-bg:#3D1614;
-    --chip-on:#C9A227;--chip-on-ink:#1A2580;--star-off:#5A6190;--route:#9DB0FF;color-scheme:dark;
+    --chip-on:#C9A227;--chip-on-ink:#1A2580;--star-off:#5A6190;--route:#9DB0FF;--m1ink:var(--ink);color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0F1433;--surface:#181F4D;--ink:#E9ECFA;--muted:#B3BAD6;--line:#2C3570;--field:#11173D;--map:#1B2250;--road:#2D3673;--park:#1F3A3A;
   --warn-bg:#3A3212;--warn-ink:#F3DE9A;--ok-bg:#133526;--ok-ink:#8FE0B3;--info-bg:#232B66;--info-ink:#E9ECFA;--danger-text:#FF8A80;--danger-bg:#3D1614;
-  --chip-on:#C9A227;--chip-on-ink:#1A2580;--star-off:#5A6190;--route:#9DB0FF;color-scheme:dark;
+  --chip-on:#C9A227;--chip-on-ink:#1A2580;--star-off:#5A6190;--route:#9DB0FF;--m1ink:var(--ink);color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
@@ -188,10 +188,36 @@ textarea{min-height:84px;resize:vertical}
 .gbtn{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 input[type=email],input[type=password]{min-height:48px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15px;color:var(--ink);background:var(--field);width:100%}
 
+/* máscaras de temporada */
+.mbadge{width:44px;height:44px;border-radius:12px;background:#FFFFFF;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;padding:3px}
+.mband{display:flex;align-items:center;gap:12px;padding:8px 16px}
+.mlogin{background:#FFFFFF;padding:16px 20px;display:flex;flex-direction:column;gap:8px;align-items:center;border-bottom:1px solid var(--line)}
+#app.masc-d .top{background:var(--m1);border-bottom:4px solid var(--m2)}
+#app.masc-d .hdr{background:var(--m1)!important;border-bottom:4px solid var(--m2)}
+#app.masc-d .hdr .iconbtn.light{background:rgba(255,255,255,.18);color:#FFFFFF;border-color:transparent}
+#app.masc-d .hpill{background:#FFFFFF!important}
+#app.masc-d .hpill .brandname{color:#1A2580}
+#app.masc-d .btn-gold{background:var(--m1);color:#FFFFFF}
+#app.masc-d .sheet .h1,#app.masc-d .pad>.h1,#app.masc-d .pad .h2{color:var(--m1ink,var(--m1))}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.mthumb{height:124px;border-radius:12px;background:#F6F4EE;display:flex;align-items:center;justify-content:center;padding:6px}
+.mnew{align-items:center;justify-content:center;border:2px dashed var(--line);min-height:230px;color:var(--ink);font:inherit;cursor:pointer;gap:10px;text-align:center}
+.mplus{width:48px;height:48px;border-radius:24px;background:var(--gold);color:#1A2580;font-size:26px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.mdrop{width:180px;height:136px;border:2px dashed var(--line);border-radius:12px;background:#F6F4EE;display:flex;align-items:center;justify-content:center;padding:6px;flex-shrink:0}
+.mdrop .muted{color:#5B6472}
+.mopts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.wide .mopts{grid-template-columns:repeat(4,minmax(0,1fr))}
+.mopt{gap:8px;padding:10px}
+.mopt .btn{padding:8px 6px;white-space:nowrap}
+.mact{gap:6px}
+.mact .btn-sm{padding:8px 6px;white-space:nowrap}
+.mini{height:230px;border:1px solid #E3DECF;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background:#FFFFFF}
+.mform{display:grid;grid-template-columns:1fr;gap:12px}
+.wide .mform{grid-template-columns:repeat(2,minmax(0,1fr))}
 </style>
 </head>
 <body>
 <div id="app" aria-live="polite"><div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="icon-192.png" alt="Logo JNF S.A.S." style="width:96px;height:96px"><noscript><p>JNF Moto necesita JavaScript activado.</p></noscript></div></div></div>
-<script type="module" src="app.js?v=12"></script>
+<script type="module" src="app.js?v=13"></script>
 </body>
 </html>
