@@ -18,7 +18,7 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '11';
+const APP_VERSION = '12';
 const LOGO = 'icon-192.png';
 const appEl = document.getElementById('app');
 
@@ -65,7 +65,7 @@ const S = {
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
   offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
-  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, topDest: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null,
+  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, topDest: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
   cal: null, hist: null, admTab: 'resumen', adm: {}
@@ -96,6 +96,9 @@ const RADIO_KM = 2; // zona en la que se cuentan y muestran los conductores cerc
 // Cancelaciones. Las reglas de Firestore usan 2 min, 5 min y ETA+10 min; la app usa márgenes para no contradecirlas.
 const GRACIA_S = 105, ESPERA_S = 310, TARDE_EXTRA_MIN = 10.25;
 const REC = st => st === 'asignado' || st === 'en_punto'; // fase de recogida
+const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const fromYmd = (s, end) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); if (!m) return null; return new Date(+m[1], +m[2] - 1, +m[3], end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0); };
+const fmtFecha = ms => { const d = new Date(ms); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
 const fmtClock = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 const MOTIVOS = {
   pasajero: [['ya_no', 'Ya no lo necesito'], ['no_llega', 'El conductor no llega'], ['inseguro', 'Me siento inseguro'], ['otro', 'Otro motivo']],
@@ -468,10 +471,10 @@ function vMiCalif() {
 const isWide = () => window.innerWidth >= 900;
 const ADM_SECS = () => [['resumen', 'Resumen'], ['usuarios', 'Usuarios'], ['conductores', 'Conductores'], ['viajes', 'Viajes'], ['alertas', 'Alertas de pánico' + (S.adm.alertas && S.adm.alertas.length ? ' (' + S.adm.alertas.length + ')' : '')]];
 function vAdmin() {
-  const t = S.admTab, secs = ADM_SECS(), title = (secs.find(x => x[0] === t) || secs[0])[1].replace(/ \(\d+\)$/, '');
+  const t = S.admTab, secs = ADM_SECS(), title = t === 'detalle' ? 'Servicios e ingresos' : (secs.find(x => x[0] === t) || secs[0])[1].replace(/ \(\d+\)$/, '');
   if (isWide()) {
     return '<div class="adm-wrap"><nav class="adm-side" aria-label="Secciones del panel"><div class="row" style="gap:12px;padding:0 8px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:52px;height:52px"><div class="col" style="gap:2px"><span class="brandname" style="font-size:18px">JNF Moto</span><span class="small" style="color:#D8DEE8;font-weight:600">Administración</span></div></div>' +
-      secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0]) + '">' + x[1] + '</button>').join('') +
+      secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0] || (t === 'detalle' && x[0] === S.admBack)) + '">' + x[1] + '</button>').join('') +
       '<button data-act="go" data-v="menu" style="margin-top:auto">← Volver a la app</button></nav>' +
       '<main class="adm-main"><div class="row between" style="flex-wrap:wrap;gap:8px"><h1 class="h1" style="font-size:28px">' + title + '</h1><span class="muted">Hoy · ' + new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '</span></div>' +
       errHTML() + bannerHTML(S.banner) + admBody(t) + '</main></div>';
@@ -514,7 +517,7 @@ function admBody(t) {
       const l = lab[c.estado] || ['p-info', c.estado];
       const open = S.admOpen === c.id, dl = S.admDocs[c.id], nDocs = dl && dl !== 'cargando' ? Object.keys(dl).length : null;
       h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.nombre) + '</div><div class="muted small">' + esc(c.moto) + ' ' + esc(c.color) + ' · Placa ' + esc(c.placa) + '</div><div class="small strong">' + (c.registro ? 'Registro de tránsito N° ' + esc(c.registro) : 'Sin número de registro de tránsito') + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' +
-        '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="admDocs" data-v="' + c.id + '" aria-expanded="' + open + '">' + (open ? 'Ocultar documentos' : 'Ver documentos') + '</button>';
+        '<div class="row"><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admDocs" data-v="' + c.id + '" aria-expanded="' + open + '">' + (open ? 'Ocultar documentos' : 'Ver documentos') + '</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admDriver" data-v="' + c.id + '">Servicios e ingresos</button></div>';
       if (open) {
         if (!dl || dl === 'cargando') h += '<div class="spinner" role="status" aria-label="Cargando documentos"></div>';
         else h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + DOCS_C.map(d => {
@@ -534,6 +537,30 @@ function admBody(t) {
         (c.estado === 'pendiente' ? '<button class="btn btn-ghost btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="rechazado"' + busyAttr() + '>Rechazar</button>' : '') +
         (c.estado === 'aprobado' ? '<button class="btn btn-ghost btn-sm" style="flex:1" data-act="admSet" data-v="' + c.id + '" data-p="suspendido"' + busyAttr() + '>Suspender</button>' : '') + '</div></div>';
     });
+  }
+  if (t === 'detalle') {
+    const c = (A.conductores || []).find(x => x.id === S.admDriver);
+    h += '<button class="link" data-act="admTab" data-v="' + S.admBack + '" style="align-self:flex-start">← Volver a ' + (S.admBack === 'usuarios' ? 'usuarios' : 'conductores') + '</button>';
+    if (!c) return h + '<div class="card"><div class="muted">No se encontró el conductor.</div></div>';
+    h += '<div class="card"><div class="row between" style="flex-wrap:wrap;gap:8px"><div class="col"><div class="h2">' + esc(c.nombre) + '</div><div class="muted small">' + esc(c.moto) + ' ' + esc(c.color) + ' · Placa ' + esc(c.placa) + (c.registro ? ' · Registro de tránsito N° ' + esc(c.registro) : '') + '</div></div><span class="pill ' + (c.estado === 'aprobado' ? 'p-ok' : 'p-warn') + '">' + esc(c.estado) + '</span></div></div>';
+    h += '<div class="card"><div class="h2">Periodo a revisar</div><div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' +
+      '<div class="field"><label for="fi">Fecha inicial</label><input type="date" id="fi" data-in="admIni" value="' + fv('admIni') + '" style="min-height:48px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;color:var(--ink);background:var(--field);width:100%"></div>' +
+      '<div class="field"><label for="ff">Fecha final</label><input type="date" id="ff" data-in="admFin" value="' + fv('admFin') + '" style="min-height:48px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;color:var(--ink);background:var(--field);width:100%"></div></div>' +
+      '<div class="chips">' + [['hoy', 'Hoy'], ['7d', 'Últimos 7 días'], ['mes', 'Este mes'], ['mesant', 'Mes anterior']].map(x => '<button class="chip" data-act="admRango" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
+      '<button class="btn btn-navy" data-act="admConsultar"' + busyAttr() + '>Consultar</button></div>';
+    const T = S.admTrips[c.id];
+    if (!T || T === 'cargando') return h + '<div class="spinner" role="status" aria-label="Cargando servicios"></div>';
+    const r = S.admRes;
+    if (!r) return h;
+    h += '<div class="muted small">Del ' + esc(r.iniTxt) + ' al ' + esc(r.finTxt) + '</div>';
+    const kpi = (label, val, kind) => '<div class="card kpi' + (kind ? ' ' + kind : '') + '"><span class="k">' + label + '</span><span class="v">' + val + '</span></div>';
+    h += '<div class="kpis">' + kpi('Servicios prestados', r.fin.length) + kpi('Ingresos recibidos', money(r.total), 'navy') + kpi('Promedio por servicio', r.fin.length ? money(Math.round(r.total / r.fin.length)) : '$0') + kpi('Cancelados por el conductor', r.canc) + '</div>';
+    h += '<div class="card" style="gap:6px"><div class="row between"><span class="muted">Efectivo</span><span class="strong">' + money(r.ef) + '</span></div><div class="row between"><span class="muted">Transferencia</span><span class="strong">' + money(r.tr) + '</span></div><div class="muted small">Es lo que el conductor cobró a sus pasajeros. La plataforma no cobra comisión por viaje.</div></div>';
+    if (!r.fin.length) return h + '<div class="card"><div class="muted">No hay servicios finalizados en ese periodo.</div></div>';
+    h += '<button class="btn btn-ghost" data-act="admCsv">Descargar en Excel (CSV)</button>';
+    if (isWide()) h += '<div class="card" style="overflow-x:auto"><table class="tbl"><thead><tr><th scope="col">Fecha</th><th scope="col">Pasajero</th><th scope="col">Destino</th><th scope="col">Pago</th><th scope="col" style="text-align:right">Valor</th></tr></thead><tbody>' +
+      r.fin.map(v => '<tr><td>' + fmtFecha(r.ts(v)) + '</td><td>' + esc(v.pasajeroNombre) + '</td><td>' + esc(v.destino ? v.destino.texto : '') + '</td><td>' + pagoTxt(v) + '</td><td style="text-align:right" class="strong">' + money(v.precioFinal || 0) + '</td></tr>').join('') + '</tbody></table></div>';
+    else r.fin.forEach(v => { h += '<div class="card" style="gap:4px"><div class="row between"><span class="strong">' + esc(v.destino ? v.destino.texto : '') + '</span><span class="strong">' + money(v.precioFinal || 0) + '</span></div><div class="muted small">' + fmtFecha(r.ts(v)) + ' · ' + esc(v.pasajeroNombre) + ' · ' + pagoTxt(v) + '</div></div>'; });
   }
   if (t === 'usuarios') {
     const K = S.admKpi, U = S.admUsers;
@@ -556,6 +583,7 @@ function admBody(t) {
         if (alerta) ql += '<span class="pill p-danger" style="align-self:flex-start">Revisar</span>';
       }
       h += '<div class="card" style="gap:8px"><div class="row between" style="align-items:flex-start"><div class="col"><div class="strong">' + esc(u.nombre) + '</div><div class="muted small">' + esc(u.telefono || '') + '</div></div>' + st + '</div>' + ql;
+      if (c) h += '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="admDriver" data-v="' + u.id + '">Servicios e ingresos</button>';
       if (!c) {
         if (S.admMake === u.id) {
           h += '<div class="col" style="gap:8px;border-top:1px solid var(--line);padding-top:10px"><div class="strong small">Habilitar como conductor</div>' +
@@ -803,6 +831,24 @@ function beep() {
 }
 
 /* ---------- panel: personas registradas y su calidad (consultas de agregación: 1 lectura cada una) ---------- */
+async function loadDriverTrips(cid) {
+  S.admTrips[cid] = 'cargando'; render();
+  try { const qs = await getDocs(query(collection(db, 'viajes'), where('conductorId', '==', cid), limit(2000))); S.admTrips[cid] = qs.docs.map(d => Object.assign({ id: d.id }, d.data())); }
+  catch (e) { S.admTrips[cid] = []; S.err = errMsg(e); }
+  calcDriver(); render();
+}
+function calcDriver() {
+  const T = S.admTrips[S.admDriver]; if (!Array.isArray(T)) { S.admRes = null; return; }
+  const ini = fromYmd(S.f.admIni), fin = fromYmd(S.f.admFin, true);
+  if (!ini || !fin) { S.err = 'Elige la fecha inicial y la fecha final.'; S.admRes = null; return; }
+  if (ini > fin) { S.err = 'La fecha inicial no puede ser posterior a la fecha final.'; S.admRes = null; return; }
+  S.err = null;
+  const ts = v => tsMs(v.finalizadoEn || v.creado), inR = ms => ms >= ini.getTime() && ms <= fin.getTime();
+  const fl = T.filter(v => v.estado === 'finalizado' && inR(ts(v))).sort((p, q) => ts(q) - ts(p));
+  const canc = T.filter(v => v.estado === 'cancelado' && v.canceladoPor === S.admDriver && v.motivo !== 'no_se_presento' && inR(tsMs(v.canceladoEn || v.creado))).length; // no cuenta "el pasajero no se presentó"
+  const sum = arr => arr.reduce((s, v) => s + (v.precioFinal || 0), 0);
+  S.admRes = { fin: fl, canc, total: sum(fl), ef: sum(fl.filter(v => v.pago !== 'transferencia')), tr: sum(fl.filter(v => v.pago === 'transferencia')), ts, iniTxt: ini.toLocaleDateString('es-CO'), finTxt: fin.toLocaleDateString('es-CO') };
+}
 async function loadAdmKpi() {
   try {
     const [t, ap, pe] = await Promise.all([getCountFromServer(collection(db, 'usuarios')), getCountFromServer(query(collection(db, 'conductores'), where('estado', '==', 'aprobado'))), getCountFromServer(query(collection(db, 'conductores'), where('estado', '==', 'pendiente')))]);
@@ -1310,7 +1356,7 @@ async function act(a, v, b) {
       try { await setDoc(doc(db, 'usuarios', S.viaje.pasajeroId, 'calificaciones', S.viaje.id), { estrellas: S.rating, aspectos: Object.keys(S.chips).filter(k => S.chips[k]), creado: serverTimestamp() }); S.busy = false; endDriverTrip(); } catch (e) { fail(e); }
       break;
     case 'cSkipRating': endDriverTrip(); break;
-    case 'admTab': S.admTab = v; render(); if (v === 'usuarios' && !S.admUsers) loadAdmUsers(); break;
+    case 'admTab': S.admTab = v; S.err = null; render(); if (v === 'usuarios' && !S.admUsers) loadAdmUsers(); break;
     case 'admMore': S.admLimit += 30; S.admUsers = null; render(); loadAdmUsers(); break;
     case 'admMake': S.admMake = v || null; S.f.amMoto = ''; S.f.amColor = ''; S.f.amPlaca = ''; S.f.amReg = ''; S.f.amOk = false; render(); break;
     case 'admMakeSave': {
@@ -1331,6 +1377,27 @@ async function act(a, v, b) {
       S.busy = true; render();
       try { await updateDoc(doc(db, 'conductores', v), { estado: 'aprobado', aprobadoSinDocs: true }); S.busy = false; render(); } catch (e) { fail(e); }
       break;
+    case 'admDriver': {
+      const hoy = new Date(); S.admBack = S.admTab === 'usuarios' ? 'usuarios' : 'conductores'; S.admDriver = v; S.admTab = 'detalle'; S.admRes = null;
+      S.f.admIni = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); S.f.admFin = ymd(hoy);
+      window.scrollTo(0, 0); loadDriverTrips(v); break;
+    }
+    case 'admRango': {
+      const d = new Date(), y = d.getFullYear(), m = d.getMonth();
+      const r = { hoy: [d, d], '7d': [new Date(y, m, d.getDate() - 6), d], mes: [new Date(y, m, 1), d], mesant: [new Date(y, m - 1, 1), new Date(y, m, 0)] }[v];
+      S.f.admIni = ymd(r[0]); S.f.admFin = ymd(r[1]); calcDriver(); render(); break;
+    }
+    case 'admConsultar': calcDriver(); render(); break;
+    case 'admCsv': {
+      const r = S.admRes, c = (S.adm.conductores || []).find(x => x.id === S.admDriver); if (!r || !c) break;
+      const q = s => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+      const filas = [['Fecha', 'Pasajero', 'Destino', 'Forma de pago', 'Valor']].concat(r.fin.map(v => [fmtFecha(r.ts(v)), v.pasajeroNombre, v.destino ? v.destino.texto : '', pagoTxt(v), v.precioFinal || 0]));
+      filas.push([], ['Servicios prestados', r.fin.length], ['Ingresos recibidos', r.total], ['Efectivo', r.ef], ['Transferencia', r.tr]);
+      const csv = '\ufeff' + [['Conductor', c.nombre], ['Placa', c.placa], ['Periodo', 'Del ' + r.iniTxt + ' al ' + r.finTxt], []].concat(filas).map(f => f.map(q).join(';')).join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })), el = document.createElement('a');
+      el.href = url; el.download = 'servicios_' + c.placa + '_' + S.f.admIni + '_a_' + S.f.admFin + '.csv'; document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+      break;
+    }
     case 'admReview': S.admTab = 'conductores'; S.admOpen = null; render(); window.scrollTo(0, 0); act('admDocs', v); break;
     case 'admDocs':
       if (S.admOpen === v) { S.admOpen = null; S.admBig = null; render(); break; }
