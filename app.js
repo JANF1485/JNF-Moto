@@ -18,7 +18,7 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '13';
+const APP_VERSION = '14';
 const LOGO = 'icon-192.png';
 const appEl = document.getElementById('app');
 
@@ -585,29 +585,30 @@ const MASC_SCREENS = ['login', 'home', 'solicitudes', 'menu'];
 const mascOn = () => (S.masc && S.mascSrc ? S.masc : null);
 const mascKey = m => 'jnfm_mc_' + m.id + '_' + m.ver;
 const mascClosed = m => !!S.mascClosed[mascKey(m)] || !!lsGet(mascKey(m));
+const mAlt = m => m.mensaje || 'Imagen de temporada';
 const mImg = (src, alt, st) => '<img src="' + src + '" alt="' + esc(alt) + '" style="width:auto;max-width:100%;object-fit:contain;display:block;' + (st || '') + '">';
 // Piezas que se muestran en la app
-function mascBadge() { const m = mascOn(); if (!m || (m.opcion !== 'A' && m.opcion !== 'D')) return ''; return '<div class="mbadge">' + mImg(S.mascSrc, m.nombre, 'max-height:38px') + '</div>'; }
+function mascBadge() { const m = mascOn(); if (!m || (m.opcion !== 'A' && m.opcion !== 'D')) return ''; return '<div class="mbadge">' + mImg(S.mascSrc, mAlt(m), 'max-height:38px') + '</div>'; }
 function mascBand() {
   const m = mascOn(); if (!m || m.opcion !== 'B') return ''; const c = mascPal(m);
-  return '<div class="mband" style="background:' + c.t + ';border-top:3px solid ' + c.p + ';border-bottom:3px solid ' + c.a + '">' + mImg(S.mascSrc, m.nombre, 'height:60px;max-width:38%;flex-shrink:0') +
-    '<div class="col" style="gap:2px"><div class="strong" style="color:' + c.p + ';font-size:15px">' + esc(m.nombre) + '</div>' + (m.mensaje ? '<div class="small" style="color:#2B3140">' + esc(m.mensaje) + '</div>' : '') + '</div></div>';
+  return '<div class="mband" style="background:' + c.t + ';border-top:3px solid ' + c.p + ';border-bottom:3px solid ' + c.a + '">' + mImg(S.mascSrc, mAlt(m), 'height:60px;max-width:' + (m.mensaje ? '38%' : '100%') + ';flex-shrink:0' + (m.mensaje ? '' : ';margin:0 auto')) +
+    (m.mensaje ? '<div class="strong" style="color:' + c.p + ';font-size:15px">' + esc(m.mensaje) + '</div>' : '') + '</div>';
 }
 function mascNotice(force) { // aviso pequeño (opción A, y en la pantalla del conductor para A, C y D)
   const m = mascOn(); if (!m || mascClosed(m) || !(m.opcion === 'A' || force)) return '';
-  return '<div class="card mnote" style="flex-direction:row;align-items:center;gap:12px;padding:10px 12px">' + mImg(S.mascSrc, m.nombre, 'height:52px;max-width:88px;flex-shrink:0') +
-    '<div class="col grow"><div class="strong">' + esc(m.nombre) + '</div>' + (m.mensaje ? '<div class="muted small">' + esc(m.mensaje) + '</div>' : '') + '</div>' +
+  return '<div class="card mnote" style="flex-direction:row;align-items:center;gap:12px;padding:10px 12px">' + mImg(S.mascSrc, mAlt(m), 'height:52px;max-width:' + (m.mensaje ? '88px' : '70%') + ';flex-shrink:0') +
+    '<div class="col grow">' + (m.mensaje ? '<div class="strong">' + esc(m.mensaje) + '</div>' : '') + '</div>' +
     '<button class="iconbtn light" style="border:none;width:40px;height:40px" data-act="mascClose" aria-label="Cerrar aviso de temporada">' + I.close + '</button></div>';
 }
 function mascBig() {
   const m = mascOn(); if (!m || m.opcion !== 'C' || mascClosed(m)) return ''; const c = mascPal(m);
-  return '<div class="card" style="align-items:center;text-align:center;border:2px solid ' + c.p + ';gap:10px">' + mImg(S.mascSrc, m.nombre, 'max-height:150px') +
-    '<div class="strong" style="font-size:16px">' + esc(m.mensaje || m.nombre) + '</div>' +
+  return '<div class="card" style="align-items:center;text-align:center;border:2px solid ' + c.p + ';gap:10px">' + mImg(S.mascSrc, mAlt(m), 'max-height:150px') +
+    (m.mensaje ? '<div class="strong" style="font-size:16px">' + esc(m.mensaje) + '</div>' : '') +
     '<button class="btn btn-ghost btn-sm" style="border:1px solid ' + c.p + '" data-act="mascClose">Cerrar aviso</button></div>';
 }
 function mascLogin() {
   const m = mascOn(); if (!m) return ''; const c = mascPal(m);
-  return '<div class="mlogin">' + mImg(S.mascSrc, m.nombre, 'max-height:' + (m.opcion === 'C' ? 150 : 110) + 'px;margin:0 auto') + (m.mensaje ? '<div class="strong center" style="color:' + c.p + '">' + esc(m.mensaje) + '</div>' : '') + '</div>';
+  return '<div class="mlogin">' + mImg(S.mascSrc, mAlt(m), 'max-height:' + (m.opcion === 'C' ? 150 : 110) + 'px;margin:0 auto') + (m.mensaje ? '<div class="strong center" style="color:' + c.p + '">' + esc(m.mensaje) + '</div>' : '') + '</div>';
 }
 // Opción D: colores de la temporada en toda la app (menos en el panel de administración)
 function applyMascTheme() {
@@ -672,8 +673,8 @@ function admMascEdit() {
     h += '</div></section>';
     const dt = 'min-height:48px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;color:var(--ink);background:var(--field);width:100%';
     h += '<section class="card"><h2 class="h2">3. Datos de la máscara</h2><div class="mform">' +
-      '<div class="field"><label for="mn">Nombre</label><input type="text" id="mn" data-in="mNombre" maxlength="40" placeholder="Ej. Plato 400 años" value="' + fv('mNombre') + '"></div>' +
-      '<div class="field"><label for="mm">Mensaje</label><input type="text" id="mm" data-in="mMensaje" maxlength="90" placeholder="Ej. Celebremos juntos los 400 años" value="' + fv('mMensaje') + '"></div>' +
+      '<div class="field"><label for="mn">Nombre para tu biblioteca (opcional, no se muestra en la app)</label><input type="text" id="mn" data-in="mNombre" maxlength="40" placeholder="Ej. Plato 400 años" value="' + fv('mNombre') + '"></div>' +
+      '<div class="field"><label for="mm">Mensaje para los usuarios (opcional)</label><input type="text" id="mm" data-in="mMensaje" maxlength="90" placeholder="Ej. Celebremos juntos los 400 años" value="' + fv('mMensaje') + '"></div>' +
       '<div class="field"><label for="md">Desde (opcional)</label><input type="date" id="md" data-in="mDesde" value="' + fv('mDesde') + '" style="' + dt + '"></div>' +
       '<div class="field"><label for="mh">Hasta (opcional)</label><input type="date" id="mh" data-in="mHasta" value="' + fv('mHasta') + '" style="' + dt + '"></div></div>' +
       '<div class="muted small">Con fecha inicial y "Guardar sin activar", la máscara queda programada y se muestra sola en esas fechas. Sin fechas, queda activa hasta que la desactives.</div>' +
@@ -1621,14 +1622,13 @@ async function act(a, v, b) {
       let er = '';
       if (!E.src) er = 'Adjunta la imagen de la máscara.';
       else if (!E.opcion) er = 'Elige cómo se verá la máscara (opción A, B, C o D).';
-      else if (nom.length < 2) er = 'Escribe el nombre de la máscara.';
       else if (de && ha && ha < de) er = 'La fecha final no puede ser anterior a la fecha inicial.';
       else if (ha && ha < hoy) er = 'La fecha final ya pasó. Cámbiala o déjala vacía.';
       if (er) { S.err = er; render(); window.scrollTo(0, 0); break; }
       S.busy = true; S.err = null; render();
       try {
-        const id = E.id || doc(collection(db, 'mascaras')).id, now = Date.now();
-        const data = { nombre: nom.slice(0, 40), mensaje: msj.slice(0, 90), opcion: E.opcion, colores: (E.colores || []).slice(0, 4), desde: de, hasta: ha, estado: activar ? 'activa' : (de ? 'programada' : 'guardada'), ver: now, iv: E.img ? now : (E.iv || now), actualizado: serverTimestamp() };
+        const id = E.id || doc(collection(db, 'mascaras')).id, now = Date.now(), nombre = nom.length >= 2 ? nom : 'Máscara ' + E.opcion + ' · ' + fmtYmd(hoy);
+        const data = { nombre: nombre.slice(0, 40), mensaje: msj.slice(0, 90), opcion: E.opcion, colores: (E.colores || []).slice(0, 4), desde: de, hasta: ha, estado: activar ? 'activa' : (de ? 'programada' : 'guardada'), ver: now, iv: E.img ? now : (E.iv || now), actualizado: serverTimestamp() };
         const bt = writeBatch(db);
         if (activar) (S.mascList || []).forEach(m => { if (m.id !== id && m.estado === 'activa') bt.update(doc(db, 'mascaras', m.id), { estado: 'guardada' }); });
         bt.set(doc(db, 'mascaras', id), data);
