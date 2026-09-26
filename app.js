@@ -18,6 +18,7 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
+const APP_VERSION = '11';
 const LOGO = 'icon-192.png';
 const appEl = document.getElementById('app');
 
@@ -301,7 +302,7 @@ function vMenu() {
   if (S.admin) items.push(['admin', 'Panel de administración']);
   items.push(['ayuda', 'Ayuda y soporte'], ['terminos', 'Términos y tratamiento de datos']);
   h += '<nav aria-label="Opciones">' + items.map(it => '<button class="menuitem" data-act="go" data-v="' + it[0] + '">' + it[1] + I.chev + '</button>').join('') + '</nav>';
-  return h + '<button class="link danger" data-act="logout" style="align-self:flex-start">Cerrar sesión</button></div><div class="demo">Versión de prueba</div></div>';
+  return h + '<button class="link danger" data-act="logout" style="align-self:flex-start">Cerrar sesión</button></div><div class="demo">Versión de prueba · v' + APP_VERSION + '</div></div>';
 }
 function vHistorial() {
   let h = '<div class="screen">' + subTop('Mis viajes') + '<div class="pad">' + errHTML();
