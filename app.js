@@ -18,7 +18,7 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '15';
+const APP_VERSION = '16';
 const LOGO = 'icon-192.png';
 const appEl = document.getElementById('app');
 
@@ -39,7 +39,6 @@ function distKm(a, b) {
   return 2 * R * Math.asin(Math.sqrt(x));
 }
 const etaMin = km => Math.max(1, Math.round(km * 3)); // estimado urbano (~20 km/h)
-const normKey = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
 const fmtDist = km => km == null ? '' : km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1).replace('.', ',') + ' km';
 function errMsg(e) {
   const c = (e && e.code) || '';
@@ -65,7 +64,7 @@ const S = {
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
   offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
-  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, topDest: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null, admPriv: {}, admEdit: null, admDocMsg: '', cpriv: null,
+  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null, admPriv: {}, admEdit: null, admDocMsg: '', cpriv: null,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
   cal: null, hist: null, admTab: 'resumen', adm: {},
@@ -176,8 +175,6 @@ function vHome() {
   else if (S.destPin) h += '<div class="row between" style="flex-wrap:wrap;gap:6px"><span class="muted small">Destino marcado · recorrido estimado: <b data-eta>' + esc(etaText()) + '</b></span><button class="link" data-act="clearDest" style="font-size:13px;min-height:36px">Quitar</button></div>';
   else if (S.gps === 'ok') h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))"><button class="btn btn-ghost btn-sm" style="width:100%" data-act="geoDest"' + busyAttr() + '>Ubicar en el mapa</button><button class="btn btn-ghost btn-sm" style="width:100%" data-act="pickDest">Marcar en el mapa</button></div>';
   h += '</div>';
-  const sel = {}; sel[S.f.destino] = true;
-  if (S.topDest && S.topDest.length) h += '<div class="col" style="gap:8px"><span class="lbl">Sitios frecuentes</span>' + chipsHTML(S.topDest.map(d => d.texto), sel, 'freq') + '</div>';
   h += '<div class="offerbox"><span class="lbl">Tu oferta</span><div class="stepper"><button class="round" data-act="minus" aria-label="Bajar oferta 500 pesos"' + (S.offer <= MIN ? ' disabled' : '') + '>−</button><div class="amount" id="amount">' + money(S.offer) + '</div><button class="round solid" data-act="plus" aria-label="Subir oferta 500 pesos">+</button></div>' +
     '<div class="row between" style="flex-wrap:wrap;gap:4px"><span class="muted small">Mínimo ' + money(MIN) + ' · sin tope</span><button class="link" data-act="otroToggle" aria-expanded="' + S.otroOpen + '" style="font-size:13px">' + (S.otroOpen ? 'Cerrar' : 'Escribir otro valor') + '</button></div>';
   if (S.otroOpen) h += '<div class="field"><label for="otro">Valor que ofreces</label><div class="row"><input type="text" inputmode="numeric" id="otro" data-in="otroVal" placeholder="Ej. 2.300" value="' + fv('otroVal') + '"><button class="btn btn-navy btn-sm" data-act="otroUse" style="min-height:48px">Usar</button></div>' + (S.f.otroErr ? '<div class="err" role="alert">' + esc(S.f.otroErr) + '</div>' : '') + '</div>';
@@ -1213,24 +1210,6 @@ function blockCard(rol, bl) {
 }
 
 /* ---------- sitios frecuentes (los 5 destinos más pedidos) ---------- */
-async function loadTopDest() {
-  try {
-    const qs = await getDocs(query(collection(db, 'destinos'), orderBy('veces', 'desc'), limit(5)));
-    S.topDest = qs.docs.map(d => Object.assign({ id: d.id }, d.data()));
-    if (S.screen === 'home') render();
-  } catch (e) { S.topDest = []; }
-}
-async function countDestino(texto, pin) {
-  const id = normKey(texto); if (!id) return;
-  const r = doc(db, 'destinos', id);
-  await runTransaction(db, async tx => {
-    const d = await tx.get(r);
-    const extra = pin ? { lat: pin.lat, lng: pin.lng } : {};
-    if (d.exists()) tx.update(r, Object.assign({ veces: (d.data().veces || 0) + 1, actualizado: serverTimestamp() }, extra));
-    else tx.set(r, Object.assign({ texto: String(texto).trim().slice(0, 120), veces: 1, actualizado: serverTimestamp() }, extra));
-  });
-}
-
 /* ---------- calificaciones ---------- */
 async function loadRating(key, path) {
   if (S.ratings[key]) return S.ratings[key];
@@ -1245,7 +1224,7 @@ async function loadRating(key, path) {
 
 /* ---------- entrada a cada pantalla ---------- */
 function enter(s) {
-  if (s === 'home') { if (S.sharing) { S.sharing = false; stopWatch(); } S.route = null; getGps(); listenOthers(); loadTopDest(); delete S.rates[S.user.uid]; loadRate(S.user.uid).then(() => { if (S.screen === 'home') render(); }); startTick(); }
+  if (s === 'home') { if (S.sharing) { S.sharing = false; stopWatch(); } S.route = null; getGps(); listenOthers(); delete S.rates[S.user.uid]; loadRate(S.user.uid).then(() => { if (S.screen === 'home') render(); }); startTick(); }
   if (s === 'buscando') {
     S.sharing = true; startWatch(); listenOthers();
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
@@ -1494,7 +1473,6 @@ async function act(a, v, b) {
     }
     case 'logout': S.online = false; await stopWatch(); await signOut(auth); break;
     case 'retryGps': S.gps = 'pendiente'; render(); getGps(); break;
-    case 'freq': { const t = (S.topDest || []).find(d => d.texto === v); S.f.destino = v; S.err = null; S.destPin = t && typeof t.lat === 'number' ? { lat: t.lat, lng: t.lng } : null; S.route = null; render(); break; }
     case 'pickDest': S.pickDest = !S.pickDest; S.err = null; render(); if (S.pickDest) { const m = document.getElementById('map'); if (m) m.scrollIntoView({ block: 'center' }); } break;
     case 'clearDest': S.destPin = null; S.route = null; render(); break;
     case 'geoDest': {
@@ -1522,7 +1500,6 @@ async function act(a, v, b) {
         const data = { pasajeroId: uid, pasajeroNombre: S.perfil.nombre, origen: { texto: refTxt || 'Ubicación GPS', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null }, destino: S.destPin ? { texto: dest, lat: S.destPin.lat, lng: S.destPin.lng } : { texto: dest }, oferta: S.offer, nota: S.notaOpen ? (S.f.nota || '').trim().slice(0, 200) : '', pago: S.pago, estado: 'buscando', creado: serverTimestamp(), conductorId: null, precioFinal: null, conductor: null };
         const r = await addDoc(collection(db, 'viajes'), data);
         await setDoc(doc(db, 'viajes', r.id, 'privado', uid), { telefono: S.perfil.telefono, nombre: S.perfil.nombre });
-        countDestino(dest, S.destPin).catch(() => { });
         S.viajeId = r.id; S.viaje = Object.assign({ id: r.id }, data); S.ofertas = []; S.busy = false; go('buscando');
       } catch (e) { fail(e); }
       break;
