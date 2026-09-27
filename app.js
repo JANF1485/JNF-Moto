@@ -18,7 +18,7 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '14';
+const APP_VERSION = '15';
 const LOGO = 'icon-192.png';
 const appEl = document.getElementById('app');
 
@@ -65,7 +65,7 @@ const S = {
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
   offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
-  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, topDest: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null,
+  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, topDest: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null, admPriv: {}, admEdit: null, admDocMsg: '', cpriv: null,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
   cal: null, hist: null, admTab: 'resumen', adm: {},
@@ -297,8 +297,8 @@ function vMenu() {
   else if (st === 'ninguno') h += '<button data-act="go" data-v="registroC" aria-current="false">' + I.lock + 'Modo conductor</button>';
   else h += '<button disabled aria-current="false">' + I.lock + 'No habilitado</button>';
   h += '</div></div><div class="pad">' + bannerHTML(S.banner) + errHTML() + installCard();
-  if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes mototour? Conduce con JNF Moto</div><div class="muted">Regístrate con los datos de tu mototour y las fotos de tu licencia, tarjeta de propiedad, SOAT y una foto tuya. El administrador las revisará antes de habilitarte.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
-  if (st === 'pendiente') h += '<div class="card"><div class="h2">Tu registro está en revisión</div><div class="muted">El administrador está revisando tus documentos. Cuando te apruebe, esta opción se habilita sola.</div><button class="btn btn-ghost" data-act="go" data-v="registroC">Ver mis documentos</button></div>';
+  if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes mototour? Conduce con JNF Moto</div><div class="muted">Regístrate con los datos de tu mototour, tu dirección y tu celular. Sube los documentos que tengas; los que falten los puedes subir después. El administrador revisa y activa tu cuenta.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
+  if (st === 'pendiente') h += '<div class="card"><div class="h2">Tu registro está en revisión</div><div class="muted">El administrador está revisando tu registro. Cuando te active, esta opción se habilita sola.</div><button class="btn btn-ghost" data-act="go" data-v="registroC">Ver mis documentos</button></div>';
   if (st === 'rechazado' || st === 'suspendido') h += '<div class="card"><div class="h2">Modo conductor no habilitado</div><div class="muted">Tu cuenta de conductor está ' + st + '. Revisa tus documentos y comunícate con la oficina de JNF S.A.S.</div><button class="btn btn-ghost" data-act="go" data-v="registroC">Ver mis documentos</button></div>';
   if (st === 'aprobado') h += '<div class="card"><div class="row between"><div class="h2">Modo conductor habilitado</div><span class="pill p-ok">Aprobado</span></div><div class="banner warn">' + I.info + '<div class="grow">En esta versión de prueba, tu ubicación se comparte solo mientras la app está abierta y estás conectado.</div></div>' + (pOn ? '<button class="btn btn-gold" data-act="modeC">Conectarme como conductor</button>' : '<button class="btn btn-ghost" data-act="modeP">Volver a modo pasajero</button>') + '</div>';
   const items = [['historial', 'Mis viajes'], ['contactos', 'Contactos de emergencia']];
@@ -330,6 +330,10 @@ function vTransfer() {
     '<button class="btn btn-navy" data-act="saveTransfer"' + busyAttr() + '>Guardar datos</button></div></div>';
 }
 const vTexto = (t, b) => '<div class="screen">' + subTop(t) + '<div class="pad"><div class="card">' + b + '</div></div></div>';
+const validDir = s => s.length >= 5 && s.length <= 120;
+const cleanTel = v => String(v || '').replace(/\D/g, '');
+// Dirección y celular del conductor: van en conductores/{id}/privado/datos (solo los ven el conductor y el administrador)
+const privRef = cid => doc(db, 'conductores', cid, 'privado', 'datos');
 const DOCS_C = [['licencia', 'Licencia de conducción', 'Foto clara del documento vigente'], ['foto', 'Foto del conductor', 'Rostro visible, de frente y sin gafas'], ['tarjeta', 'Tarjeta de propiedad', 'Licencia de tránsito del mototour'], ['soat', 'SOAT', 'Póliza vigente del mototour'], ['transito', 'Registro ante la Secretaría de Tránsito', 'Certificado o carné expedido por la Secretaría de Tránsito']];
 function vRegistroC() {
   const c = S.conductor, reg = !!c, locked = reg && c.estado === 'aprobado';
@@ -339,13 +343,22 @@ function vRegistroC() {
     h += '<div class="field"><label for="rm">Marca y modelo del mototour</label><input type="text" id="rm" data-in="moto" placeholder="Marca y modelo" value="' + fv('moto') + '"></div>' +
       '<div class="field"><label for="rc">Color</label><input type="text" id="rc" data-in="color" placeholder="Ej. Blanco" value="' + fv('color') + '"></div>' +
       '<div class="field"><label for="rp">Placa</label><input type="text" id="rp" data-in="placa" placeholder="Ej. ABC12D" autocapitalize="characters" value="' + fv('placa') + '"></div>' +
-      '<div class="field"><label for="rt">Número de registro de tránsito</label><input type="text" id="rt" data-in="registro" placeholder="Como aparece en el certificado" autocapitalize="characters" value="' + fv('registro') + '"></div>';
+      '<div class="field"><label for="rt">Número de registro de tránsito</label><input type="text" id="rt" data-in="registro" placeholder="Como aparece en el certificado" autocapitalize="characters" value="' + fv('registro') + '"></div>' +
+      '<div class="field"><label for="rd">Dirección de residencia</label><input type="text" id="rd" data-in="drvDir" maxlength="120" placeholder="Ej. Calle 5 # 12-30, barrio Centro" autocomplete="street-address" value="' + fv('drvDir') + '"></div>' +
+      '<div class="field"><label for="rcel">Celular</label><input type="tel" id="rcel" data-in="drvTel" inputmode="numeric" placeholder="10 dígitos" autocomplete="tel" value="' + fv('drvTel') + '"></div>';
   } else {
     const l = lab[c.estado] || ['p-info', c.estado];
     h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.moto) + ' ' + esc(c.color) + '</div><div class="muted small">Placa ' + esc(c.placa) + (c.registro ? ' · Registro de tránsito N° ' + esc(c.registro) : '') + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' +
       (locked ? '<div class="muted small">Tus documentos fueron aprobados y ya no se pueden cambiar.</div>' : '<div class="muted small">Si cambias una foto, se envía de inmediato al administrador.</div>') + '</div>';
+    if (S.cpriv === null) h += '<div class="spinner" role="status" aria-label="Cargando datos de contacto"></div>';
+    else h += '<div class="card"><div class="h2">Mis datos de contacto</div>' + (!S.cpriv.direccion ? '<div class="banner warn">' + I.info + '<div class="grow">Registra tu dirección y tu celular.</div></div>' : '') +
+      '<div class="field"><label for="rd">Dirección de residencia</label><input type="text" id="rd" data-in="drvDir" maxlength="120" placeholder="Ej. Calle 5 # 12-30, barrio Centro" autocomplete="street-address" value="' + fv('drvDir') + '"></div>' +
+      '<div class="field"><label for="rcel">Celular</label><input type="tel" id="rcel" data-in="drvTel" inputmode="numeric" placeholder="10 dígitos" autocomplete="tel" value="' + fv('drvTel') + '"></div>' +
+      '<button class="btn btn-ghost" data-act="saveCpriv"' + busyAttr() + '>Guardar datos de contacto</button></div>';
   }
-  h += '<span class="lbl">Documentos (los ' + DOCS_C.length + ' son obligatorios)</span>';
+  const faltan = DOCS_C.filter(d => !S.docs[d[0]]).length;
+  h += '<span class="lbl">Documentos</span>';
+  if (!locked && (!reg || S.docsFor === S.user.uid) && faltan) h += '<div class="banner info">' + I.info + '<div class="grow">' + (reg ? 'Te faltan ' + faltan + ' documento(s). Súbelos cuando los tengas; el administrador también puede adjuntarlos.' : 'Puedes enviar el registro aunque te falte algún documento. Lo subes después, o el administrador lo adjunta, y él activa tu cuenta.') + '</div></div>';
   if (reg && S.docsFor !== S.user.uid) return h + '<div class="spinner" role="status" aria-label="Cargando documentos"></div></div></div>';
   h += '<div class="card" style="gap:0;padding:4px 14px">';
   DOCS_C.forEach(d => {
@@ -386,7 +399,11 @@ async function loadMyDocs() {
     const qs = await getDocs(collection(db, 'conductores', S.user.uid, 'documentos'));
     const d = {}; qs.docs.forEach(x => { d[x.id] = { img: x.data().img, estado: 'subido' }; });
     Object.keys(S.docs).forEach(k => { if (S.docs[k].estado === 'local') d[k] = S.docs[k]; });
-    S.docs = d; S.docsFor = S.user.uid; if (S.screen === 'registroC') render();
+    S.docs = d; S.docsFor = S.user.uid;
+    try { const p = await getDoc(privRef(S.user.uid)); S.cpriv = p.exists() ? p.data() : {}; } catch (e) { S.cpriv = {}; }
+    if (S.f.drvDir == null || S.f.drvDir === '') S.f.drvDir = S.cpriv.direccion || '';
+    if (S.f.drvTel == null || S.f.drvTel === '') S.f.drvTel = S.cpriv.telefono || S.perfil.telefono || '';
+    if (S.screen === 'registroC') render();
   } catch (e) { fail(e); }
 }
 /* ---------- pantallas: conductor ---------- */
@@ -754,10 +771,28 @@ function admBody(t) {
         '<div class="row"><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admDocs" data-v="' + c.id + '" aria-expanded="' + open + '">' + (open ? 'Ocultar documentos' : 'Ver documentos') + '</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admDriver" data-v="' + c.id + '">Servicios e ingresos</button></div>';
       if (open) {
         if (!dl || dl === 'cargando') h += '<div class="spinner" role="status" aria-label="Cargando documentos"></div>';
-        else h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + DOCS_C.map(d => {
-          const x = dl[d[0]], big = S.admBig === c.id + ':' + d[0];
-          return '<div class="col" style="gap:4px' + (big ? ';grid-column:1 / -1' : '') + '"><span class="small strong">' + d[1] + '</span>' + (x ? '<button data-act="admBig" data-v="' + c.id + ':' + d[0] + '" aria-label="' + (big ? 'Reducir ' : 'Ampliar ') + d[1] + '" style="padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--field)"><img src="' + x + '" alt="' + d[1] + ' de ' + esc(c.nombre) + '" style="width:100%;' + (big ? 'height:auto' : 'height:110px;object-fit:cover') + ';display:block"></button>' : '<div class="pill p-danger" style="align-self:flex-start">Falta</div>') + '</div>';
-        }).join('') + '</div>';
+        else {
+          h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + DOCS_C.map(d => {
+            const x = dl[d[0]], big = S.admBig === c.id + ':' + d[0];
+            const up = '<label class="upl" style="min-height:36px;align-self:flex-start">' + (x ? 'Cambiar' : 'Adjuntar') + '<input class="vh" type="file" accept="image/*" data-admdocup="' + c.id + ':' + d[0] + '" aria-label="' + (x ? 'Cambiar ' : 'Adjuntar ') + d[1] + ' de ' + esc(c.nombre) + '"></label>';
+            return '<div class="col" style="gap:4px' + (big ? ';grid-column:1 / -1' : '') + '"><span class="small strong">' + d[1] + '</span>' + (x ? '<button data-act="admBig" data-v="' + c.id + ':' + d[0] + '" aria-label="' + (big ? 'Reducir ' : 'Ampliar ') + d[1] + '" style="padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--field)"><img src="' + x + '" alt="' + d[1] + ' de ' + esc(c.nombre) + '" style="width:100%;' + (big ? 'height:auto' : 'height:110px;object-fit:cover') + ';display:block"></button>' : '<div class="pill p-danger" style="align-self:flex-start">Falta</div>') + up + '</div>';
+          }).join('') + '</div>';
+          if (S.admDocMsg && S.admDocMsg.indexOf(c.id + '|') === 0) h += '<div class="banner info" role="status">' + I.info + '<div class="grow">' + esc(S.admDocMsg.split('|')[1]) + '</div></div>';
+          const pv = S.admPriv[c.id];
+          if (S.admEdit === c.id) {
+            h += '<div class="col" style="gap:8px;border-top:1px solid var(--line);padding-top:10px"><div class="strong small">Datos del conductor</div>' +
+              '<div class="field"><label for="em' + c.id + '">Marca y modelo del mototour</label><input type="text" id="em' + c.id + '" data-in="aeMoto" value="' + fv('aeMoto') + '"></div>' +
+              '<div class="field"><label for="ec' + c.id + '">Color</label><input type="text" id="ec' + c.id + '" data-in="aeColor" value="' + fv('aeColor') + '"></div>' +
+              '<div class="field"><label for="ep' + c.id + '">Placa</label><input type="text" id="ep' + c.id + '" data-in="aePlaca" autocapitalize="characters" value="' + fv('aePlaca') + '"></div>' +
+              '<div class="field"><label for="er' + c.id + '">Número de registro de tránsito (opcional)</label><input type="text" id="er' + c.id + '" data-in="aeReg" autocapitalize="characters" value="' + fv('aeReg') + '"></div>' +
+              '<div class="field"><label for="ed' + c.id + '">Dirección de residencia</label><input type="text" id="ed' + c.id + '" data-in="aeDir" maxlength="120" value="' + fv('aeDir') + '"></div>' +
+              '<div class="field"><label for="et' + c.id + '">Celular</label><input type="tel" id="et' + c.id + '" data-in="aeTel" inputmode="numeric" placeholder="10 dígitos" value="' + fv('aeTel') + '"></div>' +
+              '<div class="row"><button class="btn btn-gold btn-sm" style="flex:1" data-act="admEditSave" data-v="' + c.id + '"' + busyAttr() + '>Guardar datos</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admEdit" data-v="">Cancelar</button></div></div>';
+          } else {
+            h += '<div class="col" style="gap:2px;border-top:1px solid var(--line);padding-top:10px"><span class="small"><b>Dirección:</b> ' + (pv ? (pv.direccion ? esc(pv.direccion) : '<span class="pill p-warn">Sin registrar</span>') : '…') + '</span><span class="small"><b>Celular:</b> ' + (pv ? (pv.telefono ? esc(pv.telefono) : '<span class="pill p-warn">Sin registrar</span>') : '…') + '</span></div>' +
+              '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="admEdit" data-v="' + c.id + '">Editar datos del conductor</button>';
+          }
+        }
       }
       const canApprove = nDocs === DOCS_C.length;
       const incompleto = nDocs !== null && !canApprove;
@@ -825,6 +860,8 @@ function admBody(t) {
             '<div class="field"><label for="ac">Color</label><input type="text" id="ac" data-in="amColor" value="' + fv('amColor') + '"></div>' +
             '<div class="field"><label for="ap">Placa</label><input type="text" id="ap" data-in="amPlaca" autocapitalize="characters" value="' + fv('amPlaca') + '"></div>' +
             '<div class="field"><label for="ar">Número de registro de tránsito (opcional)</label><input type="text" id="ar" data-in="amReg" autocapitalize="characters" value="' + fv('amReg') + '"></div>' +
+            '<div class="field"><label for="ad">Dirección de residencia</label><input type="text" id="ad" data-in="amDir" maxlength="120" value="' + fv('amDir') + '"></div>' +
+            '<div class="field"><label for="at">Celular</label><input type="tel" id="at" data-in="amTel" inputmode="numeric" placeholder="10 dígitos" value="' + fv('amTel') + '"></div>' +
             '<label class="check"><input type="checkbox" data-in="amOk"' + (S.f.amOk ? ' checked' : '') + '><span>Confirmo que verifiqué a esta persona y la habilito como conductor sin documentos completos.</span></label>' +
             '<div class="row"><button class="btn btn-gold btn-sm" style="flex:1" data-act="admMakeSave" data-v="' + u.id + '"' + (S.busy || !S.f.amOk ? ' disabled' : '') + '>Habilitar</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admMake" data-v="">Cancelar</button></div></div>';
         } else h += '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="admMake" data-v="' + u.id + '">Habilitar como conductor</button>';
@@ -1279,7 +1316,7 @@ function enter(s) {
     }));
     startWatch(); refreshRoute();
   }
-  if (s === 'registroC' && S.conductor) { if (S.docsFor !== S.user.uid) loadMyDocs(); }
+  if (s === 'registroC' && S.conductor) { if (S.docsFor !== S.user.uid || S.cpriv === null) loadMyDocs(); }
   if (s === 'micalif') { S.cal = null; delete S.ratings[S.user.uid]; loadRating(S.user.uid, ['conductores', S.user.uid, 'calificaciones']).then(r => { S.cal = r || { n: 0 }; if (S.screen === 'micalif') render(); }); }
   if (s === 'historial') {
     S.hist = null;
@@ -1355,6 +1392,8 @@ async function afterLogin(user) {
     if (cond.exists() && cond.data().estado === 'aprobado') {
       const cv = await findActive('conductorId', user.uid, ['asignado', 'en_punto', 'en_curso']);
       if (cv) { S.viajeId = cv.id; S.viaje = cv; S.mode = 'conductor'; S.online = true; go('cviaje'); return; }
+      // Conductor aprobado: entra directo a Solicitudes y en línea (si tiene restricción por cancelaciones, enter() lo desconecta)
+      S.mode = 'conductor'; S.online = true; S.banner = { kind: 'ok', text: 'Entraste como conductor y estás en línea. Para pedir un viaje, abre el menú y elige "Modo pasajero".' }; go('solicitudes'); return;
     }
     go('home');
   } catch (e) { S.connErr = errMsg(e); go('sinConexion'); }
@@ -1384,6 +1423,19 @@ appEl.addEventListener('change', async e => {
     } catch (err) { S.mascMsg = ''; S.err = err.message || 'No se pudo procesar la imagen.'; render(); }
     return;
   }
+  const ad = e.target.getAttribute('data-admdocup');
+  if (ad && e.target.files && e.target.files[0]) {
+    const [cid, tipo] = ad.split(':'), nom = (DOCS_C.find(d => d[0] === tipo) || [0, 'Documento'])[1];
+    S.err = null; S.admDocMsg = cid + '|Procesando ' + nom + '…'; render();
+    try {
+      const img = await compressImage(e.target.files[0]);
+      S.admDocMsg = cid + '|Guardando ' + nom + '…'; render();
+      await setDoc(doc(db, 'conductores', cid, 'documentos', tipo), { tipo, img, subido: serverTimestamp() });
+      const m = Object.assign({}, S.admDocs[cid] && S.admDocs[cid] !== 'cargando' ? S.admDocs[cid] : {}); m[tipo] = img; S.admDocs[cid] = m;
+      S.admDocCount[cid] = Object.keys(m).length; S.admDocMsg = ''; S.banner = { kind: 'ok', text: nom + ' adjuntado.' }; render();
+    } catch (err) { S.admDocMsg = ''; S.err = err && err.code ? errMsg(err) : (err.message || 'No se pudo procesar la foto.'); render(); }
+    return;
+  }
   const t = e.target.getAttribute('data-docup');
   if (t && e.target.files && e.target.files[0]) {
     S.err = null; S.docMsg = 'Procesando la foto…'; render();
@@ -1406,6 +1458,7 @@ async function act(a, v, b) {
     case 'go':
       if (v === 'contactos') { S.f.cNombre = ''; S.f.cTel = ''; S.f.cErr = ''; }
       if (v === 'transfer') S.f.transferencia = S.perfil.transferencia || '';
+      if (v === 'registroC' && !S.conductor && !S.f.drvTel) S.f.drvTel = S.perfil.telefono || '';
       go(v); break;
     case 'retryLogin': go('cargando'); afterLogin(S.user); break;
     case 'hideInstall': S.hideInstall = true; render(); break;
@@ -1528,6 +1581,14 @@ async function act(a, v, b) {
       try { await updateDoc(doc(db, 'usuarios', uid), { contactos: cs }); S.perfil.contactos = cs; render(); } catch (e) { fail(e); }
       break;
     }
+    case 'saveCpriv': {
+      const dir = String(S.f.drvDir || '').trim().replace(/\s+/g, ' '), tel = cleanTel(S.f.drvTel);
+      if (!validDir(dir)) { S.err = 'Escribe tu dirección de residencia (mínimo 5 caracteres).'; render(); break; }
+      if (tel.length !== 10) { S.err = 'El celular debe tener 10 dígitos.'; render(); break; }
+      S.busy = true; render();
+      try { await setDoc(privRef(uid), { direccion: dir, telefono: tel, actualizado: serverTimestamp() }); S.cpriv = { direccion: dir, telefono: tel }; S.busy = false; S.banner = { kind: 'ok', text: 'Datos de contacto guardados.' }; render(); } catch (e) { fail(e); }
+      break;
+    }
     case 'saveConductor': {
       const moto = (S.f.moto || '').trim(), color = (S.f.color || '').trim(), placa = (S.f.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       if (moto.length < 2) { S.err = 'Escribe la marca y el modelo del mototour.'; render(); break; }
@@ -1535,17 +1596,21 @@ async function act(a, v, b) {
       if (!/^[A-Z0-9]{5,7}$/.test(placa) || !/[A-Z]/.test(placa) || !/[0-9]/.test(placa)) { S.err = 'La placa debe tener entre 5 y 7 letras y números, por ejemplo ABC12D.'; render(); break; }
       const registro = String(S.f.registro || '').trim().replace(/\s+/g, ' ').toUpperCase();
       if (registro.length < 2 || registro.length > 30) { S.err = 'Escribe el número de registro de tránsito tal como aparece en el certificado.'; render(); break; }
-      const falta = DOCS_C.filter(d => !S.docs[d[0]]).map(d => d[1]);
-      if (falta.length) { S.err = 'Falta subir: ' + falta.join(', ') + '.'; render(); break; }
+      const dir = String(S.f.drvDir || '').trim().replace(/\s+/g, ' '), tel = cleanTel(S.f.drvTel);
+      if (!validDir(dir)) { S.err = 'Escribe tu dirección de residencia (mínimo 5 caracteres).'; render(); break; }
+      if (tel.length !== 10) { S.err = 'El celular debe tener 10 dígitos.'; render(); break; }
+      const subir = DOCS_C.filter(d => S.docs[d[0]] && S.docs[d[0]].estado === 'local'), faltan = DOCS_C.length - DOCS_C.filter(d => S.docs[d[0]]).length;
       S.busy = true; S.docMsg = 'Enviando registro…'; render();
       try {
         if (!S.conductor) await setDoc(doc(db, 'conductores', uid), { nombre: S.perfil.nombre, moto, color, placa, registro, estado: 'pendiente', creado: serverTimestamp() });
+        await setDoc(privRef(uid), { direccion: dir, telefono: tel, actualizado: serverTimestamp() });
         let n = 0;
-        for (const d of DOCS_C) {
-          n++; S.docMsg = 'Subiendo documentos (' + n + ' de ' + DOCS_C.length + ')…'; render();
-          if (S.docs[d[0]].estado === 'local') { await setDoc(doc(db, 'conductores', uid, 'documentos', d[0]), { tipo: d[0], img: S.docs[d[0]].img, subido: serverTimestamp() }); S.docs[d[0]].estado = 'subido'; }
+        for (const d of subir) {
+          n++; S.docMsg = 'Subiendo documentos (' + n + ' de ' + subir.length + ')…'; render();
+          await setDoc(doc(db, 'conductores', uid, 'documentos', d[0]), { tipo: d[0], img: S.docs[d[0]].img, subido: serverTimestamp() }); S.docs[d[0]].estado = 'subido';
         }
-        S.docMsg = ''; S.busy = false; S.banner = { kind: 'info', text: 'Registro enviado. El administrador revisará tus documentos.' }; go('menu');
+        S.docMsg = ''; S.busy = false; S.cpriv = { direccion: dir, telefono: tel }; S.docsFor = uid;
+        S.banner = { kind: 'info', text: 'Registro enviado. ' + (faltan ? 'Te faltan ' + faltan + ' documento(s); puedes subirlos después desde "Mis documentos". ' : '') + 'El administrador revisará y activará tu cuenta.' }; go('menu');
       } catch (e) { S.docMsg = ''; fail(e); }
       break;
     }
@@ -1669,17 +1734,21 @@ async function act(a, v, b) {
       break;
     case 'admTab': S.admTab = v; S.err = null; S.mascDel = null; render(); if (v === 'usuarios' && !S.admUsers) loadAdmUsers(); if (v === 'mascaras') loadMascAdmin(); break;
     case 'admMore': S.admLimit += 30; S.admUsers = null; render(); loadAdmUsers(); break;
-    case 'admMake': S.admMake = v || null; S.f.amMoto = ''; S.f.amColor = ''; S.f.amPlaca = ''; S.f.amReg = ''; S.f.amOk = false; render(); break;
+    case 'admMake': { S.admMake = v || null; S.f.amMoto = ''; S.f.amColor = ''; S.f.amPlaca = ''; S.f.amReg = ''; S.f.amDir = ''; S.f.amOk = false; const u = (S.admUsers || []).find(x => x.id === v); S.f.amTel = u && u.telefono ? u.telefono : ''; render(); break; }
     case 'admMakeSave': {
       const u = (S.admUsers || []).find(x => x.id === v); if (!u) break;
       const moto = (S.f.amMoto || '').trim(), color = (S.f.amColor || '').trim(), placa = (S.f.amPlaca || '').toUpperCase().replace(/[^A-Z0-9]/g, ''), reg = String(S.f.amReg || '').trim().replace(/\s+/g, ' ').toUpperCase();
       if (moto.length < 2 || color.length < 2) { S.err = 'Escribe la marca, el modelo y el color del mototour.'; render(); break; }
       if (!/^[A-Z0-9]{5,7}$/.test(placa) || !/[A-Z]/.test(placa) || !/[0-9]/.test(placa)) { S.err = 'La placa debe tener entre 5 y 7 letras y números, por ejemplo ABC12D.'; render(); break; }
       if (reg && (reg.length < 2 || reg.length > 30)) { S.err = 'El número de registro de tránsito debe tener entre 2 y 30 caracteres.'; render(); break; }
+      const dir = String(S.f.amDir || '').trim().replace(/\s+/g, ' '), tel = cleanTel(S.f.amTel);
+      if (!validDir(dir)) { S.err = 'Escribe la dirección de residencia del conductor (mínimo 5 caracteres).'; render(); break; }
+      if (tel.length !== 10) { S.err = 'El celular debe tener 10 dígitos.'; render(); break; }
       S.busy = true; render();
       try {
         const d = { nombre: u.nombre, moto, color, placa, estado: 'aprobado', aprobadoSinDocs: true, creado: serverTimestamp() }; if (reg) d.registro = reg;
-        await setDoc(doc(db, 'conductores', v), d); S.admMake = null; S.busy = false; S.banner = { kind: 'ok', text: u.nombre + ' quedó habilitado como conductor.' }; render();
+        const bt = writeBatch(db); bt.set(doc(db, 'conductores', v), d); bt.set(privRef(v), { direccion: dir, telefono: tel, actualizado: serverTimestamp() }); await bt.commit();
+        S.admPriv[v] = { direccion: dir, telefono: tel }; S.admMake = null; S.busy = false; S.banner = { kind: 'ok', text: u.nombre + ' quedó habilitado como conductor.' }; render();
       } catch (e) { fail(e); }
       break;
     }
@@ -1714,8 +1783,34 @@ async function act(a, v, b) {
       if (S.admOpen === v) { S.admOpen = null; S.admBig = null; render(); break; }
       S.admOpen = v; S.admBig = null; S.admDocs[v] = 'cargando'; render();
       try { const qs = await getDocs(collection(db, 'conductores', v, 'documentos')); const m = {}; qs.docs.forEach(x => { m[x.id] = x.data().img; }); S.admDocs[v] = m; } catch (e) { S.admDocs[v] = {}; S.err = errMsg(e); }
+      try { const p = await getDoc(privRef(v)); S.admPriv[v] = p.exists() ? p.data() : {}; } catch (e) { S.admPriv[v] = {}; }
       render(); break;
     case 'admBig': S.admBig = S.admBig === v ? null : v; render(); break;
+    case 'admEdit': {
+      S.admEdit = v || null; S.err = null;
+      if (v) { const c = (S.adm.conductores || []).find(x => x.id === v) || {}, pv = S.admPriv[v] || {}, u = (S.admUsers || []).find(x => x.id === v) || {};
+        S.f.aeMoto = c.moto || ''; S.f.aeColor = c.color || ''; S.f.aePlaca = c.placa || ''; S.f.aeReg = c.registro || ''; S.f.aeDir = pv.direccion || ''; S.f.aeTel = pv.telefono || u.telefono || ''; }
+      render(); break;
+    }
+    case 'admEditSave': {
+      const moto = (S.f.aeMoto || '').trim(), color = (S.f.aeColor || '').trim(), placa = (S.f.aePlaca || '').toUpperCase().replace(/[^A-Z0-9]/g, ''), reg = String(S.f.aeReg || '').trim().replace(/\s+/g, ' ').toUpperCase();
+      const dir = String(S.f.aeDir || '').trim().replace(/\s+/g, ' '), tel = cleanTel(S.f.aeTel);
+      if (moto.length < 2 || color.length < 2) { S.err = 'Escribe la marca, el modelo y el color del mototour.'; render(); break; }
+      if (!/^[A-Z0-9]{5,7}$/.test(placa) || !/[A-Z]/.test(placa) || !/[0-9]/.test(placa)) { S.err = 'La placa debe tener entre 5 y 7 letras y números, por ejemplo ABC12D.'; render(); break; }
+      if (reg && (reg.length < 2 || reg.length > 30)) { S.err = 'El número de registro de tránsito debe tener entre 2 y 30 caracteres.'; render(); break; }
+      if (!validDir(dir)) { S.err = 'Escribe la dirección de residencia del conductor (mínimo 5 caracteres).'; render(); break; }
+      if (tel.length !== 10) { S.err = 'El celular debe tener 10 dígitos.'; render(); break; }
+      S.busy = true; render();
+      try {
+        const bt = writeBatch(db), upd = { moto, color, placa };
+        if (reg) upd.registro = reg;
+        bt.update(doc(db, 'conductores', v), upd);
+        bt.set(privRef(v), { direccion: dir, telefono: tel, actualizado: serverTimestamp() });
+        await bt.commit();
+        S.admPriv[v] = { direccion: dir, telefono: tel }; S.admEdit = null; S.busy = false; S.banner = { kind: 'ok', text: 'Datos del conductor guardados.' }; render();
+      } catch (e) { fail(e); }
+      break;
+    }
     case 'admSet': S.busy = true; render(); try { await updateDoc(doc(db, 'conductores', v), { estado: b.getAttribute('data-p') }); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'admAlert': S.busy = true; render(); try { await updateDoc(doc(db, 'alertas', v), { estado: 'atendida' }); S.busy = false; render(); } catch (e) { fail(e); } break;
   }
@@ -1723,6 +1818,7 @@ async function act(a, v, b) {
 function beepUnlock() { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { } }
 function endPassengerTrip() { S.viajeId = null; S.viaje = null; S.ofertas = []; S.sos = null; S.cPhone = null; S.cTransfer = null; S.pago = 'efectivo'; S.drvPos = null; S.route = null; S.destPin = null; S.pickDest = false; S.sharing = false; stopWatch(); S.offer = MIN; S.f.destino = ''; S.f.ref = ''; S.f.nota = ''; S.notaOpen = false; go('home'); }
 function endDriverTrip() { S.viajeId = null; S.viaje = null; S.sos = null; S.pPhone = null; S.paxPos = null; S.route = null; S.stats = null; S.banner = { kind: 'ok', text: 'Viaje finalizado. Sigues conectado.' }; go('solicitudes'); }
+document.addEventListener('pointerdown', beepUnlock, { once: true });
 appEl.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b || b.disabled) return; act(b.getAttribute('data-act'), b.getAttribute('data-v'), b); });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => { });
