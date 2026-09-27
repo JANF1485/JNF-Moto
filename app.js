@@ -1,3 +1,5 @@
+// JNF Moto — © 2026 Asesorías y Consultorías JNF S.A.S. (NIT 901.904.435-9). Todos los derechos reservados.
+// Prohibida su reproducción, copia, modificación o distribución, total o parcial, sin autorización escrita del titular.
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import { getFirestore, doc, collection, getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, runTransaction, writeBatch, serverTimestamp, getCountFromServer, getAggregateFromServer, count, average } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
@@ -18,7 +20,7 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '16';
+const APP_VERSION = '19';
 const LOGO = 'icon-192.png';
 const appEl = document.getElementById('app');
 
@@ -64,7 +66,7 @@ const S = {
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
   offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
-  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null, admPriv: {}, admEdit: null, admDocMsg: '', cpriv: null,
+  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null, admPriv: {}, admEdit: null, admDocMsg: '', cpriv: null, pushUrl: '', pushOk: false, admV: null, admVPage: 20, admCal: {}, admRate: {}, admRateList: {}, admRateOpen: null, admPush: null, admPushRes: '', admAllUsers: null, sus: null, tarifas: null, susMap: null, susId: null, susPagos: null, pagosMes: null, ingresos: null, ingOtro: false, misPagos: null, misRef: null,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
   cal: null, hist: null, admTab: 'resumen', adm: {},
@@ -91,6 +93,7 @@ const I = {
   starOn: '<svg width="40" height="40" viewBox="0 0 24 24" fill="#C9A227" stroke="#A8841A" stroke-width="1.2" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z"/></svg>',
   starOff: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--star-off)" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z"/></svg>'
 };
+const COPY = () => '© ' + new Date().getFullYear() + ' Asesorías y Consultorías JNF S.A.S. · NIT 901.904.435-9 · Todos los derechos reservados.';
 const LABELS = ['', 'Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'];
 const RADIO_KM = 2; // zona en la que se cuentan y muestran los conductores cercanos
 // Cancelaciones. Las reglas de Firestore usan 2 min, 5 min y ETA+10 min; la app usa márgenes para no contradecirlas.
@@ -150,13 +153,13 @@ function vLogin() {
     '<button class="btn btn-gold" data-act="' + (crear ? 'signup' : 'signin') + '"' + busyAttr() + '>' + (crear ? 'Crear cuenta' : 'Ingresar') + '</button>' +
     '<button class="link" data-act="toggleCrear" style="align-self:center">' + (crear ? 'Ya tengo cuenta: ingresar' : 'No tengo cuenta: crear una') + '</button>' +
     (crear ? '' : '<button class="link" data-act="reset" style="align-self:center;font-size:13px">Olvidé mi contraseña</button>') +
-    installCard() + '</div><div class="demo">Versión de prueba · Asesorías y Consultorías JNF S.A.S.</div></div>';
+    installCard() + '</div><div class="demo">Versión de prueba · ' + COPY() + '<br><button class="link" data-act="go" data-v="terminos" style="font-size:12px;min-height:32px;text-align:center">Términos y condiciones · Tratamiento de datos</button></div></div>';
 }
 function vOnboarding() {
   return '<div class="screen"><div class="top">' + brandRow() + '<h1 class="h1">Completa tu perfil</h1><div class="sub">Lo usamos para que conductores y pasajeros se identifiquen.</div></div><div class="pad">' + errHTML() +
     '<div class="field"><label for="on">Nombre y primer apellido</label><input type="text" id="on" data-in="nombre" autocomplete="name" value="' + fv('nombre') + '"></div>' +
     '<div class="field"><label for="ot">Celular</label><input type="tel" id="ot" data-in="telefono" inputmode="numeric" placeholder="10 dígitos" autocomplete="tel" value="' + fv('telefono') + '"></div>' +
-    '<label class="check"><input type="checkbox" id="oa" data-in="acepta"' + (S.f.acepta ? ' checked' : '') + '><span>Autorizo a Asesorías y Consultorías JNF S.A.S. el tratamiento de mis datos personales (nombre, celular y ubicación durante los viajes) conforme a la Ley 1581 de 2012, para prestar el servicio de la app.</span></label>' +
+    '<label class="check"><input type="checkbox" id="oa" data-in="acepta"' + (S.f.acepta ? ' checked' : '') + '><span>Acepto los términos y condiciones y autorizo a Asesorías y Consultorías JNF S.A.S. el tratamiento de mis datos personales (nombre, celular y ubicación durante los viajes) conforme a la Ley 1581 de 2012, para prestar el servicio de la app.</span></label><button class="link" data-act="go" data-v="terminos" style="align-self:flex-start;font-size:13px">Leer términos y condiciones</button>' +
     '<button class="btn btn-gold" data-act="saveProfile"' + busyAttr() + '>Continuar</button><button class="link" data-act="logout" style="align-self:center">Salir</button></div></div>';
 }
 /* ---------- pantallas: pasajero ---------- */
@@ -164,11 +167,11 @@ function vHome() {
   let gps = '';
   if (S.gps === 'ok') gps = '<div class="muted small">Ubicación GPS detectada. Agrega una referencia para que el conductor te encuentre.</div>';
   else if (S.gps === 'pendiente') gps = '<div class="muted small">Buscando tu ubicación…</div>';
-  else gps = '<div class="banner warn">' + I.info + '<div class="grow">No pudimos obtener tu ubicación. Activa el GPS y el permiso de ubicación del navegador, o escribe con detalle dónde te recogen.</div><button data-act="retryGps">Reintentar</button></div>';
+  else gps = gpsBanner();
   let h = '<div class="screen"><div class="row between hdr" style="padding:12px 16px;background:var(--bg)"><button class="iconbtn light" data-act="go" data-v="menu" aria-label="Abrir menú">' + I.menu + '</button>' +
     '<div class="row hpill" style="background:#1A2580;border-radius:28px;padding:4px 16px 4px 4px"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">JNF Moto</span></div>' + (mascBadge() || '<div style="width:44px"></div>') + '</div>' + mascBand();
   h += S.gps === 'ok' ? '<div id="map" class="lmap" role="img" aria-label="Mapa con tu ubicación' + (S.destPin ? ' y el destino' : '') + '"></div>' + legendHTML([['person', 'Tú'], ['otro', 'Conductores cerca']].concat(S.destPin ? [['dest', 'Destino']] : [])) : '';
-  h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + mascBig() + mascNotice() + homeInstallCard() + '<h1 class="h1">¿Dónde estás?</h1>';
+  h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + mascBig() + mascNotice() + homeInstallCard() + (S.pushUrl && pushPerm() === 'default' ? pushCard(false) : '') + '<h1 class="h1">¿Dónde estás?</h1>';
   h += '<div class="field"><label for="ref">Punto de recogida (referencia)</label><input type="text" id="ref" data-in="ref" placeholder="Ej. Frente a la tienda azul, Calle 5" value="' + fv('ref') + '">' + gps + '</div>';
   h += '<h2 class="h1" style="margin-top:6px">¿A dónde vas?</h2><div class="field"><label for="destino">Destino</label><input type="text" id="destino" data-in="destino" placeholder="Barrio, dirección o lugar" value="' + fv('destino') + '" autocomplete="off">';
   if (S.pickDest) h += '<div class="banner info">' + I.info + '<div class="grow">Toca el mapa en el punto exacto de tu destino.</div><button data-act="pickDest">Cancelar</button></div>';
@@ -301,9 +304,11 @@ function vMenu() {
   const items = [['historial', 'Mis viajes'], ['contactos', 'Contactos de emergencia']];
   if (st === 'aprobado') items.push(['transfer', 'Mis datos para transferencias'], ['micalif', 'Mi calificación como conductor'], ['suscripcion', 'Mi suscripción']);
   if (S.admin) items.push(['admin', 'Panel de administración']);
+  if (S.pushUrl) items.push(['notif', 'Notificaciones']);
   items.push(['ayuda', 'Ayuda y soporte'], ['terminos', 'Términos y tratamiento de datos']);
-  h += '<nav aria-label="Opciones">' + items.map(it => '<button class="menuitem" data-act="go" data-v="' + it[0] + '">' + it[1] + I.chev + '</button>').join('') + '</nav>';
-  return h + '<button class="link danger" data-act="logout" style="align-self:flex-start">Cerrar sesión</button></div><div class="demo">Versión de prueba · v' + APP_VERSION + '</div></div>';
+  h += '<nav aria-label="Opciones">' + items.map(it => '<button class="menuitem" data-act="go" data-v="' + it[0] + '">' + it[1] + I.chev + '</button>').join('') +
+    '<button class="menuitem" data-act="toggleSnd" aria-pressed="' + soundOn() + '">Sonido y vibración<span class="pill ' + (soundOn() ? 'p-ok' : 'p-info') + '">' + (soundOn() ? 'Activados' : 'Desactivados') + '</span></button></nav>';
+  return h + '<button class="link danger" data-act="logout" style="align-self:flex-start">Cerrar sesión</button></div><div class="demo">JNF Moto · Versión de prueba v' + APP_VERSION + '<br>' + COPY() + '</div></div>';
 }
 function vHistorial() {
   let h = '<div class="screen">' + subTop('Mis viajes') + '<div class="pad">' + errHTML();
@@ -336,13 +341,15 @@ function vRegistroC() {
   const c = S.conductor, reg = !!c, locked = reg && c.estado === 'aprobado';
   const lab = { pendiente: ['p-warn', 'En revisión'], aprobado: ['p-ok', 'Aprobado'], rechazado: ['p-danger', 'Rechazado'], suspendido: ['p-danger', 'Suspendido'] };
   let h = '<div class="screen">' + subTop(reg ? 'Mis documentos' : 'Registro de conductor') + '<div class="pad">' + errHTML() + bannerHTML(S.banner);
+  if (!reg) h += '<div class="banner" style="background:#EDE6FA;color:#4B2A8A">' + I.info + '<div class="grow"><b>Tu primer mes es gratis.</b> Empieza a contar desde el día en que te inscribes.</div></div>';
   if (!reg) {
     h += '<div class="field"><label for="rm">Marca y modelo del mototour</label><input type="text" id="rm" data-in="moto" placeholder="Marca y modelo" value="' + fv('moto') + '"></div>' +
       '<div class="field"><label for="rc">Color</label><input type="text" id="rc" data-in="color" placeholder="Ej. Blanco" value="' + fv('color') + '"></div>' +
       '<div class="field"><label for="rp">Placa</label><input type="text" id="rp" data-in="placa" placeholder="Ej. ABC12D" autocapitalize="characters" value="' + fv('placa') + '"></div>' +
       '<div class="field"><label for="rt">Número de registro de tránsito</label><input type="text" id="rt" data-in="registro" placeholder="Como aparece en el certificado" autocapitalize="characters" value="' + fv('registro') + '"></div>' +
       '<div class="field"><label for="rd">Dirección de residencia</label><input type="text" id="rd" data-in="drvDir" maxlength="120" placeholder="Ej. Calle 5 # 12-30, barrio Centro" autocomplete="street-address" value="' + fv('drvDir') + '"></div>' +
-      '<div class="field"><label for="rcel">Celular</label><input type="tel" id="rcel" data-in="drvTel" inputmode="numeric" placeholder="10 dígitos" autocomplete="tel" value="' + fv('drvTel') + '"></div>';
+      '<div class="field"><label for="rcel">Celular</label><input type="tel" id="rcel" data-in="drvTel" inputmode="numeric" placeholder="10 dígitos" autocomplete="tel" value="' + fv('drvTel') + '"></div>' +
+      '<div class="field"><label for="rref">Código de quien te refirió (opcional)</label><input type="text" id="rref" data-in="drvRef" placeholder="Ej. JNF-ABC12D" autocapitalize="characters" autocomplete="off" value="' + fv('drvRef') + '"><span class="muted small">Si otro conductor te invitó, escribe su código; él recibe un descuento cuando hagas tu primer pago.</span></div>';
   } else {
     const l = lab[c.estado] || ['p-info', c.estado];
     h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.moto) + ' ' + esc(c.color) + '</div><div class="muted small">Placa ' + esc(c.placa) + (c.registro ? ' · Registro de tránsito N° ' + esc(c.registro) : '') + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' +
@@ -411,7 +418,11 @@ function vSolicitudes() {
     '<div class="grid3"><div class="stat"><span class="k">Viajes hoy</span><span class="v">' + (st ? st.viajes : '…') + '</span></div><div class="stat"><span class="k">Ganado hoy</span><span class="v" style="color:#C9A227">' + (st ? money(st.ganado) : '…') + '</span></div><div class="stat"><span class="k">Calificación</span><span class="v">' + (S.ratings[S.user.uid] ? '★ ' + fmtRating(S.ratings[S.user.uid].avg) : '★ …') + '</span></div></div></div>' + mascBand() + '<div class="pad">' + errHTML() + bannerHTML(S.banner) + (mascOn() && S.masc.opcion !== 'B' ? mascNotice(true) : '');
   const blc = blockOf(S.user.uid, 'conductor'), rtc = rateOf(S.user.uid, 'conductor');
   if (blc) return h + blockCard('conductor', blc) + '</div></div>';
+  if (conductorBloqueado()) return h + susAviso() + '</div></div>';
+  h += susAviso();
   if (rtc && rtc.pct != null && rtc.pct > 10) h += '<div class="banner warn">' + I.info + '<div class="grow">Tu tasa de cancelación es de <b>' + rtc.pct + ' %</b>. Si supera el 20 %, tu cuenta pasa a revisión del administrador.</div></div>';
+  if (S.online && S.gps === 'error') h += gpsBanner().replace('<div class="grow">', '<div class="grow"><b>Los pasajeros no te ven en el mapa.</b> ');
+  if (S.online) h += pushCard(true);
   if (!S.online) h += '<div class="card"><div class="strong">Estás desconectado.</div><div class="muted">Conéctate para recibir solicitudes de pasajeros. La app debe permanecer abierta.</div><button class="btn btn-gold" data-act="online">Conectarme</button></div>';
   else if (!S.requests.length) h += '<div class="card"><div class="spinner" aria-hidden="true"></div><div class="strong center">Buscando pasajeros…</div><div class="muted center">Las solicitudes aparecen aquí con un sonido. Puedes aceptar el precio o contraofertar.</div></div>';
   if (S.online) S.requests.forEach(r => {
@@ -717,18 +728,19 @@ async function loadMascAdmin() {
 }
 /* ---------- panel de administración ---------- */
 const isWide = () => window.innerWidth >= 900;
-const ADM_SECS = () => [['resumen', 'Resumen'], ['usuarios', 'Usuarios'], ['conductores', 'Conductores'], ['viajes', 'Viajes'], ['alertas', 'Alertas de pánico' + (S.adm.alertas && S.adm.alertas.length ? ' (' + S.adm.alertas.length + ')' : '')], ['mascaras', 'Máscaras']];
+const pendientes = () => (S.adm.conductores || []).filter(c => c.estado === 'pendiente').length;
+const ADM_SECS = () => [['resumen', 'Resumen'], ['usuarios', 'Usuarios'], ['conductores', 'Conductores' + (pendientes() ? ' (' + pendientes() + ')' : '')], ['viajes', 'Viajes'], ['alertas', 'Alertas de pánico' + (S.adm.alertas && S.adm.alertas.length ? ' (' + S.adm.alertas.length + ')' : '')], ['suscripciones', 'Suscripciones'], ['ingresos', 'Ingresos'], ['mascaras', 'Máscaras'], ['notificaciones', 'Notificaciones']];
 function vAdmin() {
-  const t = S.admTab, secs = ADM_SECS(), title = t === 'detalle' ? 'Servicios e ingresos' : t === 'mascEdit' ? (S.me && S.me.id ? 'Editar máscara' : 'Crear máscara') : (secs.find(x => x[0] === t) || secs[0])[1].replace(/ \(\d+\)$/, '');
+  const t = S.admTab, secs = ADM_SECS(), title = t === 'detalle' ? 'Servicios e ingresos' : t === 'susFicha' ? 'Suscripción del conductor' : t === 'tarifas' ? 'Tarifas y referidos' : t === 'mascEdit' ? (S.me && S.me.id ? 'Editar máscara' : 'Crear máscara') : (secs.find(x => x[0] === t) || secs[0])[1].replace(/ \(\d+\)$/, '');
   if (isWide()) {
     return '<div class="adm-wrap"><nav class="adm-side" aria-label="Secciones del panel"><div class="row" style="gap:12px;padding:0 8px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:52px;height:52px"><div class="col" style="gap:2px"><span class="brandname" style="font-size:18px">JNF Moto</span><span class="small" style="color:#D8DEE8;font-weight:600">Administración</span></div></div>' +
-      secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0] || (t === 'detalle' && x[0] === S.admBack) || (t === 'mascEdit' && x[0] === 'mascaras')) + '">' + x[1] + '</button>').join('') +
-      '<button data-act="go" data-v="menu" style="margin-top:auto">← Volver a la app</button></nav>' +
+      secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0] || (t === 'detalle' && x[0] === S.admBack) || (t === 'mascEdit' && x[0] === 'mascaras') || ((t === 'susFicha' || t === 'tarifas') && x[0] === 'suscripciones')) + '">' + x[1] + '</button>').join('') +
+      '<button data-act="go" data-v="menu" style="margin-top:auto">← Volver a la app</button><div style="font-size:11px;color:#B8C0E6;line-height:1.4;padding:8px 12px 0">' + COPY() + '</div></nav>' +
       '<main class="adm-main"><div class="row between" style="flex-wrap:wrap;gap:8px"><h1 class="h1" style="font-size:28px">' + title + '</h1><span class="muted">Hoy · ' + new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '</span></div>' +
       errHTML() + bannerHTML(S.banner) + admBody(t) + '</main></div>';
   }
   return '<div class="screen">' + subTop('Administración') + '<div class="pad">' + errHTML() + bannerHTML(S.banner) + '<div class="tabs" role="group" aria-label="Secciones">' +
-    secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0] || (t === 'mascEdit' && x[0] === 'mascaras')) + '">' + x[1].replace('Alertas de pánico', 'Alertas') + '</button>').join('') + '</div>' + admBody(t) + '</div></div>';
+    secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0] || (t === 'mascEdit' && x[0] === 'mascaras') || ((t === 'susFicha' || t === 'tarifas') && x[0] === 'suscripciones')) + '">' + x[1].replace('Alertas de pánico', 'Alertas') + '</button>').join('') + '</div>' + admBody(t) + '</div></div>';
 }
 function admBody(t) {
   const A = S.adm;
@@ -761,10 +773,12 @@ function admBody(t) {
     const L = A.conductores; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div>';
     const lab = { pendiente: ['p-warn', 'Pendiente'], aprobado: ['p-ok', 'Aprobado'], rechazado: ['p-danger', 'Rechazado'], suspendido: ['p-danger', 'Suspendido'] };
     if (!L.length) h += '<div class="card"><div class="muted">Aún no hay conductores registrados.</div></div>';
-    L.slice().sort((a, b) => (a.estado === 'pendiente' ? 0 : 1) - (b.estado === 'pendiente' ? 0 : 1)).forEach(c => {
+    const fl = admDrvFiltrados(L);
+    h += admDrvFiltros(L.length, fl.length);
+    fl.forEach(c => {
       const l = lab[c.estado] || ['p-info', c.estado];
       const open = S.admOpen === c.id, dl = S.admDocs[c.id], nDocs = dl && dl !== 'cargando' ? Object.keys(dl).length : null;
-      h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.nombre) + '</div><div class="muted small">' + esc(c.moto) + ' ' + esc(c.color) + ' · Placa ' + esc(c.placa) + '</div><div class="small strong">' + (c.registro ? 'Registro de tránsito N° ' + esc(c.registro) : 'Sin número de registro de tránsito') + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' +
+      h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.nombre) + '</div><div class="muted small">' + esc(c.moto) + ' ' + esc(c.color) + ' · Placa ' + esc(c.placa) + '</div><div class="small strong">' + (c.registro ? 'Registro de tránsito N° ' + esc(c.registro) : 'Sin número de registro de tránsito') + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' + admDrvRating(c) +
         '<div class="row"><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admDocs" data-v="' + c.id + '" aria-expanded="' + open + '">' + (open ? 'Ocultar documentos' : 'Ver documentos') + '</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admDriver" data-v="' + c.id + '">Servicios e ingresos</button></div>';
       if (open) {
         if (!dl || dl === 'cargando') h += '<div class="spinner" role="status" aria-label="Cargando documentos"></div>';
@@ -874,14 +888,381 @@ function admBody(t) {
     if (!L.length) h += '<div class="card"><div class="strong">Sin alertas activas.</div><div class="muted">Cuando alguien active el botón de pánico, aparece aquí con su ubicación.</div></div>';
     L.forEach(a => { h += '<div class="card" style="border:2px solid #B42318"><div class="row between"><div class="col"><div class="strong">' + esc(a.nombre) + ' (' + esc(a.rol) + ')</div><div class="muted small">' + new Date(tsMs(a.creado)).toLocaleString('es-CO') + '</div></div><span class="pill p-danger">Activa</span></div><div class="row">' + (a.lat != null ? '<a class="btn btn-ghost btn-sm" style="flex:1" target="_blank" rel="noopener" href="https://maps.google.com/?q=' + a.lat + ',' + a.lng + '">Ver ubicación</a>' : '<span class="muted small" style="flex:1">Sin ubicación GPS</span>') + '<button class="btn btn-gold btn-sm" style="flex:1" data-act="admAlert" data-v="' + a.id + '"' + busyAttr() + '>Marcar atendida</button></div></div>'; });
   }
-  if (t === 'viajes') {
-    const L = A.viajes; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div>';
-    if (!L.length) h += '<div class="card"><div class="muted">Aún no hay viajes.</div></div>';
-    const fin = L.filter(v => v.estado === 'finalizado');
-    h += '<div class="card"><div class="row between"><span class="muted">Viajes finalizados (últimos 100)</span><span class="strong">' + fin.length + '</span></div><div class="row between"><span class="muted">Valor movido</span><span class="strong">' + money(fin.reduce((s, v) => s + (v.precioFinal || 0), 0)) + '</span></div></div>';
-    L.forEach(v => { h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(v.pasajeroNombre) + ' → ' + esc(v.destino.texto) + '</div><div class="muted small">' + (v.conductor ? 'Conductor: ' + esc(v.conductor.nombre) + ' · ' : '') + new Date(tsMs(v.creado)).toLocaleString('es-CO') + '</div></div><div class="col" style="align-items:flex-end"><span class="strong">' + money(v.precioFinal || v.oferta) + '</span><span class="muted small">' + pagoTxt(v) + '</span><span class="pill p-info">' + esc(v.estado) + '</span></div></div>' + (v.estado === 'cancelado' && v.motivo ? '<div class="muted small">Motivo: ' + esc({ ya_no: 'Ya no lo necesitaba', no_llega: 'El conductor no llegaba', inseguro: 'Se sintió inseguro', otro: 'Otro', inconveniente: 'Inconveniente del conductor', no_se_presento: 'El pasajero no se presentó' }[v.motivo] || v.motivo) + (v.motivoTexto ? ': ' + esc(v.motivoTexto) : '') + (v.penalizaA ? ' · penaliza al ' + esc(v.penalizaA) : ' · sin penalización') + '</div>' : '') + '</div>'; });
+  if (t === 'viajes') h += admViajes();
+  if (t === 'suscripciones') h += admSus();
+  if (t === 'susFicha') h += admSusFicha();
+  if (t === 'tarifas') h += admTarifas();
+  if (t === 'ingresos') h += admIngresos();
+  if (t === 'notificaciones') h += admNotif();
+
+  return h;
+}
+/* ---------- panel: búsqueda de viajes, filtros de conductores y notificaciones ---------- */
+const MOTIVO_TXT = { ya_no: 'Ya no lo necesitaba', no_llega: 'El conductor no llegaba', inseguro: 'Se sintió inseguro', otro: 'Otro', inconveniente: 'Inconveniente del conductor', no_se_presento: 'El pasajero no se presentó' };
+const EST_TXT = { buscando: ['p-info', 'Buscando'], asignado: ['p-info', 'Asignado'], en_punto: ['p-info', 'Conductor en el punto'], en_curso: ['p-warn', 'En curso'], finalizado: ['p-ok', 'Finalizado'], cancelado: ['p-danger', 'Cancelado'] };
+const fold = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const stars = n => n ? '<span style="color:#A8841A;letter-spacing:1px" aria-label="' + n + ' de 5 estrellas">' + '★'.repeat(n) + '<span style="color:var(--star-off)">' + '★'.repeat(5 - n) + '</span></span>' : '';
+const mapLink = p => p && p.lat != null ? ' <a class="small" target="_blank" rel="noopener" href="https://maps.google.com/?q=' + p.lat + ',' + p.lng + '">ver mapa</a>' : '';
+const fchip = (key, val, label) => '<button class="chip" data-act="admF" data-v="' + key + '=' + val + '" aria-pressed="' + ((S.f[key] || '') === val) + '">' + label + '</button>';
+const dateIn = (id, key, label) => '<div class="field"><label for="' + id + '">' + label + '</label><input type="date" id="' + id + '" data-in="' + key + '" value="' + fv(key) + '" style="min-height:48px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;color:var(--ink);background:var(--field);width:100%"></div>';
+function calBox(t, c, quien) {
+  if (c === undefined) return '<div class="muted small">' + t + ': cargando…</div>';
+  if (!c) return '<div class="muted small">' + t + ': ' + quien + ' no calificó.</div>';
+  return '<div class="small"><b>' + t + ':</b> ' + stars(c.estrellas) + ' ' + LABELS[c.estrellas] + ((c.aspectos || []).length ? ' · ' + esc(c.aspectos.join(', ')) : '') + (c.comentario ? '<div class="muted" style="margin-top:2px">"' + esc(c.comentario) + '"</div>' : '') + '</div>';
+}
+function admVFiltrados() {
+  const q = fold(S.f.admVQ).trim(), rol = S.f.admVRol || '', est = S.f.admVEst || '';
+  return (S.admV || []).filter(v => {
+    if (est === 'finalizado' && v.estado !== 'finalizado') return false;
+    if (est === 'cancelado' && v.estado !== 'cancelado') return false;
+    if (est === 'activo' && !['buscando', 'asignado', 'en_punto', 'en_curso'].includes(v.estado)) return false;
+    if (!q) return true;
+    const pax = fold(v.pasajeroNombre), cond = fold(v.conductor ? v.conductor.nombre + ' ' + v.conductor.placa : ''), lug = fold((v.origen ? v.origen.texto : '') + ' ' + (v.destino ? v.destino.texto : ''));
+    if (rol === 'pasajero') return pax.includes(q);
+    if (rol === 'conductor') return cond.includes(q);
+    return pax.includes(q) || cond.includes(q) || lug.includes(q);
+  });
+}
+function admViajes() {
+  let h = '<section class="card"><h2 class="h2">Buscar viajes</h2><div class="field"><label for="avq">Nombre del pasajero o del conductor, placa o lugar</label><input type="text" id="avq" data-in="admVQ" data-live="1" placeholder="Ej. Ana, ABC12D, Terminal" value="' + fv('admVQ') + '" autocomplete="off"></div>' +
+    '<div class="col" style="gap:6px"><span class="lbl">Buscar en</span><div class="chips">' + fchip('admVRol', '', 'Todos') + fchip('admVRol', 'pasajero', 'Pasajero') + fchip('admVRol', 'conductor', 'Conductor') + '</div></div>' +
+    '<div class="col" style="gap:6px"><span class="lbl">Estado</span><div class="chips">' + fchip('admVEst', '', 'Todos') + fchip('admVEst', 'finalizado', 'Finalizados') + fchip('admVEst', 'cancelado', 'Cancelados') + fchip('admVEst', 'activo', 'En curso') + '</div></div>' +
+    '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + dateIn('avi', 'admVIni', 'Desde') + dateIn('avf', 'admVFin', 'Hasta') + '</div>' +
+    '<button class="btn btn-navy btn-sm" style="min-height:44px" data-act="admVLoad"' + busyAttr() + '>Consultar fechas</button></section>';
+  if (S.admV === null) return h + '<div class="spinner" role="status" aria-label="Cargando viajes"></div>';
+  const L = admVFiltrados(), fin = L.filter(v => v.estado === 'finalizado');
+  const kpi = (label, val, kind) => '<div class="card kpi' + (kind ? ' ' + kind : '') + '"><span class="k">' + label + '</span><span class="v">' + val + '</span></div>';
+  h += '<div class="kpis">' + kpi('Viajes encontrados', L.length) + kpi('Finalizados', fin.length) + kpi('Valor pagado', money(fin.reduce((s, v) => s + (v.precioFinal || 0), 0)), 'navy') + kpi('Cancelados', L.filter(v => v.estado === 'cancelado').length) + '</div>';
+  if (S.admV.length >= 500) h += '<div class="muted small">Se muestran los 500 viajes más recientes del periodo. Reduce las fechas para ver el resto.</div>';
+  if (!L.length) return h + '<div class="card"><div class="muted">No hay viajes con esos filtros.</div></div>';
+  const page = L.slice(0, S.admVPage);
+  h += '<div class="vgrid">';
+  page.forEach(v => {
+    const e = EST_TXT[v.estado] || ['p-info', v.estado], cal = S.admCal[v.id] || {};
+    h += '<article class="card" style="gap:8px"><div class="row between" style="gap:8px;flex-wrap:wrap"><span class="muted small">' + fmtFecha(tsMs(v.creado)) + '</span><span class="pill ' + e[0] + '">' + e[1] + '</span></div>' +
+      '<div class="row between" style="align-items:flex-start;gap:10px"><div class="col" style="gap:2px"><span class="small muted">Pasajero</span><button class="link" style="min-height:28px;padding:0" data-act="admVWho" data-v="pasajero|' + esc(v.pasajeroNombre) + '">' + esc(v.pasajeroNombre) + '</button></div>' +
+      '<div class="col" style="gap:2px;align-items:flex-end;text-align:right"><span class="small muted">Conductor</span>' + (v.conductor ? '<button class="link" style="min-height:28px;padding:0;text-align:right" data-act="admVWho" data-v="conductor|' + esc(v.conductor.nombre) + '">' + esc(v.conductor.nombre) + '</button><span class="small muted">' + esc(v.conductor.placa || '') + '</span>' : '<span class="small">Sin asignar</span>') + '</div></div>' +
+      '<div class="col" style="gap:4px"><div class="row" style="align-items:flex-start"><span class="dot" style="margin-top:5px"></span><div class="small"><b>Recogida:</b> ' + esc(v.origen ? v.origen.texto : '') + mapLink(v.origen) + '</div></div><div class="row" style="align-items:flex-start"><span class="sq" style="margin-top:5px"></span><div class="small"><b>Destino:</b> ' + esc(v.destino ? v.destino.texto : '') + mapLink(v.destino) + '</div></div></div>' +
+      '<div class="row between"><span class="small muted">' + (v.estado === 'finalizado' ? 'Pagó' : 'Ofreció') + ' · ' + pagoTxt(v) + '</span><span class="price" style="font-size:19px">' + money(v.precioFinal || v.oferta) + '</span></div>';
+    if (v.estado === 'finalizado') h += '<div class="col" style="gap:6px;border-top:1px solid var(--line);padding-top:8px">' + calBox('Pasajero calificó al conductor', cal.pc, 'El pasajero') + calBox('Conductor calificó al pasajero', cal.cp, 'El conductor') + '</div>';
+    if (v.estado === 'cancelado') h += '<div class="muted small">Motivo: ' + esc(MOTIVO_TXT[v.motivo] || v.motivo || 'sin motivo') + (v.motivoTexto ? ': ' + esc(v.motivoTexto) : '') + (v.canceladoPor ? ' · canceló el ' + (v.canceladoPor === v.pasajeroId ? 'pasajero' : 'conductor') : '') + (v.penalizaA ? ' · penaliza al ' + esc(v.penalizaA) : '') + '</div>';
+    h += '</article>';
+  });
+  h += '</div>';
+  if (L.length > S.admVPage) h += '<button class="btn btn-ghost" data-act="admVMore">Ver más viajes (' + (L.length - S.admVPage) + ' más)</button>';
+  loadAdmCal(page);
+  return h;
+}
+let calBusy = false;
+async function loadAdmCal(list) {
+  const falta = list.filter(v => v.estado === 'finalizado' && !S.admCal[v.id]); if (!falta.length || calBusy) return;
+  calBusy = true;
+  await Promise.all(falta.map(async v => {
+    S.admCal[v.id] = {};
+    const [a, b] = await Promise.all([v.conductorId ? getDoc(doc(db, 'conductores', v.conductorId, 'calificaciones', v.id)).catch(() => null) : null, getDoc(doc(db, 'usuarios', v.pasajeroId, 'calificaciones', v.id)).catch(() => null)]);
+    S.admCal[v.id] = { pc: a && a.exists() ? a.data() : null, cp: b && b.exists() ? b.data() : null };
+  }));
+  calBusy = false;
+  if (S.screen === 'admin' && S.admTab === 'viajes') render();
+}
+async function loadAdmViajes() {
+  const hoy = new Date();
+  if (!S.f.admVIni) S.f.admVIni = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+  if (!S.f.admVFin) S.f.admVFin = ymd(hoy);
+  const ini = fromYmd(S.f.admVIni), fin = fromYmd(S.f.admVFin, true);
+  if (!ini || !fin || fin < ini) { S.err = 'Revisa las fechas: la fecha final no puede ser anterior a la inicial.'; S.admV = S.admV || []; render(); return; }
+  S.admV = null; S.admVPage = 20; render();
+  try {
+    const qs = await getDocs(query(collection(db, 'viajes'), where('creado', '>=', ini), where('creado', '<=', fin), orderBy('creado', 'desc'), limit(500)));
+    S.admV = qs.docs.map(d => Object.assign({ id: d.id }, d.data()));
+  } catch (e) { S.admV = []; S.err = errMsg(e); }
+  if (S.screen === 'admin') render();
+}
+// Conductores
+function admDrvFiltrados(L) {
+  const q = fold(S.f.admCQ).trim(), est = S.f.admCEst || '', cal = S.f.admCCal || '', ord = S.f.admCOrd || '';
+  const R = id => S.admRate[id];
+  let out = L.filter(c => {
+    if (est && c.estado !== est) return false;
+    if (q && !fold(c.nombre + ' ' + c.placa + ' ' + (c.registro || '') + ' ' + c.moto).includes(q)) return false;
+    const r = R(c.id);
+    if (cal === 'bajo45' && !(r && r.n && r.avg < 4.5)) return false;
+    if (cal === 'bajo42' && !(r && r.n && r.avg < 4.2)) return false;
+    if (cal === 'sin' && !(r && !r.n)) return false;
+    return true;
+  });
+  const avg = c => { const r = R(c.id); return r && r.n ? r.avg : null; };
+  if (ord === 'peor') out.sort((a, b) => (avg(a) == null ? 9 : avg(a)) - (avg(b) == null ? 9 : avg(b)));
+  else if (ord === 'mejor') out.sort((a, b) => (avg(b) == null ? -1 : avg(b)) - (avg(a) == null ? -1 : avg(a)));
+  else if (ord === 'nombre') out.sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+  else out.sort((a, b) => (a.estado === 'pendiente' ? 0 : 1) - (b.estado === 'pendiente' ? 0 : 1));
+  return out;
+}
+function admDrvFiltros(total, n) {
+  return '<section class="card"><div class="field"><label for="acq">Buscar conductor (nombre, placa o registro)</label><input type="text" id="acq" data-in="admCQ" data-live="1" placeholder="Ej. Carlos o ABC12D" value="' + fv('admCQ') + '" autocomplete="off"></div>' +
+    '<div class="col" style="gap:6px"><span class="lbl">Estado</span><div class="chips">' + fchip('admCEst', '', 'Todos') + fchip('admCEst', 'pendiente', 'Pendientes') + fchip('admCEst', 'aprobado', 'Aprobados') + fchip('admCEst', 'suspendido', 'Suspendidos') + fchip('admCEst', 'rechazado', 'Rechazados') + '</div></div>' +
+    '<div class="col" style="gap:6px"><span class="lbl">Calificación</span><div class="chips">' + fchip('admCCal', '', 'Todas') + fchip('admCCal', 'bajo45', 'Menos de 4,5') + fchip('admCCal', 'bajo42', 'Menos de 4,2') + fchip('admCCal', 'sin', 'Sin calificaciones') + '</div></div>' +
+    '<div class="col" style="gap:6px"><span class="lbl">Ordenar</span><div class="chips">' + fchip('admCOrd', '', 'Pendientes primero') + fchip('admCOrd', 'peor', 'Peor calificación') + fchip('admCOrd', 'mejor', 'Mejor calificación') + fchip('admCOrd', 'nombre', 'Nombre') + '</div></div>' +
+    '<div class="muted small">' + n + ' de ' + total + ' conductores</div></section>';
+}
+function admDrvRating(c) {
+  const r = S.admRate[c.id];
+  let h = '<div class="row between" style="gap:8px;flex-wrap:wrap"><span class="small">' + (!r ? 'Calificación: calculando…' : !r.n ? 'Sin calificaciones aún' : '<b>★ ' + fmtRating(r.avg) + '</b> promedio · ' + r.n + (r.n === 1 ? ' calificación' : ' calificaciones')) + (r && r.n >= 5 && r.avg < 4.2 ? ' <span class="pill p-danger">Revisar</span>' : r && r.n >= 5 && r.avg < 4.5 ? ' <span class="pill p-warn">Bajo 4,5</span>' : '') + '</span>' +
+    (r && r.n ? '<button class="link" style="font-size:13px;min-height:36px" data-act="admRates" data-v="' + c.id + '" aria-expanded="' + (S.admRateOpen === c.id) + '">' + (S.admRateOpen === c.id ? 'Ocultar calificaciones' : 'Ver calificaciones') + '</button>' : '') + '</div>';
+  if (S.admRateOpen === c.id) {
+    const L = S.admRateList[c.id];
+    if (!L) h += '<div class="spinner" role="status" aria-label="Cargando calificaciones"></div>';
+    else h += '<div class="col" style="gap:6px;background:var(--field);border-radius:12px;padding:10px">' + L.map(x => '<div class="col" style="gap:2px;padding:6px 0;border-bottom:1px solid var(--line)"><div class="row between small"><span>' + stars(x.estrellas) + ' ' + LABELS[x.estrellas] + '</span><span class="muted">' + fmtFecha(tsMs(x.creado)) + '</span></div>' + ((x.aspectos || []).length ? '<div class="small muted">' + esc(x.aspectos.join(', ')) + '</div>' : '') + (x.comentario ? '<div class="small">"' + esc(x.comentario) + '"</div>' : '') + '</div>').join('') + '<div class="muted small">Últimas ' + L.length + ' calificaciones.</div></div>';
   }
   return h;
+}
+let rateBusy = false;
+async function loadAdmRates() {
+  const L = S.adm.conductores || [], falta = L.filter(c => !S.admRate[c.id]); if (!falta.length || rateBusy) return;
+  rateBusy = true;
+  for (let i = 0; i < falta.length; i += 10) {
+    await Promise.all(falta.slice(i, i + 10).map(async c => {
+      try { const a = await getAggregateFromServer(collection(db, 'conductores', c.id, 'calificaciones'), { n: count(), avg: average('estrellas') }); const d = a.data(); S.admRate[c.id] = { n: d.n || 0, avg: d.avg || 0 }; } catch (e) { S.admRate[c.id] = { n: 0, avg: 0 }; }
+    }));
+    if (S.screen === 'admin' && S.admTab === 'conductores') render();
+  }
+  rateBusy = false;
+}
+// Notificaciones (servidor de avisos)
+function admNotif() {
+  const P = S.admPush;
+  let h = '<section class="card"><h2 class="h2">Servidor de avisos</h2><div class="muted small">Dirección del servidor de Cloudflare que envía las notificaciones (termina en .workers.dev).</div>' +
+    '<div class="field"><label for="apu">Dirección del servidor</label><input type="text" id="apu" data-in="admPushUrl" placeholder="https://jnf-moto-avisos.tu-cuenta.workers.dev" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + fv('admPushUrl') + '"></div>' +
+    '<div class="row" style="flex-wrap:wrap"><button class="btn btn-gold btn-sm" style="flex:1;min-height:44px" data-act="admPushSave"' + busyAttr() + '>Guardar</button><button class="btn btn-ghost btn-sm" style="flex:1;min-height:44px" data-act="admPushCheck"' + busyAttr() + '>Probar servidor</button><button class="btn btn-ghost btn-sm" style="flex:1;min-height:44px" data-act="pushTest"' + busyAttr() + '>Enviarme una prueba</button></div>' +
+    (S.admPushRes ? '<div class="small" role="status">' + esc(S.admPushRes) + '</div>' : '') + '</section>';
+  h += '<section class="card"><h2 class="h2">Celulares con notificaciones</h2>' + (!P ? '<div class="spinner" role="status" aria-label="Cargando"></div>' : '<div class="kpis">' +
+    '<div class="card kpi navy"><span class="k">Conductores en línea con aviso</span><span class="v">' + P.online + '</span></div><div class="card kpi"><span class="k">Celulares registrados</span><span class="v">' + P.total + '</span></div></div>') +
+    '<div class="muted small">Un conductor recibe solicitudes con la app cerrada solo si activó las notificaciones y dejó el botón "En línea" encendido.</div></section>';
+  return h;
+}
+async function loadAdmPush() {
+  S.f.admPushUrl = S.f.admPushUrl != null ? S.f.admPushUrl : S.pushUrl;
+  try { const [a, b] = await Promise.all([getCountFromServer(query(collection(db, 'push'), where('online', '==', true))), getCountFromServer(collection(db, 'push'))]); S.admPush = { online: a.data().count, total: b.data().count }; } catch (e) { S.admPush = { online: 0, total: 0 }; }
+  if (S.screen === 'admin' && S.admTab === 'notificaciones') render();
+}
+function vTerminos() {
+  const sec = (t, b) => '<div class="col" style="gap:6px"><div class="h2">' + t + '</div>' + b + '</div>';
+  const p = t => '<div class="small" style="line-height:1.55">' + t + '</div>';
+  return '<div class="screen">' + subTop('Términos y condiciones', S.perfil ? 'menu' : 'login') + '<div class="pad"><div class="card" style="gap:14px">' +
+    sec('1. Titular', p('JNF Moto es una aplicación de Asesorías y Consultorías JNF S.A.S., NIT 901.904.435-9, con oficina en la Cra. 13 N° 10-01, Of. 1. Contacto: 310 657 1274 · 311 302 8402.')) +
+    sec('2. Qué es JNF Moto', p('Es una plataforma tecnológica que permite a pasajeros y conductores de mototour ponerse en contacto. El valor de cada viaje lo acuerdan libremente el pasajero y el conductor dentro de la aplicación; la tarifa mínima es la que indica la app.')) +
+    sec('3. Uso de la aplicación', p('Quien usa JNF Moto se compromete a dar información verdadera, a tratar con respeto a los demás usuarios y a no usar la aplicación con fines ilegales o fraudulentos. Las cuentas pueden ser suspendidas por incumplir estas condiciones, por calificaciones bajas reiteradas o por cancelaciones frecuentes, según las reglas que muestra la app.')) +
+    sec('4. Conductores', p('Para conducir se requiere estar aprobado por el administrador y mantener vigentes la licencia de conducción, el SOAT, la tarjeta de propiedad y el registro ante la Secretaría de Tránsito. El uso del modo conductor tiene una suscripción: el primer mes es gratis desde la fecha de inscripción y luego se paga según el plan y las tarifas vigentes publicadas en "Mi suscripción". Si el pago se vence y terminan los días de gracia, el modo conductor queda bloqueado hasta que se registre el pago.')) +
+    sec('5. Seguridad', p('La app ofrece botón de pánico y contactos de emergencia. En una emergencia comunícate también con la línea 123.')) +
+    sec('6. Propiedad intelectual', p('El nombre JNF Moto, el logo de JNF S.A.S., el diseño, los textos y el código de la aplicación son propiedad de Asesorías y Consultorías JNF S.A.S. Todos los derechos reservados. Se prohíbe su reproducción, copia, modificación o distribución, total o parcial, sin autorización escrita del titular.')) +
+    sec('7. Tratamiento de datos personales', p('Asesorías y Consultorías JNF S.A.S. trata tus datos (nombre, celular, correo, ubicación durante los viajes y, para conductores, documentos, dirección y datos del vehículo) conforme a la Ley 1581 de 2012 y sus decretos reglamentarios, únicamente para prestar el servicio de la app, garantizar la seguridad de los viajes y llevar el control de las suscripciones. Como titular puedes conocer, actualizar, rectificar y suprimir tus datos, y revocar la autorización, escribiendo a los contactos del numeral 1.')) +
+    sec('8. Cambios', p('Estos términos pueden actualizarse; la versión vigente es la publicada en la aplicación.')) +
+    '<div class="muted small">' + COPY() + '</div></div></div></div>';
+}
+/* ---------- suscripciones, pagos, referidos e ingresos ---------- */
+// suscripciones/{conductor}: plan, inicio (inscripción), pagadoHasta (fecha del próximo pago), venceGracia (fin de la gracia),
+// nPagos, referidoPor, refPend (referidos cuyo descuento falta aplicar). pagos/{id}: recibos JNF-0001… config/tarifas: valores y reglas.
+const TARIFAS0 = { semanal: 12000, quincenal: 22000, mensual: 40000, diasGratis: 30, diasGracia: 3, refTipo: 'fijo', refValor: 10000, instrucciones: 'Paga por Nequi o Daviplata al número que te indique JNF S.A.S., o en efectivo en la oficina: Cra. 13 N° 10-01, Of. 1. El administrador registra tu pago.' };
+const PLANES = [['semanal', 'Semanal'], ['quincenal', 'Quincenal'], ['mensual', 'Mensual']];
+const MEDIOS = ['Efectivo', 'Nequi', 'Daviplata', 'Transferencia'];
+const planTxt = p => (PLANES.find(x => x[0] === p) || [0, p])[1];
+const tarifas = () => Object.assign({}, TARIFAS0, S.tarifas || {});
+function addDays(s, n) { const d = fromYmd(s); d.setDate(d.getDate() + n); return ymd(d); }
+function addMonth(s) { const d = fromYmd(s), day = d.getDate(), t = new Date(d.getFullYear(), d.getMonth() + 1, 1), last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate(); t.setDate(Math.min(day, last)); return ymd(t); }
+const diffDays = (a, b) => Math.round((fromYmd(b) - fromYmd(a)) / 86400000);
+const finPeriodo = (desde, plan) => plan === 'semanal' ? addDays(desde, 7) : plan === 'quincenal' ? addDays(desde, 15) : addMonth(desde);
+const venceGraciaDe = (pagadoHasta, T) => fromYmd(addDays(pagadoHasta, T.diasGracia || 0), true);
+const codigoDe = c => c && c.placa ? 'JNF-' + c.placa : '';
+const round100 = n => Math.round(n / 100) * 100;
+function susEstado(s) {
+  if (!s || !s.pagadoHasta) return null;
+  const hoy = ymd(new Date()), T = tarifas();
+  if (hoy <= s.pagadoHasta) { const dias = diffDays(hoy, s.pagadoHasta); return { k: dias <= 3 ? 'porvencer' : (s.nPagos ? 'aldia' : 'gratis'), dias }; }
+  const lim = addDays(s.pagadoHasta, T.diasGracia || 0);
+  return hoy <= lim ? { k: 'gracia', hasta: lim } : { k: 'mora', hasta: lim };
+}
+const EST_SUS = { gratis: ['p-free', 'Mes gratis'], aldia: ['p-ok', 'Al día'], porvencer: ['p-warn', 'Por vencer'], gracia: ['p-danger', 'En mora'], mora: ['p-danger', 'Bloqueado'] };
+const susPill = e => e ? '<span class="pill ' + EST_SUS[e.k][0] + '">' + EST_SUS[e.k][1] + '</span>' : '<span class="pill p-info">Sin suscripción</span>';
+function descRef(s, valor) { const T = tarifas(), n = (s.refPend || []).length; if (!n) return 0; const u = T.refTipo === 'pct' ? round100(valor * T.refValor / 100) : T.refValor; return Math.min(valor, n * u); }
+const conductorBloqueado = () => { const e = susEstado(S.sus); return !!(e && e.k === 'mora'); };
+// Conductor: aviso o bloqueo en Solicitudes
+function susAviso() {
+  const e = susEstado(S.sus); if (!e) return '';
+  const T = tarifas(), val = T[S.sus.plan] || 0;
+  if (e.k === 'gracia') return '<div class="banner warn">' + I.info + '<div class="grow"><b>Tu pago venció el ' + fmtYmd(S.sus.pagadoHasta) + '.</b> Tienes hasta el ' + fmtYmd(e.hasta) + ' para pagar ' + money(val) + '; después no podrás conectarte.</div><button data-act="go" data-v="suscripcion">Ver</button></div>';
+  if (e.k === 'mora') return '<div class="card" style="border:2px solid #B42318;gap:10px"><div class="h2" style="color:var(--danger-text)">No puedes conectarte</div><div>Tu suscripción ' + planTxt(S.sus.plan).toLowerCase() + ' venció el ' + fmtYmd(S.sus.pagadoHasta) + ' y terminaron los ' + T.diasGracia + ' días de gracia.</div><div class="row between"><span class="muted">Valor pendiente</span><span class="strong">' + money(val) + '</span></div><div class="muted small">' + esc(T.instrucciones) + ' Cuando el administrador registre tu pago, podrás conectarte de nuevo.</div><button class="btn btn-ghost" data-act="go" data-v="suscripcion">Ver mi suscripción</button><div class="muted small center">Puedes seguir usando la app como pasajero.</div></div>';
+  if (e.k === 'porvencer') return '<div class="banner info">' + I.info + '<div class="grow">' + (S.sus.nPagos ? 'Tu próximo pago' : 'Tu mes gratis termina y el primer pago') + ' es el ' + fmtYmd(S.sus.pagadoHasta) + ' (' + money(val) + ').</div><button data-act="go" data-v="suscripcion">Ver</button></div>';
+  return '';
+}
+function vMiSus() {
+  const T = tarifas(), c = S.conductor || {}, s = S.sus, e = susEstado(s), cod = codigoDe(c);
+  let h = '<div class="screen">' + subTop('Mi suscripción') + '<div class="pad">' + errHTML() + bannerHTML(S.banner);
+  const ins = s ? s.inicio : (c.creado ? ymd(new Date(tsMs(c.creado))) : null);
+  const gratisHasta = ins ? addDays(ins, T.diasGratis) : null;
+  h += '<div class="card" style="gap:8px"><div class="row between"><div class="h2">Plan ' + planTxt(s ? s.plan : 'mensual').toLowerCase() + '</div>' + (e ? susPill(e) : '<span class="pill p-free">Mes gratis</span>') + '</div>' +
+    (ins ? '<div class="row between"><span class="muted">Inscrito el</span><span class="strong">' + fmtYmd(ins) + '</span></div><div class="row between"><span class="muted">Mes gratis</span><span class="strong">' + fmtYmd(ins).slice(0, 5) + ' al ' + fmtYmd(gratisHasta).slice(0, 5) + '</span></div>' : '') +
+    (s ? '<div class="row between"><span class="muted">Próximo pago</span><span class="strong">' + fmtYmd(s.pagadoHasta) + '</span></div><div class="row between"><span class="muted">Valor</span><span class="strong">' + money(T[s.plan] || 0) + '</span></div>' : '<div class="muted small">El administrador activa tu plan al terminar el mes gratis.</div>') +
+    (s && (s.refPend || []).length ? '<div class="banner ok">' + I.info + '<div class="grow">Tienes ' + money(descRef(s, T[s.plan] || 0)) + ' de descuento por referidos en tu próximo pago.</div></div>' : '') + '</div>';
+  if (cod) {
+    const R = S.misRef;
+    h += '<div class="card" style="gap:10px"><div class="h2">Gana descuentos refiriendo conductores</div><div class="muted small">Por cada conductor que se inscriba con tu código y haga su primer pago, te descontamos ' + (T.refTipo === 'pct' ? T.refValor + ' %' : money(T.refValor)) + ' en tu siguiente pago.</div>' +
+      '<div class="row between" style="background:var(--field);border:1px dashed var(--gold);border-radius:12px;padding:10px 12px"><span style="font-size:20px;font-weight:800;letter-spacing:1px">' + esc(cod) + '</span><button class="btn btn-gold btn-sm" data-act="shareRef">Compartir</button></div>' +
+      '<div class="small">' + (!R ? 'Cargando referidos…' : !R.length ? 'Aún no tienes referidos.' : '<b>Referidos:</b> ' + R.map(r => esc(r.nombre) + (r.ok ? ' (descuento ganado)' : ' (pendiente de su primer pago)')).join(', ')) + '</div></div>';
+  }
+  const P = S.misPagos;
+  h += '<div class="card" style="gap:8px"><div class="h2">Mis pagos</div>' + (!P ? '<div class="spinner" role="status" aria-label="Cargando"></div>' : !P.length ? '<div class="muted small">Aún no tienes pagos registrados.</div>' :
+    P.map(p => '<div class="row between small"><span>' + fmtYmd(p.fecha).slice(0, 5) + ' · ' + esc(p.medio) + ' · recibo ' + esc(p.recibo) + '</span><span class="strong">' + money(p.neto) + '</span></div>').join('')) + '</div>';
+  h += '<div class="card" style="gap:6px"><div class="h2">¿Cómo pago?</div><div class="muted small">' + esc(T.instrucciones) + '</div></div>';
+  return h + '</div></div>';
+}
+async function loadMiSus() {
+  const uid = S.user.uid;
+  try { const qs = await getDocs(query(collection(db, 'pagos'), where('cid', '==', uid), limit(100))); S.misPagos = qs.docs.map(d => d.data()).sort((a, b) => b.fecha.localeCompare(a.fecha)); } catch (e) { S.misPagos = []; }
+  if (S.screen === 'suscripcion') render();
+  const cod = codigoDe(S.conductor);
+  if (cod) { try { const qs = await getDocs(query(collection(db, 'conductores'), where('refCodigo', '==', cod), limit(50))); const pend = (S.sus && S.sus.refPend) || [], apl = (S.sus && S.sus.refAplic) || []; S.misRef = qs.docs.map(d => ({ nombre: d.data().nombre, ok: pend.includes(d.id) || apl.includes(d.id) })); } catch (e) { S.misRef = []; } }
+  if (S.screen === 'suscripcion') render();
+}
+// Administrador
+async function loadTarifas() { try { const d = await getDoc(doc(db, 'config', 'tarifas')); S.tarifas = d.exists() ? d.data() : null; } catch (e) { } }
+async function loadSus() {
+  await loadTarifas();
+  const T = tarifas();
+  try {
+    const qs = await getDocs(query(collection(db, 'suscripciones'), limit(500)));
+    const m = {}; qs.docs.forEach(d => { m[d.id] = Object.assign({ id: d.id }, d.data()); });
+    // Crea la suscripción de los conductores aprobados que aún no la tienen (mes gratis desde su inscripción)
+    const falta = (S.adm.conductores || []).filter(c => c.estado === 'aprobado' && !m[c.id]);
+    if (falta.length) {
+      const porPlaca = {}; (S.adm.conductores || []).forEach(c => { porPlaca['JNF-' + c.placa] = c.id; });
+      const bt = writeBatch(db);
+      falta.forEach(c => {
+        const inicio = ymd(new Date(tsMs(c.creado))), ph = addDays(inicio, T.diasGratis), ref = c.refCodigo && porPlaca[c.refCodigo] && porPlaca[c.refCodigo] !== c.id ? porPlaca[c.refCodigo] : null;
+        const d = { plan: 'mensual', inicio, pagadoHasta: ph, venceGracia: venceGraciaDe(ph, T), nPagos: 0, referidoPor: ref, refPend: [], refAplic: [], refAcreditado: false, nombre: c.nombre, placa: c.placa };
+        bt.set(doc(db, 'suscripciones', c.id), d); m[c.id] = Object.assign({ id: c.id }, d);
+      });
+      await bt.commit();
+    }
+    S.susMap = m;
+  } catch (e) { S.susMap = S.susMap || {}; S.err = errMsg(e); }
+  if (S.screen === 'admin') render();
+}
+function susFila(s) { const c = (S.adm.conductores || []).find(x => x.id === s.id) || {}; return { s, c, e: susEstado(s), val: tarifas()[s.plan] || 0 }; }
+function admSus() {
+  if (!S.susMap) return '<div class="spinner" role="status" aria-label="Cargando"></div>';
+  const T = tarifas(), filas = Object.values(S.susMap).map(susFila), q = fold(S.f.susQ).trim(), fe = S.f.susEst || '';
+  const n = k => filas.filter(f => f.e && (Array.isArray(k) ? k.includes(f.e.k) : f.e.k === k)).length;
+  const ingMes = (S.pagosMes || []).reduce((a, p) => a + (p.neto || 0), 0);
+  let h = '<div class="kpis kpis5">' + ['Ingresos del mes|' + (S.pagosMes ? money(ingMes) : '…') + '|navy', 'Al día|' + n('aldia') + '|', 'En mes gratis|' + n('gratis') + '|', 'Por vencer (3 días)|' + n('porvencer') + '|', 'En mora|' + n(['gracia', 'mora']) + '|alert'].map(x => { const [k, v, c] = x.split('|'); return '<div class="card kpi' + (c ? ' ' + c : '') + '"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }).join('') + '</div>';
+  h += '<section class="card"><div class="field"><label for="sq">Buscar conductor</label><input type="text" id="sq" data-in="susQ" data-live="1" placeholder="Nombre o placa" value="' + fv('susQ') + '" autocomplete="off"></div><div class="chips">' +
+    fchip('susEst', '', 'Todos (' + filas.length + ')') + fchip('susEst', 'gratis', 'Mes gratis (' + n('gratis') + ')') + fchip('susEst', 'aldia', 'Al día (' + n('aldia') + ')') + fchip('susEst', 'porvencer', 'Por vencer (' + n('porvencer') + ')') + fchip('susEst', 'mora', 'En mora (' + n(['gracia', 'mora']) + ')') + '</div>' +
+    '<div class="row" style="flex-wrap:wrap"><button class="btn btn-ghost btn-sm" data-act="admTab" data-v="tarifas">Tarifas y referidos</button><span class="muted small">Semanal ' + money(T.semanal) + ' · Quincenal ' + money(T.quincenal) + ' · Mensual ' + money(T.mensual) + ' · ' + T.diasGratis + ' días gratis · ' + T.diasGracia + ' días de gracia</span></div></section>';
+  const ord = { mora: 0, gracia: 1, porvencer: 2, gratis: 3, aldia: 4 };
+  const L = filas.filter(f => (!q || fold(f.s.nombre + ' ' + f.s.placa).includes(q)) && (!fe || (f.e && (fe === 'mora' ? ['gracia', 'mora'].includes(f.e.k) : f.e.k === fe))))
+    .sort((a, b) => ((a.e ? ord[a.e.k] : 9) - (b.e ? ord[b.e.k] : 9)) || String(a.s.pagadoHasta).localeCompare(String(b.s.pagadoHasta)));
+  if (!L.length) return h + '<div class="card"><div class="muted">' + (filas.length ? 'No hay conductores con esos filtros.' : 'Aún no hay conductores aprobados.') + '</div></div>';
+  const prox = f => f.e && f.e.k === 'gratis' ? '<b>Gratis hasta ' + fmtYmd(f.s.pagadoHasta).slice(0, 5) + '</b>' : f.e && (f.e.k === 'gracia' || f.e.k === 'mora') ? '<b>Venció ' + fmtYmd(f.s.pagadoHasta).slice(0, 5) + '</b><br><span class="small" style="color:var(--danger-text)">' + (f.e.k === 'gracia' ? 'Gracia hasta ' + fmtYmd(f.e.hasta).slice(0, 5) : 'Sin poder conectarse') + '</span>' : fmtYmd(f.s.pagadoHasta) + (f.e && f.e.k === 'porvencer' ? '<br><span class="small muted">en ' + f.e.dias + ' día' + (f.e.dias === 1 ? '' : 's') + '</span>' : '');
+  const accion = f => '<button class="btn ' + (f.e && ['gracia', 'mora', 'porvencer'].includes(f.e.k) ? 'btn-gold' : 'btn-ghost') + ' btn-sm" data-act="susFicha" data-v="' + f.s.id + '">' + (f.e && f.e.k !== 'gratis' && f.e.k !== 'aldia' ? 'Registrar pago' : 'Ver') + '</button>';
+  const valTxt = f => { const d = descRef(f.s, f.val); return money(f.val - d) + (d ? '<br><span class="small" style="color:var(--ok-ink)">−' + money(d) + ' referido</span>' : ''); };
+  if (isWide()) {
+    h += '<section class="card" style="overflow-x:auto"><table class="tbl"><thead><tr><th scope="col">Conductor</th><th scope="col">Inscrito</th><th scope="col">Plan</th><th scope="col">Próximo pago</th><th scope="col">Valor</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead><tbody>' +
+      L.map(f => '<tr' + (f.e && (f.e.k === 'gracia' || f.e.k === 'mora') ? ' style="background:var(--danger-bg)"' : '') + '><td><span class="strong">' + esc(f.s.nombre) + '</span><br><span class="small muted">Placa ' + esc(f.s.placa) + '</span></td><td>' + fmtYmd(f.s.inicio) + '</td><td>' + planTxt(f.s.plan) + '</td><td>' + prox(f) + '</td><td>' + valTxt(f) + '</td><td>' + susPill(f.e) + '</td><td>' + accion(f) + '</td></tr>').join('') + '</tbody></table></section>';
+  } else L.forEach(f => { h += '<div class="card" style="gap:6px' + (f.e && (f.e.k === 'gracia' || f.e.k === 'mora') ? ';border:2px solid #B42318' : '') + '"><div class="row between"><div class="col"><span class="strong">' + esc(f.s.nombre) + '</span><span class="small muted">Placa ' + esc(f.s.placa) + ' · inscrito ' + fmtYmd(f.s.inicio) + '</span></div>' + susPill(f.e) + '</div><div class="row between small"><span>' + planTxt(f.s.plan) + ' · ' + valTxt(f) + '</span><span style="text-align:right">' + prox(f) + '</span></div>' + accion(f) + '</div>'; });
+  return h;
+}
+function admSusFicha() {
+  const s = S.susMap && S.susMap[S.susId]; let h = '<button class="link" data-act="admTab" data-v="suscripciones" style="align-self:flex-start">← Volver a suscripciones</button>';
+  if (!s) return h + '<div class="card"><div class="muted">No se encontró la suscripción.</div></div>';
+  const T = tarifas(), c = (S.adm.conductores || []).find(x => x.id === s.id) || {}, e = susEstado(s), val = T[s.plan] || 0, dr = descRef(s, val);
+  const refDe = s.referidoPor ? (S.susMap[s.referidoPor] || (S.adm.conductores || []).find(x => x.id === s.referidoPor) || {}).nombre || 'Conductor' : null;
+  const suyos = (S.adm.conductores || []).filter(x => (S.susMap[x.id] && S.susMap[x.id].referidoPor === s.id) || (x.refCodigo && x.refCodigo === codigoDe(c) && x.id !== s.id));
+  const pv = S.admPriv[s.id];
+  let izq = '<section class="card"><div class="row between" style="flex-wrap:wrap;gap:8px"><div class="col"><h2 class="h2">' + esc(s.nombre) + '</h2><span class="small muted">' + esc(c.moto || '') + ' ' + esc(c.color || '') + ' · Placa ' + esc(s.placa) + (pv && pv.telefono ? ' · Cel. ' + esc(pv.telefono) : '') + ' · Código ' + esc(codigoDe(c)) + '</span></div>' + susPill(e) + '</div>' +
+    '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div style="background:#EDE6FA;color:#4B2A8A;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px"><span class="small strong">Inscrito el</span><span style="font-size:18px;font-weight:800">' + fmtYmd(s.inicio) + '</span><span class="small">Mes gratis: ' + fmtYmd(s.inicio).slice(0, 5) + ' al ' + fmtYmd(addDays(s.inicio, T.diasGratis)).slice(0, 5) + '</span></div>' +
+    '<div style="background:var(--warn-bg);color:var(--warn-ink);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px"><span class="small strong">Próximo pago</span><span style="font-size:18px;font-weight:800">' + fmtYmd(s.pagadoHasta) + '</span><span class="small">Plan ' + planTxt(s.plan).toLowerCase() + ' · ' + money(val) + '</span></div></div>' +
+    '<div class="col" style="gap:6px"><span class="lbl">Plan</span><div class="chips">' + PLANES.map(p => '<button class="chip" data-act="susPlan" data-v="' + p[0] + '" aria-pressed="' + (s.plan === p[0]) + '"' + busyAttr() + '>' + p[1] + ' · ' + money(T[p[0]]) + '</button>').join('') + '</div></div>';
+  if (!s.nPagos) izq += '<div class="col" style="gap:6px"><span class="lbl">Fecha de inscripción (inicio del mes gratis)</span><div class="row"><input type="date" data-in="susIni" value="' + fv('susIni') + '" aria-label="Fecha de inscripción" style="min-height:44px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font:inherit;color:var(--ink);background:var(--field);flex:1"><button class="btn btn-ghost btn-sm" data-act="susIniSave"' + busyAttr() + '>Cambiar</button></div><span class="small muted">Solo se puede cambiar antes del primer pago.</span></div>';
+  izq += '<div class="col" style="gap:6px"><span class="lbl">Referido por</span><div class="row"><input type="text" data-in="susRefCod" placeholder="Código del conductor que lo refirió (JNF-placa)" value="' + fv('susRefCod') + '" aria-label="Código de quien lo refirió" autocapitalize="characters" style="min-height:44px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font:inherit;color:var(--ink);background:var(--field);flex:1;min-width:0"><button class="btn btn-ghost btn-sm" data-act="susRefSave"' + busyAttr() + '>Guardar</button></div><span class="small">' + (refDe ? 'Referido por <b>' + esc(refDe) + '</b>' + (s.refAcreditado ? ' · descuento ya acreditado' : ' · se acredita en su primer pago') : 'Sin referido') + '</span></div>';
+  izq += '<div class="col" style="gap:6px"><span class="lbl">Conductores que refirió</span>' + (suyos.length ? suyos.map(x => { const sx = S.susMap[x.id] || {}, st = (s.refAplic || []).includes(x.id) ? ['p-ok', 'Descuento aplicado'] : (s.refPend || []).includes(x.id) ? ['p-warn', 'Descuento por aplicar'] : ['p-info', 'Descuento cuando pague']; return '<div class="row between small" style="background:var(--field);border-radius:10px;padding:8px 10px"><span>' + esc(x.nombre) + (sx.inicio ? ' · inscrito ' + fmtYmd(sx.inicio).slice(0, 5) : '') + '</span><span class="pill ' + st[0] + '">' + st[1] + '</span></div>'; }).join('') : '<span class="small muted">Ninguno aún.</span>') + '</div></section>';
+  const P = S.susPagos;
+  izq += '<section class="card"><h2 class="h2">Historial de pagos</h2>' + (!P ? '<div class="spinner" role="status" aria-label="Cargando"></div>' : !P.length ? '<div class="muted small">Sin pagos registrados.</div>' :
+    '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th scope="col">Recibo</th><th scope="col">Fecha</th><th scope="col">Periodo cubierto</th><th scope="col">Pagó</th><th scope="col">Medio</th></tr></thead><tbody>' +
+    P.map(p => '<tr><td>' + esc(p.recibo) + '</td><td>' + fmtYmd(p.fecha) + '</td><td>' + fmtYmd(p.desde).slice(0, 5) + ' al ' + fmtYmd(p.hasta).slice(0, 5) + '</td><td class="strong">' + money(p.neto) + ((p.descRef || p.descOtro) ? '<br><span class="small muted">desc. ' + money((p.descRef || 0) + (p.descOtro || 0)) + '</span>' : '') + '</td><td>' + esc(p.medio) + '</td></tr>').join('') + '</tbody></table></div>') + '</section>';
+  const atraso = s.pagadoHasta < (S.f.pagFecha || ymd(new Date())), desde = atraso && S.f.pagDesde === 'hoy' ? S.f.pagFecha : s.pagadoHasta, hasta = finPeriodo(desde, s.plan), otro = Math.max(0, parseMoney(S.f.pagOtro) || 0), total = Math.max(0, val - dr - otro);
+  const der = '<section class="card"><h2 class="h2">Registrar pago</h2><div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + dateIn('pgf', 'pagFecha', 'Fecha del pago') +
+    '<div class="field"><span class="lbl">Medio de pago</span><div class="chips">' + MEDIOS.map(m => fchip('pagMedio', m, m)).join('') + '</div></div></div>' +
+    (atraso ? '<div class="field"><span class="lbl">El pago está atrasado desde el ' + fmtYmd(s.pagadoHasta) + '. ¿Desde cuándo cuenta?</span><div class="chips">' + fchip('pagDesde', '', 'Desde el vencimiento (cobra lo atrasado)') + fchip('pagDesde', 'hoy', 'Desde la fecha del pago') + '</div></div>' : '') +
+    '<div class="field"><span class="lbl">Periodo que cubre</span><div style="min-height:46px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--field)">' + fmtYmd(desde) + ' al ' + fmtYmd(hasta) + '</div></div>' +
+    '<div class="col" style="gap:8px;background:var(--field);border-radius:12px;padding:12px 14px"><div class="row between"><span>Plan ' + planTxt(s.plan).toLowerCase() + '</span><span>' + money(val) + '</span></div>' +
+    '<div class="row between" style="color:var(--ok-ink)"><span>Descuento por referido' + ((s.refPend || []).length ? ' (' + (s.refPend || []).length + ')' : '') + '</span><span>' + (dr ? '−' + money(dr) : 'Ninguno por aplicar') + '</span></div>' +
+    '<div class="row between"><label for="pgo">Otro descuento</label><input type="text" id="pgo" inputmode="numeric" data-in="pagOtro" data-live="1" value="' + fv('pagOtro') + '" placeholder="$0" style="width:120px;min-height:38px;text-align:right"></div>' +
+    '<div class="row between" style="border-top:1px solid var(--line);padding-top:8px;font-weight:800;font-size:17px"><span>Total a recibir</span><span>' + money(total) + '</span></div></div>' +
+    '<div class="field"><label for="pgm">Motivo del otro descuento (opcional)</label><input type="text" id="pgm" data-in="pagMotivo" maxlength="80" placeholder="Ej. promoción de fiestas" value="' + fv('pagMotivo') + '"></div>' +
+    '<button class="btn btn-gold" data-act="pagSave"' + busyAttr() + '>Guardar pago y recibo</button></section>';
+  return h + '<div class="sus-cols"><div class="col" style="gap:16px">' + izq + '</div>' + der + '</div>';
+}
+function admTarifas() {
+  const num = (k, l) => '<div class="field"><label for="t_' + k + '">' + l + '</label><input type="text" inputmode="numeric" id="t_' + k + '" data-in="t_' + k + '" value="' + fv('t_' + k) + '"></div>';
+  const pct = S.f.t_refTipo === 'pct';
+  return '<button class="link" data-act="admTab" data-v="suscripciones" style="align-self:flex-start">← Volver a suscripciones</button><div class="sus-cols">' +
+    '<section class="card"><h2 class="h2">Tarifas de la suscripción</h2><span class="small muted">El conductor paga según su plan; lo cambias en su ficha.</span>' + num('semanal', 'Semanal ($)') + num('quincenal', 'Quincenal ($)') + num('mensual', 'Mensual ($)') +
+    '<div class="field"><label for="t_ins">Instrucciones de pago para el conductor</label><textarea id="t_ins" data-in="t_instrucciones" maxlength="300">' + fv('t_instrucciones') + '</textarea></div></section>' +
+    '<div class="col" style="gap:16px"><section class="card"><h2 class="h2">Periodo gratis y mora</h2>' + num('diasGratis', 'Días gratis desde la inscripción') + num('diasGracia', 'Días de gracia después del vencimiento') + '<span class="small muted">Pasados los días de gracia, el conductor no puede conectarse hasta que registres su pago.</span></section>' +
+    '<section class="card"><h2 class="h2">Descuento por referido</h2><div class="chips">' + [['fijo', 'Valor fijo'], ['pct', 'Porcentaje']].map(x => '<button class="chip" data-act="tRefTipo" data-v="' + x[0] + '" aria-pressed="' + ((S.f.t_refTipo || 'fijo') === x[0]) + '">' + x[1] + '</button>').join('') + '</div>' + num('refValor', pct ? 'Porcentaje del plan (%)' : 'Valor del descuento ($)') +
+    '<span class="small muted">Se descuenta al conductor que refirió, en su siguiente pago, cuando el referido hace su primer pago.</span></section></div></div>' +
+    '<button class="btn btn-gold" style="max-width:320px" data-act="tSave"' + busyAttr() + '>Guardar cambios</button>';
+}
+function admIngresos() {
+  let h = '<section class="card"><div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + dateIn('ini', 'ingIni', 'Desde') + dateIn('inf', 'ingFin', 'Hasta') + '</div><div class="row" style="flex-wrap:wrap;gap:8px">' +
+    [['mes', 'Este mes'], ['mesant', 'Mes anterior'], ['anio', 'Este año']].map(x => '<button class="chip" data-act="ingRango" data-v="' + x[0] + '">' + x[1] + '</button>').join('') +
+    '<button class="btn btn-navy btn-sm" data-act="ingLoad"' + busyAttr() + '>Consultar</button><span style="flex:1"></span><button class="btn btn-ghost btn-sm" data-act="ingOtroToggle" aria-expanded="' + !!S.ingOtro + '">+ Otro ingreso</button><button class="btn btn-ghost btn-sm" data-act="ingCsv">Descargar Excel</button></div>';
+  if (S.ingOtro) h += '<div class="col" style="gap:8px;border-top:1px solid var(--line);padding-top:10px"><div class="strong small">Registrar otro ingreso</div><div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="field"><label for="oic">Concepto</label><input type="text" id="oic" data-in="oiConcepto" maxlength="80" placeholder="Ej. publicidad de una tienda" value="' + fv('oiConcepto') + '"></div><div class="field"><label for="oiv">Valor ($)</label><input type="text" id="oiv" inputmode="numeric" data-in="oiValor" value="' + fv('oiValor') + '"></div></div>' +
+    '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + dateIn('oif', 'oiFecha', 'Fecha') + '<div class="field"><span class="lbl">Medio</span><div class="chips">' + MEDIOS.map(m => fchip('oiMedio', m, m)).join('') + '</div></div></div><button class="btn btn-gold btn-sm" style="align-self:flex-start;min-height:44px" data-act="ingOtroSave"' + busyAttr() + '>Guardar ingreso y recibo</button></div>';
+  h += '</section>';
+  const L = S.ingresos; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div>';
+  const neto = L.reduce((a, p) => a + (p.neto || 0), 0), desc = L.reduce((a, p) => a + (p.descRef || 0) + (p.descOtro || 0), 0);
+  const moraVal = Object.values(S.susMap || {}).filter(s => { const e = susEstado(s); return e && (e.k === 'gracia' || e.k === 'mora'); }).reduce((a, s) => a + (tarifas()[s.plan] || 0), 0);
+  h += '<div class="kpis"><div class="card kpi navy"><span class="k">Ingresos netos</span><span class="v">' + money(neto) + '</span></div><div class="card kpi"><span class="k">Pagos recibidos</span><span class="v">' + L.length + '</span></div><div class="card kpi"><span class="k">Descuentos otorgados</span><span class="v">' + money(desc) + '</span></div><div class="card kpi alert"><span class="k">Por cobrar (mora)</span><span class="v">' + (S.susMap ? money(moraVal) : '…') + '</span></div></div>';
+  if (!L.length) return h + '<div class="card"><div class="muted">No hay ingresos en ese periodo.</div></div>';
+  const porMedio = {}; L.forEach(p => { porMedio[p.medio] = (porMedio[p.medio] || 0) + (p.neto || 0); });
+  const conc = p => p.tipo === 'otro' ? 'Otro ingreso · ' + esc(p.concepto) : esc(p.nombre) + ' · ' + planTxt(p.plan).toLowerCase();
+  const desTxt = p => { const d = (p.descRef || 0) + (p.descOtro || 0); return d ? '<span class="small" style="color:var(--ok-ink)">−' + money(d) + (p.descRef ? ' referido' : '') + (p.descOtro ? (p.descRef ? ' + otro' : ' ' + esc(p.motivo || 'descuento')) : '') + '</span>' : '—'; };
+  const mov = isWide() ? '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th scope="col">Fecha</th><th scope="col">Recibo</th><th scope="col">Concepto</th><th scope="col">Valor</th><th scope="col">Descuento</th><th scope="col">Neto</th><th scope="col">Medio</th></tr></thead><tbody>' +
+    L.map(p => '<tr><td>' + fmtYmd(p.fecha).slice(0, 5) + '</td><td>' + esc(p.recibo) + '</td><td>' + conc(p) + '</td><td>' + money(p.valor || 0) + '</td><td>' + desTxt(p) + '</td><td class="strong">' + money(p.neto || 0) + '</td><td>' + esc(p.medio) + '</td></tr>').join('') + '</tbody></table></div>'
+    : L.map(p => '<div class="col" style="gap:2px;padding:8px 0;border-bottom:1px solid var(--line)"><div class="row between"><span class="strong small">' + conc(p) + '</span><span class="strong">' + money(p.neto || 0) + '</span></div><span class="small muted">' + fmtYmd(p.fecha) + ' · ' + esc(p.recibo) + ' · ' + esc(p.medio) + '</span>' + ((p.descRef || p.descOtro) ? desTxt(p) : '') + '</div>').join('');
+  return h + '<div class="ing-cols"><section class="card"><h2 class="h2">Movimientos</h2>' + mov + '</section><section class="card"><h2 class="h2">Por medio de pago</h2>' + Object.keys(porMedio).map(m => '<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)"><span>' + esc(m) + '</span><span class="strong">' + money(porMedio[m]) + '</span></div>').join('') + '</section></div>';
+}
+async function loadIngresos() {
+  const hoy = new Date();
+  if (!S.f.ingIni) S.f.ingIni = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+  if (!S.f.ingFin) S.f.ingFin = ymd(hoy);
+  if (S.f.ingFin < S.f.ingIni) { S.err = 'La fecha final no puede ser anterior a la inicial.'; render(); return; }
+  S.ingresos = null; render();
+  try { const qs = await getDocs(query(collection(db, 'pagos'), where('fecha', '>=', S.f.ingIni), where('fecha', '<=', S.f.ingFin), limit(2000))); S.ingresos = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => b.fecha.localeCompare(a.fecha) || String(b.recibo).localeCompare(String(a.recibo))); }
+  catch (e) { S.ingresos = []; S.err = errMsg(e); }
+  if (S.screen === 'admin') render();
+}
+async function loadPagosMes() {
+  const hoy = new Date(), a = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1)), b = ymd(hoy);
+  try { const qs = await getDocs(query(collection(db, 'pagos'), where('fecha', '>=', a), where('fecha', '<=', b), limit(2000))); S.pagosMes = qs.docs.map(d => d.data()); } catch (e) { S.pagosMes = []; }
+  if (S.screen === 'admin') render();
+}
+async function loadSusPagos(cid) {
+  S.susPagos = null;
+  try { const qs = await getDocs(query(collection(db, 'pagos'), where('cid', '==', cid), limit(200))); S.susPagos = qs.docs.map(d => d.data()).sort((a, b) => b.fecha.localeCompare(a.fecha)); } catch (e) { S.susPagos = []; S.err = errMsg(e); }
+  if (S.screen === 'admin') render();
+}
+// Recibo consecutivo JNF-0001 (contador en config/contador) y registro del pago en una sola transacción
+async function guardarPago(datos, extra) {
+  let recibo = '';
+  await runTransaction(db, async tx => {
+    const cref = doc(db, 'config', 'contador'), cs = await tx.get(cref), n = (cs.exists() ? cs.data().n || 0 : 0) + 1;
+    recibo = 'JNF-' + String(n).padStart(4, '0');
+    tx.set(cref, { n });
+    tx.set(doc(collection(db, 'pagos')), Object.assign({ recibo, creado: serverTimestamp() }, datos));
+    if (extra) extra(tx);
+  });
+  return recibo;
 }
 function vSinConexion() { return '<div class="screen"><div class="pad" style="flex:1;justify-content:center"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px;align-self:center"><div class="card"><div class="h2">No pudimos conectar con el servidor</div><div class="muted">' + esc(S.connErr || '') + '</div><button class="btn btn-gold" data-act="retryLogin">Reintentar</button><button class="link" data-act="logout" style="align-self:center">Cerrar sesión</button></div></div></div>'; }
 const V = {
@@ -889,10 +1270,10 @@ const V = {
   cancelar: vCancelar,
   cargando: vCargando, login: vLogin, onboarding: vOnboarding, home: vHome, buscando: vBuscando, viaje: vViaje, calificar: vCalificar,
   menu: vMenu, historial: vHistorial, contactos: vContactos, registroC: vRegistroC, solicitudes: vSolicitudes, espera: vEspera, cviaje: vCViaje,
-  ccalificar: vCCalificar, micalif: vMiCalif, admin: vAdmin, transfer: vTransfer,
-  suscripcion: () => vTexto('Mi suscripción', '<div class="row between"><div class="h2">Periodo de prueba</div><span class="pill p-ok">Activa</span></div><div class="muted">Durante la prueba no se cobra la cuota. La cuota semanal y las formas de pago (Nequi, Daviplata, PSE o efectivo en oficina) se definen al terminar la prueba.</div>'),
+  ccalificar: vCCalificar, micalif: vMiCalif, admin: vAdmin, transfer: vTransfer, notif: vNotif,
+  suscripcion: vMiSus, suscripcionViejo: () => vTexto('Mi suscripción', '<div class="row between"><div class="h2">Periodo de prueba</div><span class="pill p-ok">Activa</span></div><div class="muted">Durante la prueba no se cobra la cuota. La cuota semanal y las formas de pago (Nequi, Daviplata, PSE o efectivo en oficina) se definen al terminar la prueba.</div>'),
   ayuda: () => vTexto('Ayuda y soporte', '<div class="h2">¿Necesitas ayuda?</div><div class="muted">Comunícate con Asesorías y Consultorías JNF S.A.S. al [número de soporte].</div>'),
-  terminos: () => vTexto('Términos y tratamiento de datos', '<div class="muted">Asesorías y Consultorías JNF S.A.S. trata tus datos personales (nombre, celular y ubicación durante los viajes) conforme a la Ley 1581 de 2012, únicamente para prestar el servicio de la app.</div><div class="muted">[Texto completo de la política de tratamiento de datos]</div>')
+  terminos: vTerminos, terminosViejo: () => vTexto('Términos y tratamiento de datos', '<div class="muted">Asesorías y Consultorías JNF S.A.S. trata tus datos personales (nombre, celular y ubicación durante los viajes) conforme a la Ley 1581 de 2012, únicamente para prestar el servicio de la app.</div><div class="muted">[Texto completo de la política de tratamiento de datos]</div>')
 };
 
 /* ---------- mapa (Leaflet + OpenStreetMap), íconos y rutas (OSRM) ---------- */
@@ -1059,18 +1440,46 @@ function go(s) { clearSubs(); if (S.banner && S.banner._seen) S.banner = null; S
 function fail(e) { S.busy = false; S.err = errMsg(e); render(); }
 
 /* ---------- geolocalización ---------- */
+// Ubicación: primero la aproximada (red/wifi, llega en 1-2 s) y luego la precisa (satélite).
+// Si falla, se informa la causa (permiso bloqueado, ubicación apagada, demora) y se sigue intentando en segundo plano.
+const GPS_SCREENS = ['home', 'solicitudes'];
+const inWebView = () => /; wv\)|FBAN|FBAV|Instagram|WhatsApp/i.test(navigator.userAgent);
+function gpsMsg() {
+  const c = S.gpsErr;
+  if (c === 'nosoporta') return ['warn', 'Este navegador no permite usar la ubicación. Abre JNF Moto en Chrome.'];
+  if (c === 1) return ['warn', inWebView() ? 'Estás usando el navegador interno de otra app (por ejemplo WhatsApp), que bloquea la ubicación. Toca ⋮ y elige "Abrir en Chrome".'
+    : isStandalone() ? 'La ubicación está bloqueada para JNF Moto. En el celular ve a Ajustes → Aplicaciones → Chrome → Permisos → Ubicación → Permitir, y toca "Reintentar".'
+      : 'Chrome tiene bloqueada la ubicación para JNF Moto. Toca el candado junto a la dirección → Permisos → Ubicación → Permitir, y toca "Reintentar".'];
+  if (c === 2) return ['warn', 'Tu celular no está entregando la ubicación. Enciende la ubicación (GPS) en los ajustes rápidos del celular y toca "Reintentar".'];
+  return ['info', 'El GPS está tardando en ubicarte. Seguimos intentando; bajo techo ayuda acercarse a una ventana. Mientras tanto, escribe la referencia del punto de recogida.'];
+}
+function gpsBanner() { if (S.gps !== 'error') return ''; const m = gpsMsg(); return '<div class="banner ' + m[0] + '" role="status">' + I.info + '<div class="grow">' + esc(m[1]) + '</div><button data-act="retryGps">Reintentar</button></div>'; }
+function gpsFix(p) {
+  const first = S.gps !== 'ok';
+  S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; S.gps = 'ok'; S.gpsErr = null;
+  if (first && GPS_SCREENS.includes(S.screen)) render(); else if (S.screen === 'home') setMarker('me', S.pos, 'person', 'Tú');
+}
+function gpsFail(code) { if (S.pos) return; S.gps = 'error'; S.gpsErr = code; if (GPS_SCREENS.includes(S.screen)) render(); }
 function getGps() {
-  if (!navigator.geolocation) { S.gps = 'error'; render(); return; }
+  if (!navigator.geolocation) { S.gps = 'error'; S.gpsErr = 'nosoporta'; render(); return; }
   S.gps = S.pos ? 'ok' : 'pendiente';
-  navigator.geolocation.getCurrentPosition(p => { S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; S.gps = 'ok'; if (S.screen === 'home') render(); },
-    () => { if (!S.pos) { S.gps = 'error'; if (S.screen === 'home') render(); } }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+  let pend = 2, worst = 3;
+  const err = e => { if (e && e.code === 1) { gpsFail(1); return; } if (e && e.code === 2) worst = 2; if (--pend === 0) gpsFail(worst); };
+  navigator.geolocation.getCurrentPosition(gpsFix, err, { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 });
+  navigator.geolocation.getCurrentPosition(gpsFix, err, { enableHighAccuracy: true, timeout: 30000, maximumAge: 30000 });
+}
+// Seguimiento en el inicio del pasajero: si el GPS se demora, el aviso desaparece solo cuando llega la ubicación
+function homeWatch() {
+  if (!navigator.geolocation) return;
+  const id = navigator.geolocation.watchPosition(gpsFix, e => { if (e && e.code === 1) gpsFail(1); }, { enableHighAccuracy: true, maximumAge: 30000 });
+  addSub(() => navigator.geolocation.clearWatch(id));
 }
 function gpsOnce(ms) {
   return new Promise(res => {
     if (!navigator.geolocation) return res(null);
     let done = false; const t = setTimeout(() => { if (!done) { done = true; res(null); } }, ms);
-    navigator.geolocation.getCurrentPosition(p => { if (done) return; done = true; clearTimeout(t); S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; S.gps = 'ok'; res(S.pos); },
-      () => { if (done) return; done = true; clearTimeout(t); res(null); }, { enableHighAccuracy: true, timeout: ms, maximumAge: 30000 });
+    navigator.geolocation.getCurrentPosition(p => { if (done) return; done = true; clearTimeout(t); S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; S.gps = 'ok'; S.gpsErr = null; res(S.pos); },
+      () => { if (done) return; done = true; clearTimeout(t); res(null); }, { enableHighAccuracy: false, timeout: ms, maximumAge: 120000 });
   });
 }
 function pushPos(force) {
@@ -1081,13 +1490,16 @@ function pushPos(force) {
 }
 function startWatch() {
   if (watchId != null || !navigator.geolocation) { pushPos(true); return; }
+  if (!S.pos) navigator.geolocation.getCurrentPosition(p => { if (S.pos) return; S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; const was = S.gps; S.gps = 'ok'; S.gpsErr = null; pushPos(true); if (was === 'error' && GPS_SCREENS.includes(S.screen)) render(); }, () => { }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 });
   watchId = navigator.geolocation.watchPosition(p => {
-    S.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+    const was = S.gps;
+    S.pos = { lat: p.coords.latitude, lng: p.coords.longitude }; S.gps = 'ok'; S.gpsErr = null;
+    if (was === 'error' && GPS_SCREENS.includes(S.screen)) render();
     pushPos(false);
     if (S.screen === 'cviaje') { setMarker('me', S.pos, 'moto', 'Tú'); refreshRoute(); updateEta(); }
     if (S.screen === 'viaje' && S.viaje && REC(S.viaje.estado)) { setMarker('me', S.pos, 'person', 'Tú'); refreshRoute(); updateEta(); }
     if (S.screen === 'solicitudes' && S.reqMap) setMarker('me', S.pos, 'moto', 'Tú');
-  }, () => { }, { enableHighAccuracy: true, maximumAge: 10000 });
+  }, e => { if (e && (e.code === 1 || e.code === 2)) gpsFail(e.code); }, { enableHighAccuracy: true, maximumAge: 10000 });
   try { onDisconnect(ref(rtdb, 'ubicaciones/' + S.user.uid)).remove(); } catch (e) { }
   pushPos(true);
 }
@@ -1096,8 +1508,46 @@ function stopWatch() {
   watchId = null; lastPush = 0;
   return S.user ? remove(ref(rtdb, 'ubicaciones/' + S.user.uid)).catch(() => { }) : Promise.resolve();
 }
-function beep() {
-  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.frequency.value = 880; g.gain.value = 0.15; o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.35); } catch (e) { }
+// Tonos (frecuencia Hz, duración s; 0 = silencio) y vibración (ms) de cada evento
+const SND = {
+  ok: { n: [[660, 0.09], [880, 0.13]], v: [40] },
+  solicitud: { n: [[880, 0.14], [0, 0.05], [1175, 0.14], [0, 0.2], [880, 0.14], [0, 0.05], [1175, 0.16]], v: [200, 100, 200, 100, 200] },
+  acepta: { n: [[784, 0.12], [988, 0.12], [1319, 0.24]], v: [120, 60, 120] },
+  llego: { n: [[1047, 0.16], [0, 0.07], [1047, 0.16], [0, 0.07], [1319, 0.32]], v: [300, 120, 300, 120, 300] },
+  fin: { n: [[1319, 0.12], [988, 0.12], [784, 0.28]], v: [150, 80, 150] },
+  alerta: { n: [[440, 0.22], [0, 0.07], [330, 0.32]], v: [400, 150, 400] },
+  sos: { n: [[988, 0.25], [740, 0.25], [988, 0.25], [740, 0.25], [988, 0.25], [740, 0.3]], v: [500, 200, 500, 200, 500] }
+};
+const soundOn = () => lsGet('jnfm_sonido') !== '0';
+function sound(k) {
+  const s = SND[k]; if (!s || !soundOn()) return;
+  try { if (navigator.vibrate) navigator.vibrate(s.v); } catch (e) { }
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    let t = audioCtx.currentTime + 0.03;
+    s.n.forEach(x => {
+      const f = x[0], d = x[1];
+      if (f) {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+        o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + d + 0.03);
+      }
+      t += d;
+    });
+  } catch (e) { }
+  S.lastSound = k;
+}
+function beep() { sound('solicitud'); }
+// Sonido según el cambio de estado del viaje (yo = rol del que escucha)
+function tripSound(v, yo) {
+  const st = v.estado, mio = v.canceladoPor === (S.user && S.user.uid);
+  if (st === 'cancelado') { sound(mio ? 'ok' : 'alerta'); return; }
+  if (st === 'finalizado') { sound('fin'); return; }
+  if (st === 'en_punto') { sound(yo === 'pasajero' ? 'llego' : 'ok'); return; }
+  if (st === 'en_curso') { sound('ok'); return; }
+  if (st === 'asignado') sound('acepta');
 }
 
 /* ---------- panel: personas registradas y su calidad (consultas de agregación: 1 lectura cada una) ---------- */
@@ -1170,6 +1620,11 @@ function tick() {
     const b = document.querySelector('[data-noshow]'); if (b && b.disabled && t >= ESPERA_S && !S.busy) render();
   }
   if (S.screen === 'cancelar') { const g = graceLeft(); document.querySelectorAll('[data-timer="gracia"]').forEach(el => { el.textContent = fmtClock(g); }); if (S._gWas > 0 && g <= 0) render(); S._gWas = g; }
+  if (v && (S.screen === 'cviaje' || S.screen === 'viaje')) {
+    const k = v.id + ':' + v.estado;
+    if (S.screen === 'cviaje' && v.estado === 'asignado' && S._near !== k) { const d = distKm(S.pos, S.paxPos || pickupOf(v)); if (d != null && d <= 0.1) { S._near = k; sound('llego'); S.banner = { kind: 'ok', text: 'Estás en el punto de recogida. Toca "Llegué al punto".' }; render(); } }
+    if (v.estado === 'en_curso' && S._near !== k) { const d = distKm(S.screen === 'cviaje' ? S.pos : (S.pos || S.drvPos), destOf(v)); if (d != null && d <= 0.15) { S._near = k; sound('llego'); S.banner = { kind: 'ok', text: S.screen === 'cviaje' ? 'Llegaste al destino. Toca "Finalizar viaje" y cobra.' : 'Estás llegando a tu destino.' }; render(); } }
+  }
   if (S.screen === 'cviaje' && v && v.estado === 'asignado') { const btn = document.querySelector('[data-act="llegue"]'), live = S.paxPos || pickupOf(v), d = distKm(S.pos, live), cerca = !live || (d != null && d <= 0.1); if (btn && !S.busy && btn.disabled === cerca) render(); }
   document.querySelectorAll('[data-timer="block"]').forEach(el => { const u = +el.getAttribute('data-until'), s = (u - Date.now()) / 1000; if (s <= 0) render(); else el.textContent = s > 3600 ? Math.floor(s / 3600) + ' h ' + Math.floor(s % 3600 / 60) + ' min' : fmtClock(s); });
 }
@@ -1210,6 +1665,65 @@ function blockCard(rol, bl) {
 }
 
 /* ---------- sitios frecuentes (los 5 destinos más pedidos) ---------- */
+/* ---------- notificaciones push (llegan con la app cerrada o el celular bloqueado) ---------- */
+// La app guarda la suscripción del celular en push/{uid}; el servidor de avisos (Cloudflare) envía la notificación.
+const VAPID_PUB = 'BNY_uJoib4neirs0Or0RM292gb2BmGzc2zv0MKoQ-s5Z9XKddk16NXskom4dsFS7BQ2V60AH6aU9zWLkutQlhF4';
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const pushPerm = () => (!pushSupported() ? 'nosoporta' : Notification.permission);
+function u8Key(b64) { const s = b64.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((b64.length + 3) % 4), bin = atob(s), out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+function sameKey(sub) { try { const k = new Uint8Array(sub.options.applicationServerKey), m = u8Key(VAPID_PUB); return k.length === m.length && k.every((x, i) => x === m[i]); } catch (e) { return true; } }
+async function pushSync(pedir) {
+  if (!S.user || !pushSupported()) return false;
+  try {
+    if (Notification.permission === 'default' && pedir) await Notification.requestPermission();
+    if (Notification.permission !== 'granted') { S.pushOk = false; return false; }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (sub && !sameKey(sub)) { await sub.unsubscribe(); sub = null; }
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: u8Key(VAPID_PUB) });
+    const drv = !!(S.conductor && S.conductor.estado === 'aprobado'), online = drv && S.mode === 'conductor' && S.online, txt = JSON.stringify(sub), key = txt + '|' + online + '|' + drv;
+    if (S._pushKey !== key) { await setDoc(doc(db, 'push', S.user.uid), { sub: txt, online, rol: drv ? 'conductor' : 'pasajero', actualizado: serverTimestamp() }); S._pushKey = key; }
+    S.pushOk = true; return true;
+  } catch (e) { S.pushOk = false; return false; }
+}
+async function pushOffline() { if (!S.user || !S._pushKey) return; try { await updateDoc(doc(db, 'push', S.user.uid), { online: false, actualizado: serverTimestamp() }); } catch (e) { } S._pushKey = null; }
+// Le pide al servidor que avise a la otra parte (el servidor verifica en Firestore que el evento ocurrió)
+function avisar(tipo, viajeId, extra) {
+  if (!S.pushUrl) return Promise.resolve(null);
+  return fetch(S.pushUrl.replace(/\/+$/, '') + '/notificar', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(Object.assign({ tipo, viajeId }, extra || {})), keepalive: true })
+    .then(r => r.json()).catch(e => ({ error: 'No se pudo conectar con el servidor de avisos (' + (e.message || e) + ')' }));
+}
+// Al tocar la notificación de un registro, la app abre el panel en Conductores
+function abrirPanel() {
+  const q = new URLSearchParams(location.search).get('abrir'); if (q !== 'conductores') return false;
+  history.replaceState(null, '', location.pathname); S.admTab = 'conductores'; S.f.admCEst = 'pendiente'; go('admin'); return true;
+}
+try { if ('serviceWorker' in navigator && navigator.serviceWorker.addEventListener) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.abrir === 'conductores' && S.admin) { S.admTab = 'conductores'; S.f.admCEst = 'pendiente'; go('admin'); } }); } catch (e) { }
+// La solicitud se avisa a los conductores por partes (el servidor responde con el siguiente tramo)
+async function avisarSolicitud(vid) { let desde = null; for (let i = 0; i < 60; i++) { const r = await avisar('solicitud', vid, desde ? { desde } : null); desde = r && r.siguiente ? r.siguiente : null; if (!desde) break; } }
+function pushCard(conductor) {
+  if (!S.pushUrl) return '';
+  const p = pushPerm();
+  if (p === 'granted' && S.pushOk) return '';
+  const para = conductor ? 'recibir solicitudes de pasajeros' : 'saber cuándo llegan ofertas y cuándo llega tu conductor';
+  let b;
+  if (p === 'nosoporta') b = isIOS() ? 'En iPhone, instala JNF Moto en la pantalla de inicio (Compartir → Agregar a inicio) y ábrela desde el ícono para activar las notificaciones.' : 'Este navegador no permite notificaciones. Abre JNF Moto en Chrome.';
+  else if (p === 'denied') b = 'Las notificaciones están bloqueadas. Toca el candado junto a la dirección → Permisos → Notificaciones → Permitir, y vuelve a abrir la app.';
+  else return '<div class="card" style="gap:8px;border:2px solid var(--gold)"><div class="strong">Activa las notificaciones</div><div class="muted small">Para ' + para + ' aunque la app esté cerrada o el celular bloqueado.</div><button class="btn btn-gold btn-sm" style="width:100%" data-act="pushOn">Activar notificaciones</button></div>';
+  return '<div class="banner warn">' + I.info + '<div class="grow">' + esc(b) + '</div></div>';
+}
+function vNotif() {
+  const p = pushPerm(), drv = S.conductor && S.conductor.estado === 'aprobado';
+  const est = p === 'granted' && S.pushOk ? '<span class="pill p-ok">Activadas</span>' : p === 'denied' ? '<span class="pill p-danger">Bloqueadas</span>' : p === 'nosoporta' ? '<span class="pill p-warn">No disponibles</span>' : '<span class="pill p-warn">Sin activar</span>';
+  let h = '<div class="screen">' + subTop('Notificaciones') + '<div class="pad">' + errHTML() + bannerHTML(S.banner);
+  if (!S.pushUrl) return h + '<div class="card"><div class="muted">El administrador aún no ha configurado el servidor de avisos.</div></div></div></div>';
+  h += '<div class="card"><div class="row between"><div class="h2">Estado</div>' + est + '</div><div class="muted small">' + (drv ? 'Te avisamos de cada solicitud nueva mientras estés "En línea", aunque la app esté cerrada o el celular bloqueado. También cuando un pasajero acepte tu oferta o cancele.' : 'Te avisamos cuando llegue una oferta, cuando tu conductor llegue y si cancela, aunque la app esté cerrada.') + '</div>';
+  h += (p === 'granted' && S.pushOk) ? '<button class="btn btn-ghost" data-act="pushTest"' + busyAttr() + '>Enviarme una notificación de prueba</button>' : pushCard(drv) || '<button class="btn btn-gold" data-act="pushOn">Activar notificaciones</button>';
+  if (S.admPushRes) h += '<div class="muted small" role="status">' + esc(S.admPushRes) + '</div>';
+  h += '</div><div class="card"><div class="h2">¿No te llegan con el celular bloqueado?</div><div class="muted small">Algunos celulares (Xiaomi, Huawei, Oppo, Samsung) frenan las notificaciones para ahorrar batería. Revisa:</div>' +
+    '<div class="small">1. Ajustes → Aplicaciones → Chrome → Batería → <b>Sin restricciones</b>.</div><div class="small">2. Ajustes → Aplicaciones → Chrome → Notificaciones → <b>Permitir</b>, con sonido.</div><div class="small">3. Que el celular no esté en "No molestar" ni en ahorro de batería extremo.</div></div>';
+  return h + '</div></div>';
+}
 /* ---------- calificaciones ---------- */
 async function loadRating(key, path) {
   if (S.ratings[key]) return S.ratings[key];
@@ -1224,15 +1738,18 @@ async function loadRating(key, path) {
 
 /* ---------- entrada a cada pantalla ---------- */
 function enter(s) {
-  if (s === 'home') { if (S.sharing) { S.sharing = false; stopWatch(); } S.route = null; getGps(); listenOthers(); delete S.rates[S.user.uid]; loadRate(S.user.uid).then(() => { if (S.screen === 'home') render(); }); startTick(); }
+  if (s === 'home') { if (S.sharing) { S.sharing = false; stopWatch(); } S.route = null; getGps(); homeWatch(); listenOthers(); pushSync(false).then(ok => { if (!ok && S.screen === 'home') render(); }); delete S.rates[S.user.uid]; loadRate(S.user.uid).then(() => { if (S.screen === 'home') render(); }); startTick(); }
   if (s === 'buscando') {
     S.sharing = true; startWatch(); listenOthers();
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
       if (!d.exists()) return; S.viaje = Object.assign({ id: d.id }, d.data());
-      if (S.viaje.estado === 'asignado') { go('viaje'); return; }
-      if (S.viaje.estado === 'cancelado') { S.banner = { kind: 'info', text: 'Cancelaste la solicitud.' }; S.viajeId = null; go('home'); return; }
+      if (S.viaje.estado === 'asignado') { tripSound(S.viaje, 'pasajero'); go('viaje'); return; }
+      if (S.viaje.estado === 'cancelado') { sound('ok'); S.banner = { kind: 'info', text: 'Cancelaste la solicitud.' }; S.viajeId = null; go('home'); return; }
     }, fail));
+    let nOf = null;
     addSub(onSnapshot(collection(db, 'viajes', S.viajeId, 'ofertas'), qs => {
+      if (nOf !== null && qs.docs.length > nOf) sound('solicitud');
+      nOf = qs.docs.length;
       S.ofertas = qs.docs.map(d => { const o = Object.assign({ id: d.id }, d.data()); const km = distKm(S.viaje && S.viaje.origen, o.lat != null ? o : null); o.distTxt = km != null ? fmtDist(km) : ''; return o; }).sort((a, b) => a.precio - b.precio || (((rateOf(a.id, 'conductor') || {}).pct || 0) - ((rateOf(b.id, 'conductor') || {}).pct || 0)));
       S.ofertas.forEach(o => { if (!S.ratings[o.id]) loadRating(o.id, ['conductores', o.id, 'calificaciones']).then(() => { if (S.screen === 'buscando') render(); }); if (!S.rates[o.id]) loadRate(o.id).then(() => { if (S.screen === 'buscando') { S.ofertas.sort((a, b) => a.precio - b.precio || (((rateOf(a.id, 'conductor') || {}).pct || 0) - ((rateOf(b.id, 'conductor') || {}).pct || 0))); render(); } }); });
       if (S.screen === 'buscando') render();
@@ -1251,6 +1768,7 @@ function enter(s) {
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
       const prev = S.viaje && S.viaje.estado; S.viaje = Object.assign({ id: d.id }, d.data());
       const st = S.viaje.estado;
+      if (prev && prev !== st) tripSound(S.viaje, 'pasajero');
       if (st === 'finalizado') { writeStats(S.viaje); S.rating = 5; S.chips = {}; S.f.comentario = ''; go('calificar'); return; }
       if (st === 'cancelado') { writeStats(S.viaje); S.banner = { kind: 'warn', text: cancelMsg(S.viaje, 'pasajero') }; S.viajeId = null; S.viaje = null; go('home'); return; }
       if (prev !== st) render();
@@ -1264,7 +1782,7 @@ function enter(s) {
     S.sharing = true; startWatch();
   }
   if (s === 'solicitudes') {
-    listenOthers(); startTick();
+    listenOthers(); startTick(); pushSync(false).then(() => { if (S.screen === 'solicitudes') render(); });
     delete S.rates[S.user.uid]; loadRate(S.user.uid).then(() => { if (blockOf(S.user.uid, 'conductor') && S.online) { S.online = false; stopWatch(); } if (S.screen === 'solicitudes') render(); });
     loadStats();
     loadRating(S.user.uid, ['conductores', S.user.uid, 'calificaciones']).then(() => { if (S.screen === 'solicitudes') render(); });
@@ -1273,8 +1791,8 @@ function enter(s) {
   if (s === 'espera') {
     addSub(onSnapshot(doc(db, 'viajes', S.espera.viajeId), d => {
       const v = d.data();
-      if (v.estado === 'asignado' && v.conductorId === S.user.uid) { S.viajeId = d.id; S.viaje = Object.assign({ id: d.id }, v); go('cviaje'); return; }
-      if (v.estado !== 'buscando') { S.espera.perdida = true; render(); }
+      if (v.estado === 'asignado' && v.conductorId === S.user.uid) { sound('acepta'); S.viajeId = d.id; S.viaje = Object.assign({ id: d.id }, v); go('cviaje'); return; }
+      if (v.estado !== 'buscando') { if (!S.espera.perdida) sound('alerta'); S.espera.perdida = true; render(); }
     }, () => { S.espera.perdida = true; render(); }));
   }
   if (s === 'cviaje') {
@@ -1283,6 +1801,7 @@ function enter(s) {
     setDoc(doc(db, 'viajes', S.viajeId, 'privado', S.user.uid), priv).catch(() => { });
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId), d => {
       const prev = S.viaje && S.viaje.estado; S.viaje = Object.assign({ id: d.id }, d.data());
+      if (prev && prev !== S.viaje.estado) tripSound(S.viaje, 'conductor');
       if (S.viaje.estado === 'cancelado') { writeStats(S.viaje); S.banner = { kind: 'warn', text: cancelMsg(S.viaje, 'conductor') }; S.viajeId = null; go('solicitudes'); return; }
       if (S.viaje.estado === 'finalizado') { writeStats(S.viaje); S.rating = 5; S.chips = {}; go('ccalificar'); return; }
       if (prev !== S.viaje.estado) render();
@@ -1296,6 +1815,7 @@ function enter(s) {
     startWatch(); refreshRoute();
   }
   if (s === 'registroC' && S.conductor) { if (S.docsFor !== S.user.uid || S.cpriv === null) loadMyDocs(); }
+  if (s === 'suscripcion') { S.misPagos = null; S.misRef = null; loadMiSus(); }
   if (s === 'micalif') { S.cal = null; delete S.ratings[S.user.uid]; loadRating(S.user.uid, ['conductores', S.user.uid, 'calificaciones']).then(r => { S.cal = r || { n: 0 }; if (S.screen === 'micalif') render(); }); }
   if (s === 'historial') {
     S.hist = null;
@@ -1305,9 +1825,11 @@ function enter(s) {
       .catch(fail);
   }
   if (s === 'admin') {
-    listenOthers(); loadAdmKpi(); if (S.admTab === 'usuarios') loadAdmUsers(); if (S.admTab === 'mascaras' || S.admTab === 'mascEdit') loadMascAdmin();
-    addSub(onSnapshot(query(collection(db, 'conductores'), limit(200)), qs => { S.adm.conductores = qs.docs.map(d => Object.assign({ id: d.id }, d.data())); if (S.screen === 'admin') render(); loadDocCounts(); }, fail));
-    addSub(onSnapshot(query(collection(db, 'alertas'), where('estado', '==', 'activa'), limit(50)), qs => { S.adm.alertas = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => tsMs(b.creado) - tsMs(a.creado)); if (S.screen === 'admin') render(); }, fail));
+    listenOthers(); loadAdmKpi(); if (S.admTab === 'usuarios') loadAdmUsers(); if (S.admTab === 'mascaras' || S.admTab === 'mascEdit') loadMascAdmin(); if (S.admTab === 'viajes') loadAdmViajes(); if (S.admTab === 'notificaciones') loadAdmPush(); if (['suscripciones', 'susFicha', 'ingresos'].includes(S.admTab)) { loadPagosMes(); if (S.admTab === 'ingresos') loadIngresos(); }
+    let nPend = null;
+    addSub(onSnapshot(query(collection(db, 'conductores'), limit(200)), qs => { S.adm.conductores = qs.docs.map(d => Object.assign({ id: d.id }, d.data())); const np = pendientes(); if (nPend !== null && np > nPend) { sound('solicitud'); S.banner = { kind: 'info', text: 'Nuevo conductor por aprobar. Revísalo en Conductores.' }; } nPend = np; if (S.screen === 'admin') render(); loadDocCounts(); if (S.admTab === 'conductores') loadAdmRates(); if (['suscripciones', 'susFicha', 'ingresos'].includes(S.admTab)) loadSus(); }, fail));
+    let nAl = null;
+    addSub(onSnapshot(query(collection(db, 'alertas'), where('estado', '==', 'activa'), limit(50)), qs => { if (nAl !== null && qs.docs.length > nAl) sound('sos'); nAl = qs.docs.length; S.adm.alertas = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => tsMs(b.creado) - tsMs(a.creado)); if (S.screen === 'admin') render(); }, fail));
     getDocs(query(collection(db, 'viajes'), limit(100))).then(qs => { S.adm.viajes = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => tsMs(b.creado) - tsMs(a.creado)); if (S.screen === 'admin') render(); }).catch(fail);
   }
 }
@@ -1358,20 +1880,26 @@ async function afterLogin(user) {
     if (!p.exists()) { S.f.nombre = user.displayName || ''; go('onboarding'); return; }
     S.perfil = p.data();
     try { S.admin = (await getDoc(doc(db, 'admins', user.uid))).exists(); } catch (e) { S.admin = false; }
+    try { const cf = await getDoc(doc(db, 'config', 'app')); S.pushUrl = cf.exists() ? String(cf.data().pushUrl || '') : ''; } catch (e) { S.pushUrl = ''; }
+    await loadTarifas();
+    try { const sd = await getDoc(doc(db, 'suscripciones', user.uid)); S.sus = sd.exists() ? sd.data() : null; } catch (e) { S.sus = null; }
+    gsubs.push(onSnapshot(doc(db, 'suscripciones', user.uid), d => { const antes = conductorBloqueado(); S.sus = d.exists() ? d.data() : null; const ahora = conductorBloqueado(); if (ahora && S.online) { S.online = false; S.requests = []; stopWatch(); pushSync(false); } if (antes && !ahora) S.banner = { kind: 'ok', text: 'Tu pago quedó registrado. Ya puedes conectarte.' }; if (antes !== ahora && ['solicitudes', 'suscripcion', 'menu'].includes(S.screen)) render(); }, () => { }));
     gsubs.push(onSnapshot(doc(db, 'conductores', user.uid), d => {
       const before = S.conductor && S.conductor.estado; S.conductor = d.exists() ? d.data() : null;
       const now = S.conductor && S.conductor.estado;
-      if (before && before !== now && now === 'aprobado') { S.banner = { kind: 'ok', text: 'El administrador aprobó tu registro. Ya puedes usar el modo conductor.' }; if (S.screen === 'menu' || S.screen === 'home') render(); }
+      if (before && before !== now && now === 'aprobado') { sound('acepta'); S.banner = { kind: 'ok', text: 'El administrador aprobó tu registro. Ya puedes usar el modo conductor.' }; if (S.screen === 'menu' || S.screen === 'home') render(); }
       if (before === 'aprobado' && now !== 'aprobado' && S.mode === 'conductor') { S.online = false; stopWatch(); S.mode = 'pasajero'; S.banner = { kind: 'warn', text: 'Tu modo conductor fue ' + now + '.' }; go('home'); }
     }, () => { }));
     // Retomar un viaje en curso (si la consulta falla, se continúa normalmente)
     const pv = await findActive('pasajeroId', user.uid, ['buscando', 'asignado', 'en_punto', 'en_curso']);
     if (pv) { S.viajeId = pv.id; S.viaje = pv; S.mode = 'pasajero'; go(pv.estado === 'buscando' ? 'buscando' : 'viaje'); return; }
+    if (S.admin && abrirPanel()) return;
     const cond = await getDoc(doc(db, 'conductores', user.uid));
     if (cond.exists() && cond.data().estado === 'aprobado') {
       const cv = await findActive('conductorId', user.uid, ['asignado', 'en_punto', 'en_curso']);
       if (cv) { S.viajeId = cv.id; S.viaje = cv; S.mode = 'conductor'; S.online = true; go('cviaje'); return; }
       // Conductor aprobado: entra directo a Solicitudes y en línea (si tiene restricción por cancelaciones, enter() lo desconecta)
+      if (conductorBloqueado()) { S.mode = 'conductor'; S.online = false; go('solicitudes'); return; }
       S.mode = 'conductor'; S.online = true; S.banner = { kind: 'ok', text: 'Entraste como conductor y estás en línea. Para pedir un viaje, abre el menú y elige "Modo pasajero".' }; go('solicitudes'); return;
     }
     go('home');
@@ -1384,11 +1912,16 @@ onAuthStateChanged(auth, user => {
 });
 
 /* ---------- eventos ---------- */
+let liveT = null;
 appEl.addEventListener('input', e => {
   const k = e.target.getAttribute('data-in'); if (!k) return;
   const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
   if (k === 'cOtro') { const id = e.target.getAttribute('data-id'); S.cOtro[id] = Object.assign(S.cOtro[id] || { open: true }, { val: v }); return; }
   S.f[k] = v;
+  if (e.target.hasAttribute('data-live')) {
+    clearTimeout(liveT); const id = e.target.id;
+    liveT = setTimeout(() => { const el0 = document.getElementById(id), pos = el0 ? el0.selectionStart : null; S.admVPage = 20; render(); const el = document.getElementById(id); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (x) { } } }, 300);
+  }
 });
 appEl.addEventListener('change', async e => {
   const k = e.target.getAttribute('data-in'); if (k && e.target.type === 'checkbox') { S.f[k] = e.target.checked; if (k.indexOf('force_') === 0 || k === 'amOk') render(); }
@@ -1446,6 +1979,19 @@ async function act(a, v, b) {
       try { installEvt.prompt(); await installEvt.userChoice; } catch (e) { }
       installEvt = null; render(); break;
     case 'closeBanner': S.banner = null; render(); break;
+    case 'shareRef': {
+      const cod = codigoDe(S.conductor), txt = 'Inscríbete como conductor en JNF Moto con mi código ' + cod + ': https://janf1485.github.io/JNF-Moto/';
+      try { if (navigator.share) { await navigator.share({ title: 'JNF Moto', text: txt }); break; } } catch (e) { break; }
+      window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener'); break;
+    }
+    case 'pushOn': { const ok = await pushSync(true); S.banner = ok ? { kind: 'ok', text: 'Notificaciones activadas.' } : null; if (!ok && pushPerm() === 'denied') S.err = 'Las notificaciones quedaron bloqueadas. Toca el candado junto a la dirección → Permisos → Notificaciones → Permitir.'; else if (!ok && pushPerm() === 'granted') S.err = 'No se pudo activar el aviso en este celular. Intenta de nuevo.'; render(); break; }
+    case 'pushTest': {
+      S.busy = true; S.err = null; S.admPushRes = 'Enviando…'; render();
+      const ok = await pushSync(true); const r = ok ? await avisar('prueba', null, { uid }) : { error: 'Las notificaciones no están activas en este celular.' };
+      S.busy = false; S.admPushRes = !r ? 'Falta configurar el servidor de avisos.' : r.error ? 'Error: ' + r.error : r.omitido ? 'Espera un minuto para enviar otra prueba.' : (r.enviados || []).includes('ok') ? 'Prueba enviada. Debe llegarte en unos segundos; si tienes la app abierta, sale solo en la barra de notificaciones.' : 'El servidor respondió: ' + JSON.stringify(r);
+      render(); if (S.screen === 'admin') loadAdmPush(); break;
+    }
+    case 'toggleSnd': if (soundOn()) lsSet('jnfm_sonido', '0'); else { lsSet('jnfm_sonido', '1'); beepUnlock(); sound('ok'); } render(); break;
     case 'closeErr': S.err = null; render(); break;
     case 'togglePass': { const pos = (document.getElementById('pw') || {}).selectionStart; S.showPass = !S.showPass; render(); const p = document.getElementById('pw'); if (p) { p.focus(); try { p.setSelectionRange(pos, pos); } catch (e) { } } break; }
     case 'toggleCrear': S.f.modoCrear = !S.f.modoCrear; S.err = null; render(); break;
@@ -1471,8 +2017,8 @@ async function act(a, v, b) {
       try { await setDoc(doc(db, 'usuarios', uid), { nombre: nom, telefono: tel, aceptoDatos: true, aceptoEn: serverTimestamp(), creado: serverTimestamp(), contactos: [] }); S.busy = false; afterLogin(S.user); } catch (e) { fail(e); }
       break;
     }
-    case 'logout': S.online = false; await stopWatch(); await signOut(auth); break;
-    case 'retryGps': S.gps = 'pendiente'; render(); getGps(); break;
+    case 'logout': S.online = false; await pushOffline(); await stopWatch(); await signOut(auth); break;
+    case 'retryGps': S.gps = S.pos ? 'ok' : 'pendiente'; S.gpsErr = null; render(); getGps(); if (S.screen === 'solicitudes' && S.online) { stopWatch(); startWatch(); } break;
     case 'pickDest': S.pickDest = !S.pickDest; S.err = null; render(); if (S.pickDest) { const m = document.getElementById('map'); if (m) m.scrollIntoView({ block: 'center' }); } break;
     case 'clearDest': S.destPin = null; S.route = null; render(); break;
     case 'geoDest': {
@@ -1500,7 +2046,7 @@ async function act(a, v, b) {
         const data = { pasajeroId: uid, pasajeroNombre: S.perfil.nombre, origen: { texto: refTxt || 'Ubicación GPS', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null }, destino: S.destPin ? { texto: dest, lat: S.destPin.lat, lng: S.destPin.lng } : { texto: dest }, oferta: S.offer, nota: S.notaOpen ? (S.f.nota || '').trim().slice(0, 200) : '', pago: S.pago, estado: 'buscando', creado: serverTimestamp(), conductorId: null, precioFinal: null, conductor: null };
         const r = await addDoc(collection(db, 'viajes'), data);
         await setDoc(doc(db, 'viajes', r.id, 'privado', uid), { telefono: S.perfil.telefono, nombre: S.perfil.nombre });
-        S.viajeId = r.id; S.viaje = Object.assign({ id: r.id }, data); S.ofertas = []; S.busy = false; go('buscando');
+        S.viajeId = r.id; S.viaje = Object.assign({ id: r.id }, data); S.ofertas = []; S.busy = false; sound('ok'); avisarSolicitud(r.id); pushSync(true); go('buscando');
       } catch (e) { fail(e); }
       break;
     }
@@ -1519,23 +2065,23 @@ async function act(a, v, b) {
           const o = os.data(), e = offerEta(Object.assign({ id: v }, o));
           tx.update(vref, { estado: 'asignado', conductorId: v, precioFinal: o.precio, conductor: { nombre: o.nombre, moto: o.moto, color: o.color, placa: o.placa }, asignadoEn: serverTimestamp(), etaMin: e ? e.min : 5 });
         });
-        S.busy = false; render();
+        avisar('asignado', S.viajeId); S.busy = false; render();
       } catch (e) { fail(e); }
       break;
     case 'sos': S.sos = S.sos === 'sent' ? 'sent' : 'confirm'; render(); break;
     case 'sosCancel': S.sos = null; render(); break;
     case 'sosSend':
-      try { await addDoc(collection(db, 'alertas'), { viajeId: S.viajeId, creadoPor: uid, nombre: S.perfil.nombre, rol: S.screen === 'cviaje' ? 'conductor' : 'pasajero', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null, estado: 'activa', creado: serverTimestamp() }); S.sos = 'sent'; render(); } catch (e) { fail(e); }
+      try { await addDoc(collection(db, 'alertas'), { viajeId: S.viajeId, creadoPor: uid, nombre: S.perfil.nombre, rol: S.screen === 'cviaje' ? 'conductor' : 'pasajero', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null, estado: 'activa', creado: serverTimestamp() }); S.sos = 'sent'; try { if (navigator.vibrate) navigator.vibrate([80]); } catch (e) { } render(); } catch (e) { fail(e); }
       break;
     case 'rate': S.rating = +v; render(); break;
     case 'chip': S.chips[v] = !S.chips[v]; render(); break;
     case 'sendRating':
       S.busy = true; render();
-      try { await setDoc(doc(db, 'conductores', S.viaje.conductorId, 'calificaciones', S.viaje.id), { estrellas: S.rating, aspectos: Object.keys(S.chips).filter(k => S.chips[k]), comentario: (S.f.comentario || '').trim().slice(0, 500), creado: serverTimestamp() }); S.busy = false; delete S.ratings[S.viaje.conductorId]; S.banner = { kind: 'ok', text: 'Calificación enviada. Gracias por viajar con JNF Moto.' }; endPassengerTrip(); } catch (e) { fail(e); }
+      try { await setDoc(doc(db, 'conductores', S.viaje.conductorId, 'calificaciones', S.viaje.id), { estrellas: S.rating, aspectos: Object.keys(S.chips).filter(k => S.chips[k]), comentario: (S.f.comentario || '').trim().slice(0, 500), creado: serverTimestamp() }); S.busy = false; delete S.ratings[S.viaje.conductorId]; sound('ok'); S.banner = { kind: 'ok', text: 'Calificación enviada. Gracias por viajar con JNF Moto.' }; endPassengerTrip(); } catch (e) { fail(e); }
       break;
     case 'skipRating': endPassengerTrip(); break;
     case 'closeMenu': go(S.mode === 'conductor' ? 'solicitudes' : 'home'); break;
-    case 'modeP': S.mode = 'pasajero'; S.online = false; stopWatch(); go('home'); break;
+    case 'modeP': S.mode = 'pasajero'; S.online = false; stopWatch(); pushSync(false); go('home'); break;
     case 'modeC': S.mode = 'conductor'; go('solicitudes'); break;
     case 'addContact': {
       const nom = (S.f.cNombre || '').trim(), tel = String(S.f.cTel || '').replace(/\D/g, '');
@@ -1576,25 +2122,32 @@ async function act(a, v, b) {
       const dir = String(S.f.drvDir || '').trim().replace(/\s+/g, ' '), tel = cleanTel(S.f.drvTel);
       if (!validDir(dir)) { S.err = 'Escribe tu dirección de residencia (mínimo 5 caracteres).'; render(); break; }
       if (tel.length !== 10) { S.err = 'El celular debe tener 10 dígitos.'; render(); break; }
+      const refC = String(S.f.drvRef || '').toUpperCase().replace(/\s+/g, '');
+      if (refC) {
+        if (!/^JNF-[A-Z0-9]{5,7}$/.test(refC)) { S.err = 'El código de referido tiene la forma JNF-placa, por ejemplo JNF-ABC12D.'; render(); break; }
+        if (refC === 'JNF-' + placa) { S.err = 'No puedes usar tu propio código de referido.'; render(); break; }
+        try { const rq = await getDocs(query(collection(db, 'conductores'), where('placa', '==', refC.slice(4)), limit(1))); if (rq.empty) { S.err = 'No encontramos un conductor con el código ' + refC + '. Revísalo o déjalo vacío.'; render(); break; } } catch (e) { }
+      }
       const subir = DOCS_C.filter(d => S.docs[d[0]] && S.docs[d[0]].estado === 'local'), faltan = DOCS_C.length - DOCS_C.filter(d => S.docs[d[0]]).length;
       S.busy = true; S.docMsg = 'Enviando registro…'; render();
       try {
-        if (!S.conductor) await setDoc(doc(db, 'conductores', uid), { nombre: S.perfil.nombre, moto, color, placa, registro, estado: 'pendiente', creado: serverTimestamp() });
+        if (!S.conductor) { const cd = { nombre: S.perfil.nombre, moto, color, placa, registro, estado: 'pendiente', creado: serverTimestamp() }; if (refC) cd.refCodigo = refC; await setDoc(doc(db, 'conductores', uid), cd); }
         await setDoc(privRef(uid), { direccion: dir, telefono: tel, actualizado: serverTimestamp() });
         let n = 0;
         for (const d of subir) {
           n++; S.docMsg = 'Subiendo documentos (' + n + ' de ' + subir.length + ')…'; render();
           await setDoc(doc(db, 'conductores', uid, 'documentos', d[0]), { tipo: d[0], img: S.docs[d[0]].img, subido: serverTimestamp() }); S.docs[d[0]].estado = 'subido';
         }
-        S.docMsg = ''; S.busy = false; S.cpriv = { direccion: dir, telefono: tel }; S.docsFor = uid;
+        S.docMsg = ''; S.busy = false; S.cpriv = { direccion: dir, telefono: tel }; S.docsFor = uid; sound('ok'); avisar('registro', null, { conductorId: uid });
         S.banner = { kind: 'info', text: 'Registro enviado. ' + (faltan ? 'Te faltan ' + faltan + ' documento(s); puedes subirlos después desde "Mis documentos". ' : '') + 'El administrador revisará y activará tu cuenta.' }; go('menu');
       } catch (e) { S.docMsg = ''; fail(e); }
       break;
     }
     case 'online':
       if (!S.online && blockOf(uid, 'conductor')) { S.err = 'Tu modo conductor está pausado por cancelaciones.'; render(); break; }
+      if (!S.online && conductorBloqueado()) { S.err = 'Tu suscripción está vencida. Cuando el administrador registre tu pago podrás conectarte.'; render(); break; }
       S.online = !S.online;
-      if (S.online) { beepUnlock(); go('solicitudes'); } else { S.requests = []; stopWatch(); go('solicitudes'); }
+      if (S.online) { beepUnlock(); sound('ok'); pushSync(true); go('solicitudes'); } else { S.requests = []; stopWatch(); pushSync(false); go('solicitudes'); }
       break;
     case 'reqMap': S.reqMap = S.reqMap === v ? null : v; render(); break;
     case 'cIgnore': S.ignored[v] = true; S.requests = S.requests.filter(r => r.id !== v); render(); break;
@@ -1608,7 +2161,7 @@ async function act(a, v, b) {
         const of = { conductorId: uid, nombre: S.conductor.nombre, moto: S.conductor.moto, color: S.conductor.color, placa: S.conductor.placa, precio: price, creado: serverTimestamp(), lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null };
         if (S.conductor.registro) of.registro = S.conductor.registro;
         await setDoc(doc(db, 'viajes', v, 'ofertas', uid), of);
-        S.busy = false; S.espera = { viajeId: v, nombre: r.pasajeroNombre, precio: price, origen: r.origen.texto, destino: r.destino.texto, pago: r.pago }; go('espera');
+        S.busy = false; sound('ok'); avisar('oferta', v, { conductorId: uid }); S.espera = { viajeId: v, nombre: r.pasajeroNombre, precio: price, origen: r.origen.texto, destino: r.destino.texto, pago: r.pago }; go('espera');
       } catch (e) { fail(e); }
       break;
     }
@@ -1616,7 +2169,7 @@ async function act(a, v, b) {
       try { await deleteDoc(doc(db, 'viajes', S.espera.viajeId, 'ofertas', uid)); } catch (e) { }
       S.espera = null; go('solicitudes'); break;
     case 'backToRequests': S.espera = null; go('solicitudes'); break;
-    case 'llegue': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'en_punto', enPuntoEn: serverTimestamp() }); S.busy = false; render(); } catch (e) { fail(e); } break;
+    case 'llegue': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'en_punto', enPuntoEn: serverTimestamp() }); avisar('en_punto', S.viajeId); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'openCancel': S.cancel = { motivo: null }; S.f.motivoTexto = ''; S.cancelRol = S.screen === 'cviaje' ? 'conductor' : 'pasajero'; S.cancelBack = S.screen; go('cancelar'); break;
     case 'backFromCancel': go(S.cancelBack || (S.cancelRol === 'conductor' ? 'cviaje' : 'viaje')); break;
     case 'motivo': S.cancel.motivo = v; S.err = null; render(); if (v === 'otro') { const t = document.getElementById('mt'); if (t) t.focus(); } break;
@@ -1628,6 +2181,7 @@ async function act(a, v, b) {
       S.busy = true; render();
       try {
         await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid, motivo: m, motivoTexto: m === 'otro' ? txt.slice(0, 200) : '', penalizaA: pen });
+        avisar('cancelado', S.viajeId);
         if (m === 'inseguro') addDoc(collection(db, 'alertas'), { viajeId: v0.id, creadoPor: uid, nombre: S.perfil.nombre, rol: rol + ' (canceló: se siente inseguro)', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null, estado: 'activa', creado: serverTimestamp() }).catch(() => { });
         S.busy = false; render();
       } catch (e) { fail(e); }
@@ -1635,14 +2189,14 @@ async function act(a, v, b) {
     }
     case 'noShow':
       S.busy = true; render();
-      try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid, motivo: 'no_se_presento', motivoTexto: '', penalizaA: 'pasajero' }); S.busy = false; render(); } catch (e) { fail(e); }
+      try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid, motivo: 'no_se_presento', motivoTexto: '', penalizaA: 'pasajero' }); avisar('cancelado', S.viajeId); S.busy = false; render(); } catch (e) { fail(e); }
       break;
     case 'cStart': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'en_curso', iniciadoEn: serverTimestamp() }); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'cFinish': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'finalizado', finalizadoEn: serverTimestamp() }); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'cCancel': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid }); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'cSendRating':
       S.busy = true; render();
-      try { await setDoc(doc(db, 'usuarios', S.viaje.pasajeroId, 'calificaciones', S.viaje.id), { estrellas: S.rating, aspectos: Object.keys(S.chips).filter(k => S.chips[k]), creado: serverTimestamp() }); S.busy = false; endDriverTrip(); } catch (e) { fail(e); }
+      try { await setDoc(doc(db, 'usuarios', S.viaje.pasajeroId, 'calificaciones', S.viaje.id), { estrellas: S.rating, aspectos: Object.keys(S.chips).filter(k => S.chips[k]), creado: serverTimestamp() }); S.busy = false; sound('ok'); endDriverTrip(); } catch (e) { fail(e); }
       break;
     case 'cSkipRating': endDriverTrip(); break;
     case 'mascClose': { const m = mascOn(); if (m) { S.mascClosed[mascKey(m)] = true; lsSet(mascKey(m), '1'); } render(); break; }
@@ -1709,7 +2263,127 @@ async function act(a, v, b) {
         S.busy = false; S.mascDel = null; delete S.mascThumbs[v]; S.banner = { kind: 'ok', text: 'Máscara eliminada.' }; render(); await loadMascAdmin(); loadMasc();
       } catch (e) { fail(e); }
       break;
-    case 'admTab': S.admTab = v; S.err = null; S.mascDel = null; render(); if (v === 'usuarios' && !S.admUsers) loadAdmUsers(); if (v === 'mascaras') loadMascAdmin(); break;
+    case 'admTab': S.admTab = v; S.err = null; S.mascDel = null; S.admPushRes = ''; if (v === 'notificaciones') S.f.admPushUrl = S.pushUrl; render(); if (v === 'usuarios' && !S.admUsers) loadAdmUsers(); if (v === 'mascaras') loadMascAdmin(); if (v === 'viajes' && S.admV === null) loadAdmViajes(); if (v === 'conductores') loadAdmRates(); if (v === 'notificaciones') loadAdmPush(); if (v === 'suscripciones') { loadSus(); loadPagosMes(); } if (v === 'ingresos') { if (!S.susMap) loadSus(); loadIngresos(); } if (v === 'tarifas') { const T = tarifas(); ['semanal', 'quincenal', 'mensual', 'diasGratis', 'diasGracia', 'refValor', 'refTipo', 'instrucciones'].forEach(k => { S.f['t_' + k] = String(T[k]); }); render(); } break;
+    case 'admF': { const i = v.indexOf('='); S.f[v.slice(0, i)] = v.slice(i + 1); S.admVPage = 20; render(); break; }
+    case 'admVLoad': loadAdmViajes(); break;
+    case 'admVMore': S.admVPage += 20; render(); break;
+    case 'admVWho': { const i = v.indexOf('|'); S.f.admVRol = v.slice(0, i); S.f.admVQ = v.slice(i + 1); S.admVPage = 20; render(); window.scrollTo(0, 0); break; }
+    case 'admRates':
+      if (S.admRateOpen === v) { S.admRateOpen = null; render(); break; }
+      S.admRateOpen = v; render();
+      if (!S.admRateList[v]) { try { const qs = await getDocs(query(collection(db, 'conductores', v, 'calificaciones'), orderBy('creado', 'desc'), limit(10))); S.admRateList[v] = qs.docs.map(d => d.data()); } catch (e) { S.admRateList[v] = []; S.err = errMsg(e); } render(); }
+      break;
+    case 'admPushSave': {
+      const u = String(S.f.admPushUrl || '').trim().replace(/\/+$/, '');
+      if (u && !/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(\/.*)?$/i.test(u)) { S.err = 'La dirección debe empezar por https:// (por ejemplo https://jnf-moto-avisos.tu-cuenta.workers.dev).'; render(); break; }
+      S.busy = true; S.err = null; render();
+      try { await setDoc(doc(db, 'config', 'app'), { pushUrl: u, actualizado: serverTimestamp() }); S.pushUrl = u; S.f.admPushUrl = u; S.busy = false; S.admPushRes = u ? 'Guardado. Toca "Probar servidor".' : 'Se quitó la dirección: las notificaciones quedan apagadas.'; render(); } catch (e) { fail(e); }
+      break;
+    }
+    case 'admPushCheck': {
+      const u = String(S.f.admPushUrl || S.pushUrl || '').trim().replace(/\/+$/, ''); if (!u) { S.err = 'Escribe la dirección del servidor.'; render(); break; }
+      S.busy = true; S.err = null; S.admPushRes = 'Probando…'; render();
+      try { const r = await fetch(u + '/'); const j = await r.json(); S.admPushRes = j.estado === 'activo' ? (j.clave === 'configurada' ? 'El servidor responde y está configurado.' : 'El servidor responde, pero falta la variable VAPID_PUBLIC.') : 'Respuesta inesperada: ' + JSON.stringify(j); }
+      catch (e) { S.admPushRes = 'No se pudo conectar con el servidor. Revisa la dirección.'; }
+      S.busy = false; render(); break;
+    }
+    case 'susFicha': {
+      const s = S.susMap && S.susMap[v]; if (!s) break;
+      S.susId = v; S.admTab = 'susFicha'; S.err = null; S.banner = null;
+      S.f.pagFecha = ymd(new Date()); S.f.pagDesde = ''; S.f.pagMedio = 'Efectivo'; S.f.pagOtro = ''; S.f.pagMotivo = ''; S.f.susIni = s.inicio;
+      const rc = s.referidoPor && (S.adm.conductores || []).find(x => x.id === s.referidoPor); S.f.susRefCod = rc ? codigoDe(rc) : ((S.adm.conductores || []).find(x => x.id === v) || {}).refCodigo || '';
+      render(); window.scrollTo(0, 0); loadSusPagos(v);
+      if (!S.admPriv[v]) getDoc(privRef(v)).then(p => { S.admPriv[v] = p.exists() ? p.data() : {}; if (S.admTab === 'susFicha') render(); }).catch(() => { });
+      break;
+    }
+    case 'susPlan': {
+      const s = S.susMap[S.susId]; if (!s || s.plan === v) break;
+      S.busy = true; render();
+      try { await updateDoc(doc(db, 'suscripciones', s.id), { plan: v }); s.plan = v; S.busy = false; S.banner = { kind: 'ok', text: 'Plan cambiado a ' + planTxt(v).toLowerCase() + '. Aplica desde el próximo pago.' }; render(); } catch (e) { fail(e); }
+      break;
+    }
+    case 'susIniSave': {
+      const s = S.susMap[S.susId], ini = S.f.susIni; if (!s) break;
+      if (s.nPagos) { S.err = 'Ya tiene pagos registrados; la fecha de inscripción no se puede cambiar.'; render(); break; }
+      if (!fromYmd(ini) || ini > ymd(new Date())) { S.err = 'Escribe una fecha de inscripción válida (no puede ser futura).'; render(); break; }
+      const T = tarifas(), ph = addDays(ini, T.diasGratis), d = { inicio: ini, pagadoHasta: ph, venceGracia: venceGraciaDe(ph, T) };
+      S.busy = true; render();
+      try { await updateDoc(doc(db, 'suscripciones', s.id), d); Object.assign(s, d); S.busy = false; S.banner = { kind: 'ok', text: 'Fecha de inscripción cambiada. Mes gratis hasta el ' + fmtYmd(ph) + '.' }; render(); } catch (e) { fail(e); }
+      break;
+    }
+    case 'susRefSave': {
+      const s = S.susMap[S.susId]; if (!s) break;
+      const cod = String(S.f.susRefCod || '').toUpperCase().replace(/\s+/g, '');
+      if (s.refAcreditado) { S.err = 'El descuento de este referido ya se acreditó; no se puede cambiar.'; render(); break; }
+      let ref = null;
+      if (cod) { const r = (S.adm.conductores || []).find(x => codigoDe(x) === cod); if (!r) { S.err = 'No hay un conductor con el código ' + cod + '.'; render(); break; } if (r.id === s.id) { S.err = 'Un conductor no puede referirse a sí mismo.'; render(); break; } ref = r.id; }
+      S.busy = true; render();
+      try { await updateDoc(doc(db, 'suscripciones', s.id), { referidoPor: ref }); s.referidoPor = ref; S.busy = false; S.banner = { kind: 'ok', text: ref ? 'Referido guardado.' : 'Se quitó el referido.' }; render(); } catch (e) { fail(e); }
+      break;
+    }
+    case 'pagSave': {
+      const s = S.susMap[S.susId]; if (!s) break;
+      const T = tarifas(), val = T[s.plan] || 0, dr = descRef(s, val), otro = Math.max(0, parseMoney(S.f.pagOtro) || 0), fecha = S.f.pagFecha, medio = S.f.pagMedio;
+      if (!fromYmd(fecha) || fecha > ymd(new Date())) { S.err = 'Escribe la fecha del pago (no puede ser futura).'; render(); break; }
+      if (!MEDIOS.includes(medio)) { S.err = 'Elige el medio de pago.'; render(); break; }
+      if (otro > val - dr) { S.err = 'El otro descuento no puede ser mayor que el valor a pagar (' + money(val - dr) + ').'; render(); break; }
+      const desde = s.pagadoHasta < fecha && S.f.pagDesde === 'hoy' ? fecha : s.pagadoHasta, hasta = finPeriodo(desde, s.plan), neto = val - dr - otro, primero = !s.nPagos;
+      const R = primero && s.referidoPor && !s.refAcreditado ? S.susMap[s.referidoPor] : null;
+      const upd = { pagadoHasta: hasta, venceGracia: venceGraciaDe(hasta, T), nPagos: (s.nPagos || 0) + 1, refPend: [], refAplic: (s.refAplic || []).concat(s.refPend || []) };
+      if (R) upd.refAcreditado = true;
+      S.busy = true; render();
+      try {
+        const recibo = await guardarPago({ tipo: 'suscripcion', cid: s.id, nombre: s.nombre, placa: s.placa, plan: s.plan, fecha, desde, hasta, valor: val, descRef: dr, descOtro: otro, motivo: otro ? String(S.f.pagMotivo || '').trim().slice(0, 80) : '', neto, medio },
+          tx => { tx.update(doc(db, 'suscripciones', s.id), upd); if (R) tx.update(doc(db, 'suscripciones', R.id), { refPend: (R.refPend || []).concat([s.id]) }); });
+        Object.assign(s, upd); if (R) R.refPend = (R.refPend || []).concat([s.id]);
+        S.busy = false; S.f.pagOtro = ''; S.f.pagMotivo = ''; S.banner = { kind: 'ok', text: 'Pago registrado · recibo ' + recibo + ' · ' + money(neto) + '. Próximo pago: ' + fmtYmd(hasta) + '.' + (R ? ' ' + R.nombre + ' recibirá su descuento por referido en su siguiente pago.' : '') };
+        render(); window.scrollTo(0, 0); loadSusPagos(s.id); loadPagosMes();
+      } catch (e) { fail(e); }
+      break;
+    }
+    case 'tRefTipo': S.f.t_refTipo = v; render(); break;
+    case 'tSave': {
+      const n = k => parseMoney(S.f['t_' + k]);
+      const d = { semanal: n('semanal'), quincenal: n('quincenal'), mensual: n('mensual'), diasGratis: n('diasGratis'), diasGracia: n('diasGracia'), refTipo: S.f.t_refTipo === 'pct' ? 'pct' : 'fijo', refValor: n('refValor'), instrucciones: String(S.f.t_instrucciones || '').trim().slice(0, 300) };
+      if (['semanal', 'quincenal', 'mensual'].some(k => isNaN(d[k]) || d[k] < 0 || d[k] % 100)) { S.err = 'Escribe las tarifas en pesos, en múltiplos de $100.'; render(); break; }
+      if (isNaN(d.diasGratis) || d.diasGratis > 365 || isNaN(d.diasGracia) || d.diasGracia > 60) { S.err = 'Revisa los días: gratis entre 0 y 365, gracia entre 0 y 60.'; render(); break; }
+      if (isNaN(d.refValor) || (d.refTipo === 'pct' && d.refValor > 100)) { S.err = 'Revisa el descuento por referido (el porcentaje no puede pasar de 100).'; render(); break; }
+      S.busy = true; render();
+      try {
+        const antes = tarifas().diasGracia;
+        await setDoc(doc(db, 'config', 'tarifas'), Object.assign({ actualizado: serverTimestamp() }, d)); S.tarifas = d;
+        if (antes !== d.diasGracia && S.susMap) { const L = Object.values(S.susMap); for (let i = 0; i < L.length; i += 400) { const bt = writeBatch(db); L.slice(i, i + 400).forEach(s => { s.venceGracia = venceGraciaDe(s.pagadoHasta, d); bt.update(doc(db, 'suscripciones', s.id), { venceGracia: s.venceGracia }); }); await bt.commit(); } }
+        S.busy = false; S.banner = { kind: 'ok', text: 'Tarifas guardadas. Aplican a los próximos cobros.' }; S.admTab = 'suscripciones'; render(); loadSus();
+      } catch (e) { fail(e); }
+      break;
+    }
+    case 'ingRango': {
+      const d = new Date(), y = d.getFullYear(), m = d.getMonth();
+      const r = { mes: [new Date(y, m, 1), d], mesant: [new Date(y, m - 1, 1), new Date(y, m, 0)], anio: [new Date(y, 0, 1), d] }[v];
+      S.f.ingIni = ymd(r[0]); S.f.ingFin = ymd(r[1]); loadIngresos(); break;
+    }
+    case 'ingLoad': loadIngresos(); break;
+    case 'ingOtroToggle': S.ingOtro = !S.ingOtro; if (S.ingOtro) { S.f.oiConcepto = ''; S.f.oiValor = ''; S.f.oiFecha = ymd(new Date()); S.f.oiMedio = 'Efectivo'; } render(); break;
+    case 'ingOtroSave': {
+      const c = String(S.f.oiConcepto || '').trim(), val = parseMoney(S.f.oiValor), f = S.f.oiFecha;
+      if (c.length < 3) { S.err = 'Escribe el concepto del ingreso.'; render(); break; }
+      if (isNaN(val) || val <= 0) { S.err = 'Escribe el valor del ingreso.'; render(); break; }
+      if (!fromYmd(f) || f > ymd(new Date())) { S.err = 'Escribe la fecha del ingreso (no puede ser futura).'; render(); break; }
+      S.busy = true; render();
+      try { const rec = await guardarPago({ tipo: 'otro', cid: null, concepto: c.slice(0, 80), fecha: f, valor: val, descRef: 0, descOtro: 0, neto: val, medio: MEDIOS.includes(S.f.oiMedio) ? S.f.oiMedio : 'Efectivo' }); S.busy = false; S.ingOtro = false; S.banner = { kind: 'ok', text: 'Ingreso registrado · recibo ' + rec + '.' }; render(); loadIngresos(); } catch (e) { fail(e); }
+      break;
+    }
+    case 'ingCsv': {
+      const L = S.ingresos || []; if (!L.length) { S.err = 'No hay ingresos para descargar en ese periodo.'; render(); break; }
+      const q = x => '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"';
+      const filas = [['Fecha', 'Recibo', 'Tipo', 'Conductor / concepto', 'Placa', 'Plan', 'Periodo desde', 'Periodo hasta', 'Valor', 'Descuento referido', 'Otro descuento', 'Motivo', 'Neto', 'Medio']]
+        .concat(L.map(p => [fmtYmd(p.fecha), p.recibo, p.tipo === 'otro' ? 'Otro ingreso' : 'Suscripción', p.tipo === 'otro' ? p.concepto : p.nombre, p.placa || '', p.plan ? planTxt(p.plan) : '', p.desde ? fmtYmd(p.desde) : '', p.hasta ? fmtYmd(p.hasta) : '', p.valor || 0, p.descRef || 0, p.descOtro || 0, p.motivo || '', p.neto || 0, p.medio]));
+      filas.push([], ['Total neto', '', '', '', '', '', '', '', '', '', '', '', L.reduce((a, p) => a + (p.neto || 0), 0)]);
+      const csv = '﻿' + [['Asesorías y Consultorías JNF S.A.S. · NIT 901.904.435-9'], ['Ingresos JNF Moto del ' + fmtYmd(S.f.ingIni) + ' al ' + fmtYmd(S.f.ingFin)], []].concat(filas).map(f => f.map(q).join(';')).join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })), el = document.createElement('a');
+      el.href = url; el.download = 'ingresos_jnf_moto_' + S.f.ingIni + '_a_' + S.f.ingFin + '.csv'; document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+      break;
+    }
     case 'admMore': S.admLimit += 30; S.admUsers = null; render(); loadAdmUsers(); break;
     case 'admMake': { S.admMake = v || null; S.f.amMoto = ''; S.f.amColor = ''; S.f.amPlaca = ''; S.f.amReg = ''; S.f.amDir = ''; S.f.amOk = false; const u = (S.admUsers || []).find(x => x.id === v); S.f.amTel = u && u.telefono ? u.telefono : ''; render(); break; }
     case 'admMakeSave': {
@@ -1788,7 +2462,7 @@ async function act(a, v, b) {
       } catch (e) { fail(e); }
       break;
     }
-    case 'admSet': S.busy = true; render(); try { await updateDoc(doc(db, 'conductores', v), { estado: b.getAttribute('data-p') }); S.busy = false; render(); } catch (e) { fail(e); } break;
+    case 'admSet': S.busy = true; render(); try { const est = b.getAttribute('data-p'); await updateDoc(doc(db, 'conductores', v), { estado: est }); if (est !== 'aprobado') updateDoc(doc(db, 'push', v), { online: false }).catch(() => { }); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'admAlert': S.busy = true; render(); try { await updateDoc(doc(db, 'alertas', v), { estado: 'atendida' }); S.busy = false; render(); } catch (e) { fail(e); } break;
   }
 }

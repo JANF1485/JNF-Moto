@@ -1,10 +1,13 @@
 <!doctype html>
+<!-- JNF Moto · © 2026 Asesorías y Consultorías JNF S.A.S. (NIT 901.904.435-9). Todos los derechos reservados. Prohibida su reproducción total o parcial sin autorización escrita. -->
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1A2580">
 <meta name="description" content="JNF Moto: pide tu mototour y acuerda el precio con el conductor.">
+<meta name="author" content="Asesorías y Consultorías JNF S.A.S.">
+<meta name="copyright" content="© 2026 Asesorías y Consultorías JNF S.A.S. (NIT 901.904.435-9). Todos los derechos reservados.">
 <title>JNF Moto</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -214,10 +217,18 @@ input[type=email],input[type=password]{min-height:48px;border:1px solid var(--li
 .mini{height:230px;border:1px solid #E3DECF;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background:#FFFFFF}
 .mform{display:grid;grid-template-columns:1fr;gap:12px}
 .wide .mform{grid-template-columns:repeat(2,minmax(0,1fr))}
+.vgrid{display:grid;grid-template-columns:1fr;gap:12px}
+.wide .vgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.p-free{background:#EDE6FA;color:#4B2A8A}
+.kpis5{grid-template-columns:repeat(2,minmax(0,1fr))}
+.wide .kpis5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.sus-cols,.ing-cols{display:flex;flex-direction:column;gap:16px}
+.wide .sus-cols{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start}
+.wide .ing-cols{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1fr);align-items:start}
 </style>
 </head>
 <body>
 <div id="app" aria-live="polite"><div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="icon-192.png" alt="Logo JNF S.A.S." style="width:96px;height:96px"><noscript><p>JNF Moto necesita JavaScript activado.</p></noscript></div></div></div>
-<script type="module" src="app.js?v=16"></script>
+<script type="module" src="app.js?v=19"></script>
 </body>
 </html>
