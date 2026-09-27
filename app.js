@@ -20,7 +20,8 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '19';
+const APP_VERSION = '20'; // número interno (actualiza la caché)
+const APP_LABEL = '1.0'; // versión oficial que ve el usuario
 const LOGO = 'icon-192.png';
 const appEl = document.getElementById('app');
 
@@ -153,7 +154,7 @@ function vLogin() {
     '<button class="btn btn-gold" data-act="' + (crear ? 'signup' : 'signin') + '"' + busyAttr() + '>' + (crear ? 'Crear cuenta' : 'Ingresar') + '</button>' +
     '<button class="link" data-act="toggleCrear" style="align-self:center">' + (crear ? 'Ya tengo cuenta: ingresar' : 'No tengo cuenta: crear una') + '</button>' +
     (crear ? '' : '<button class="link" data-act="reset" style="align-self:center;font-size:13px">Olvidé mi contraseña</button>') +
-    installCard() + '</div><div class="demo">Versión de prueba · ' + COPY() + '<br><button class="link" data-act="go" data-v="terminos" style="font-size:12px;min-height:32px;text-align:center">Términos y condiciones · Tratamiento de datos</button></div></div>';
+    installCard() + '</div><div class="demo">JNF Moto · Versión ' + APP_LABEL + '<br>' + COPY() + '<br><button class="link" data-act="go" data-v="terminos" style="font-size:12px;min-height:32px;text-align:center">Términos y condiciones · Tratamiento de datos</button></div></div>';
 }
 function vOnboarding() {
   return '<div class="screen"><div class="top">' + brandRow() + '<h1 class="h1">Completa tu perfil</h1><div class="sub">Lo usamos para que conductores y pasajeros se identifiquen.</div></div><div class="pad">' + errHTML() +
@@ -300,7 +301,7 @@ function vMenu() {
   if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes mototour? Conduce con JNF Moto</div><div class="muted">Regístrate con los datos de tu mototour, tu dirección y tu celular. Sube los documentos que tengas; los que falten los puedes subir después. El administrador revisa y activa tu cuenta.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
   if (st === 'pendiente') h += '<div class="card"><div class="h2">Tu registro está en revisión</div><div class="muted">El administrador está revisando tu registro. Cuando te active, esta opción se habilita sola.</div><button class="btn btn-ghost" data-act="go" data-v="registroC">Ver mis documentos</button></div>';
   if (st === 'rechazado' || st === 'suspendido') h += '<div class="card"><div class="h2">Modo conductor no habilitado</div><div class="muted">Tu cuenta de conductor está ' + st + '. Revisa tus documentos y comunícate con la oficina de JNF S.A.S.</div><button class="btn btn-ghost" data-act="go" data-v="registroC">Ver mis documentos</button></div>';
-  if (st === 'aprobado') h += '<div class="card"><div class="row between"><div class="h2">Modo conductor habilitado</div><span class="pill p-ok">Aprobado</span></div><div class="banner warn">' + I.info + '<div class="grow">En esta versión de prueba, tu ubicación se comparte solo mientras la app está abierta y estás conectado.</div></div>' + (pOn ? '<button class="btn btn-gold" data-act="modeC">Conectarme como conductor</button>' : '<button class="btn btn-ghost" data-act="modeP">Volver a modo pasajero</button>') + '</div>';
+  if (st === 'aprobado') h += '<div class="card"><div class="row between"><div class="h2">Modo conductor habilitado</div><span class="pill p-ok">Aprobado</span></div><div class="banner warn">' + I.info + '<div class="grow">Tu ubicación se comparte solo mientras la app está abierta y estás conectado.</div></div>' + (pOn ? '<button class="btn btn-gold" data-act="modeC">Conectarme como conductor</button>' : '<button class="btn btn-ghost" data-act="modeP">Volver a modo pasajero</button>') + '</div>';
   const items = [['historial', 'Mis viajes'], ['contactos', 'Contactos de emergencia']];
   if (st === 'aprobado') items.push(['transfer', 'Mis datos para transferencias'], ['micalif', 'Mi calificación como conductor'], ['suscripcion', 'Mi suscripción']);
   if (S.admin) items.push(['admin', 'Panel de administración']);
@@ -308,7 +309,7 @@ function vMenu() {
   items.push(['ayuda', 'Ayuda y soporte'], ['terminos', 'Términos y tratamiento de datos']);
   h += '<nav aria-label="Opciones">' + items.map(it => '<button class="menuitem" data-act="go" data-v="' + it[0] + '">' + it[1] + I.chev + '</button>').join('') +
     '<button class="menuitem" data-act="toggleSnd" aria-pressed="' + soundOn() + '">Sonido y vibración<span class="pill ' + (soundOn() ? 'p-ok' : 'p-info') + '">' + (soundOn() ? 'Activados' : 'Desactivados') + '</span></button></nav>';
-  return h + '<button class="link danger" data-act="logout" style="align-self:flex-start">Cerrar sesión</button></div><div class="demo">JNF Moto · Versión de prueba v' + APP_VERSION + '<br>' + COPY() + '</div></div>';
+  return h + '<button class="link danger" data-act="logout" style="align-self:flex-start">Cerrar sesión</button></div><div class="demo">JNF Moto · Versión ' + APP_LABEL + ' (' + APP_VERSION + ')<br>' + COPY() + '</div></div>';
 }
 function vHistorial() {
   let h = '<div class="screen">' + subTop('Mis viajes') + '<div class="pad">' + errHTML();
@@ -1271,9 +1272,9 @@ const V = {
   cargando: vCargando, login: vLogin, onboarding: vOnboarding, home: vHome, buscando: vBuscando, viaje: vViaje, calificar: vCalificar,
   menu: vMenu, historial: vHistorial, contactos: vContactos, registroC: vRegistroC, solicitudes: vSolicitudes, espera: vEspera, cviaje: vCViaje,
   ccalificar: vCCalificar, micalif: vMiCalif, admin: vAdmin, transfer: vTransfer, notif: vNotif,
-  suscripcion: vMiSus, suscripcionViejo: () => vTexto('Mi suscripción', '<div class="row between"><div class="h2">Periodo de prueba</div><span class="pill p-ok">Activa</span></div><div class="muted">Durante la prueba no se cobra la cuota. La cuota semanal y las formas de pago (Nequi, Daviplata, PSE o efectivo en oficina) se definen al terminar la prueba.</div>'),
-  ayuda: () => vTexto('Ayuda y soporte', '<div class="h2">¿Necesitas ayuda?</div><div class="muted">Comunícate con Asesorías y Consultorías JNF S.A.S. al [número de soporte].</div>'),
-  terminos: vTerminos, terminosViejo: () => vTexto('Términos y tratamiento de datos', '<div class="muted">Asesorías y Consultorías JNF S.A.S. trata tus datos personales (nombre, celular y ubicación durante los viajes) conforme a la Ley 1581 de 2012, únicamente para prestar el servicio de la app.</div><div class="muted">[Texto completo de la política de tratamiento de datos]</div>')
+  suscripcion: vMiSus,
+  ayuda: () => vTexto('Ayuda y soporte', '<div class="h2">¿Necesitas ayuda?</div><div class="muted">Comunícate con Asesorías y Consultorías JNF S.A.S. al 310 657 1274 o al 311 302 8402, o visítanos en la Cra. 13 N° 10-01, Of. 1.</div>'),
+  terminos: vTerminos
 };
 
 /* ---------- mapa (Leaflet + OpenStreetMap), íconos y rutas (OSRM) ---------- */
