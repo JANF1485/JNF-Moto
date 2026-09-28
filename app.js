@@ -20,7 +20,7 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '23'; // número interno (actualiza la caché)
+const APP_VERSION = '24'; // número interno (actualiza la caché)
 const APP_LABEL = '1.0'; // versión oficial que ve el usuario
 const LOGO = 'icon-192.png';
 const appEl = document.getElementById('app');
@@ -35,6 +35,14 @@ const tsMs = t => t && typeof t.toMillis === 'function' ? t.toMillis() : Date.no
 const fmtRating = v => v.toFixed(1).replace('.', ',');
 const pagoTxt = v => (v && v.pago === 'transferencia') ? 'Transferencia' : 'Efectivo';
 const cobroTxt = v => (v && v.pago === 'transferencia') ? 'Cobrar por transferencia' : 'Cobrar en efectivo';
+// Envíos (mensajería): viajes/{id}.tipo = 'envio' y .envio = { contenido, desc, pagaRecibe }.
+// Quien recibe va en viajes/{id}/entrega/recibe (lo ve el conductor asignado); el código en entrega/codigo (solo quien envía).
+const esEnvio = v => !!(v && v.tipo === 'envio');
+const ENV_CONT = [['documentos', 'Documentos'], ['pequeno', 'Paquete pequeño'], ['mediano', 'Paquete mediano'], ['compra', 'Compra / domicilio']];
+const contTxt = k => (ENV_CONT.find(x => x[0] === k) || [0, 'Paquete'])[1];
+const pagaRec = v => !!(v && v.envio && v.envio.pagaRecibe);
+const quienPaga = v => pagaRec(v) ? 'paga quien recibe' : 'paga quien envía';
+const TAG_ENV = '<span class="tag">📦 ENVÍO</span>';
 function distKm(a, b) {
   if (!a || !b || a.lat == null || b.lat == null) return null;
   const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
@@ -67,7 +75,7 @@ const S = {
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
   offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
-  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null, admPriv: {}, admEdit: null, admDocMsg: '', cpriv: null, pushUrl: '', pushOk: false, admV: null, admVPage: 20, admCal: {}, admRate: {}, admRateList: {}, admRateOpen: null, admPush: null, admPushRes: '', admAllUsers: null, sus: null, tarifas: null, susMap: null, susId: null, susPagos: null, pagosMes: null, ingresos: null, ingOtro: false, misPagos: null, misRef: null, anularId: null,
+  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null, admPriv: {}, admEdit: null, admDocMsg: '', cpriv: null, pushUrl: '', pushOk: false, admV: null, admVPage: 20, admCal: {}, admRate: {}, admRateList: {}, admRateOpen: null, admPush: null, admPushRes: '', admAllUsers: null, sus: null, tarifas: null, susMap: null, susId: null, susPagos: null, pagosMes: null, ingresos: null, ingOtro: false, misPagos: null, misRef: null, anularId: null, idFalta: null, tipo: 'viaje', pagaRecibe: false, envCod: null, recibe: null, devAsk: false,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
   cal: null, hist: null, admTab: 'resumen', adm: {},
@@ -172,23 +180,33 @@ function vHome() {
   let h = '<div class="screen"><div class="row between hdr" style="padding:12px 16px;background:var(--bg)"><button class="iconbtn light" data-act="go" data-v="menu" aria-label="Abrir menú">' + I.menu + '</button>' +
     '<div class="row hpill" style="background:#1A2580;border-radius:28px;padding:4px 16px 4px 4px"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">JNF Moto</span></div>' + (mascBadge() || '<div style="width:44px"></div>') + '</div>' + mascBand();
   h += S.gps === 'ok' ? '<div id="map" class="lmap" role="img" aria-label="Mapa con tu ubicación' + (S.destPin ? ' y el destino' : '') + '"></div>' + legendHTML([['person', 'Tú'], ['otro', 'Conductores cerca']].concat(S.destPin ? [['dest', 'Destino']] : [])) : '';
-  h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + mascBig() + mascNotice() + homeInstallCard() + (S.pushUrl && pushPerm() === 'default' ? pushCard(false) : '') + '<h1 class="h1">¿Dónde estás?</h1>';
+  h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + mascBig() + mascNotice() + homeInstallCard() + (S.pushUrl && pushPerm() === 'default' ? pushCard(false) : '');
+  const env = S.tipo === 'envio';
+  h += '<div class="seg2" role="group" aria-label="Tipo de servicio"><button data-act="tipoSrv" data-v="viaje" aria-current="' + !env + '">🛺 Viaje</button><button data-act="tipoSrv" data-v="envio" aria-current="' + env + '">📦 Envío</button></div>';
+  h += '<h1 class="h1">' + (env ? '¿Dónde recogemos?' : '¿Dónde estás?') + '</h1>';
   h += '<div class="field"><label for="ref">Punto de recogida (referencia)</label><input type="text" id="ref" data-in="ref" placeholder="Ej. Frente a la tienda azul, Calle 5" value="' + fv('ref') + '">' + gps + '</div>';
-  h += '<h2 class="h1" style="margin-top:6px">¿A dónde vas?</h2><div class="field"><label for="destino">Destino</label><input type="text" id="destino" data-in="destino" placeholder="Barrio, dirección o lugar" value="' + fv('destino') + '" autocomplete="off">';
+  h += '<h2 class="h1" style="margin-top:6px">' + (env ? '¿A dónde lo llevamos?' : '¿A dónde vas?') + '</h2><div class="field"><label for="destino">Destino</label><input type="text" id="destino" data-in="destino" placeholder="Barrio, dirección o lugar" value="' + fv('destino') + '" autocomplete="off">';
   if (S.pickDest) h += '<div class="banner info">' + I.info + '<div class="grow">Toca el mapa en el punto exacto de tu destino.</div><button data-act="pickDest">Cancelar</button></div>';
   else if (S.destPin) h += '<div class="row between" style="flex-wrap:wrap;gap:6px"><span class="muted small">Destino marcado · recorrido estimado: <b data-eta>' + esc(etaText()) + '</b></span><button class="link" data-act="clearDest" style="font-size:13px;min-height:36px">Quitar</button></div>';
   else if (S.gps === 'ok') h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))"><button class="btn btn-ghost btn-sm" style="width:100%" data-act="geoDest"' + busyAttr() + '>Ubicar en el mapa</button><button class="btn btn-ghost btn-sm" style="width:100%" data-act="pickDest">Marcar en el mapa</button></div>';
   h += '</div>';
+  if (env) {
+    h += '<div class="col" style="gap:8px"><span class="lbl" id="lblcont">¿Qué envías?</span><div class="chips" role="group" aria-labelledby="lblcont">' + ENV_CONT.map(x => '<button class="chip" data-act="envCont" data-v="' + x[0] + '" aria-pressed="' + (S.f.envCont === x[0]) + '">' + x[1] + '</button>').join('') + '</div></div>' +
+      '<div class="field"><label for="edesc">Descripción (opcional)</label><input type="text" id="edesc" data-in="envDesc" maxlength="120" placeholder="Ej. Sobre con papeles de la notaría" value="' + fv('envDesc') + '" autocomplete="off"></div>' +
+      '<div class="card" style="gap:10px;background:var(--field)"><div class="h2" style="font-size:15px">¿Quién recibe?</div><div class="field"><label for="rnom">Nombre</label><input type="text" id="rnom" data-in="recNom" maxlength="60" autocomplete="off" value="' + fv('recNom') + '"></div><div class="field"><label for="rtel">Celular</label><input type="tel" id="rtel" data-in="recTel" inputmode="numeric" placeholder="10 dígitos" autocomplete="off" value="' + fv('recTel') + '"></div></div>' +
+      '<div class="col" style="gap:8px"><span class="lbl" id="lblpaga">¿Quién paga el envío?</span><div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))" role="group" aria-labelledby="lblpaga"><button class="chip" data-act="pagaRecibe" data-v="0" aria-pressed="' + !S.pagaRecibe + '">Pago yo</button><button class="chip" data-act="pagaRecibe" data-v="1" aria-pressed="' + S.pagaRecibe + '">Paga quien recibe</button></div></div>';
+  }
   h += '<div class="offerbox"><span class="lbl">Tu oferta</span><div class="stepper"><button class="round" data-act="minus" aria-label="Bajar oferta 500 pesos"' + (S.offer <= MIN ? ' disabled' : '') + '>−</button><div class="amount" id="amount">' + money(S.offer) + '</div><button class="round solid" data-act="plus" aria-label="Subir oferta 500 pesos">+</button></div>' +
     '<div class="row between" style="flex-wrap:wrap;gap:4px"><span class="muted small">Mínimo ' + money(MIN) + ' · sin tope</span><button class="link" data-act="otroToggle" aria-expanded="' + S.otroOpen + '" style="font-size:13px">' + (S.otroOpen ? 'Cerrar' : 'Escribir otro valor') + '</button></div>';
   if (S.otroOpen) h += '<div class="field"><label for="otro">Valor que ofreces</label><div class="row"><input type="text" inputmode="numeric" id="otro" data-in="otroVal" placeholder="Ej. 2.300" value="' + fv('otroVal') + '"><button class="btn btn-navy btn-sm" data-act="otroUse" style="min-height:48px">Usar</button></div>' + (S.f.otroErr ? '<div class="err" role="alert">' + esc(S.f.otroErr) + '</div>' : '') + '</div>';
   h += '</div><div class="col" style="gap:8px"><span class="lbl" id="lblpago">Forma de pago</span><div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))" role="group" aria-labelledby="lblpago">' +
     '<button class="chip" data-act="pago" data-v="efectivo" aria-pressed="' + (S.pago === 'efectivo') + '">Efectivo</button><button class="chip" data-act="pago" data-v="transferencia" aria-pressed="' + (S.pago === 'transferencia') + '">Transferencia</button></div></div>' +
-    '<button class="chip" data-act="notaToggle" aria-expanded="' + S.notaOpen + '" style="align-self:flex-start">' + (S.notaOpen ? 'Ocultar nota' : 'Agregar nota al conductor') + '</button>';
-  if (S.notaOpen) h += '<div class="field"><label for="nota">Nota para el conductor</label><textarea id="nota" data-in="nota" maxlength="200" placeholder="Ej. Llevo un paquete pequeño">' + fv('nota') + '</textarea></div>';
+    (env ? '' : '<button class="chip" data-act="notaToggle" aria-expanded="' + S.notaOpen + '" style="align-self:flex-start">' + (S.notaOpen ? 'Ocultar nota' : 'Agregar nota al conductor') + '</button>');
+  if (S.notaOpen && !env) h += '<div class="field"><label for="nota">Nota para el conductor</label><textarea id="nota" data-in="nota" maxlength="200" placeholder="Ej. Llevo un paquete pequeño">' + fv('nota') + '</textarea></div>';
   const bl = blockOf(S.user.uid, 'pasajero'), rt = rateOf(S.user.uid, 'pasajero');
   if (!bl && rt && rt.pct != null && rt.pct > 15) h += '<div class="banner warn">' + I.info + '<div class="grow">Tu tasa de cancelación es de <b>' + rt.pct + ' %</b>. Si supera el 30 %, tu cuenta pasa a revisión del administrador.</div></div>';
-  h += bl ? blockCard('pasajero', bl) : '<button class="btn btn-gold" data-act="buscar"' + busyAttr() + '>Buscar mototour · ' + money(S.offer) + '</button>';
+  if (env && !bl) h += '<label class="check"><input type="checkbox" data-in="envOk"' + (S.f.envOk ? ' checked' : '') + '><span>Declaro que el envío no contiene dinero en efectivo, armas, sustancias prohibidas, animales vivos ni objetos ilegales.</span></label>';
+  h += bl ? blockCard('pasajero', bl) : '<button class="btn btn-gold" data-act="buscar"' + busyAttr() + '>' + (env ? 'Buscar mototour para envío · ' : 'Buscar mototour · ') + money(S.offer) + '</button>';
   h += '</div></div>';
   return h;
 }
@@ -205,11 +223,12 @@ function vBuscando() {
   const PIN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
   const OK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>';
   const chip = (ic, t, attr) => '<span class="row" style="gap:6px;padding:7px 12px;border-radius:12px;background:#1A2580;color:#FFFFFF;font-size:15px;font-weight:800;white-space:nowrap"' + attr + '>' + ic + t + '</span>';
-  let h = '<div class="screen"><div class="top" style="gap:6px"><h1 class="h1">' + (no ? 'Ofertas recibidas' : 'Buscando conductores') + '</h1><div class="sub">Tu oferta: <span style="color:#C9A227;font-weight:800">' + money(v.oferta || S.offer) + '</span> hacia ' + esc(v.destino ? v.destino.texto : '') + ' · ' + pagoTxt(v) + '</div>' +
+  const env = esEnvio(v);
+  let h = '<div class="screen"><div class="top" style="gap:6px">' + (env ? '<div>' + TAG_ENV + '</div>' : '') + '<h1 class="h1">' + (no ? (env ? 'Ofertas para tu envío' : 'Ofertas recibidas') : (env ? 'Buscando conductor para tu envío' : 'Buscando conductores')) + '</h1><div class="sub">Tu oferta: <span style="color:#C9A227;font-weight:800">' + money(v.oferta || S.offer) + '</span> hacia ' + esc(v.destino ? v.destino.texto : '') + ' · ' + pagoTxt(v) + '</div>' +
     '<div class="sub"><span data-count>' + n + '</span> ' + (n === 1 ? 'conductor' : 'conductores') + ' en tu zona · ' + (no ? no + (no === 1 ? ' oferta' : ' ofertas') : 'esperando ofertas') + '</div></div>';
   h += '<div id="map" class="lmap" role="img" aria-label="Mapa con tu ubicación, la zona de búsqueda y los conductores cercanos"></div>' + legendHTML([['person', 'Tú'], ['otro', 'En tu zona'], ['moto', 'Con oferta']]);
   h += '<div class="pad">' + errHTML();
-  if (!no) h += '<div class="card" style="flex-direction:row;align-items:center;gap:12px"><div class="spinner" aria-hidden="true" style="flex-shrink:0"></div><div class="col"><div class="strong">Enviamos tu solicitud a los conductores de tu zona</div><div class="muted small">Las ofertas aparecen aquí y en el mapa a medida que llegan. Mantén esta pantalla abierta.</div></div></div>';
+  if (!no) h += '<div class="card" style="flex-direction:row;align-items:center;gap:12px"><div class="spinner" aria-hidden="true" style="flex-shrink:0"></div><div class="col"><div class="strong">Enviamos tu solicitud a los conductores de tu zona' + (env ? ' que aceptan envíos' : '') + '</div><div class="muted small">Las ofertas aparecen aquí y en el mapa a medida que llegan. Mantén esta pantalla abierta.</div></div></div>';
   S.ofertas.forEach(o => {
     const r = S.ratings[o.id], e = offerEta(o), tu = o.precio === v.oferta;
     h += '<div class="card' + (tu ? ' sel' : '') + '"><div class="row"><div class="avatar">' + esc(initials(o.nombre)) + '</div><div class="col grow"><div class="strong">' + esc(o.nombre) + '</div><div class="muted small row" style="gap:6px;flex-wrap:wrap">' + ratingLine(r) + ratePill(o.id, 'conductor') + '</div></div>' +
@@ -232,7 +251,7 @@ function penPasajero(v, motivo) {
 function vCancelar() {
   const v = S.viaje || {}, rol = S.cancelRol, m = S.cancel.motivo;
   const quien = rol === 'pasajero' ? (v.conductor ? v.conductor.nombre : '') : v.pasajeroNombre;
-  let h = '<div class="screen"><div class="top" style="gap:4px"><h1 class="h1">Cancelar viaje</h1><div class="sub">' + esc(quien) + ' · ' + esc(v.destino ? v.destino.texto : '') + ' · ' + money(v.precioFinal || 0) + '</div></div><div class="pad">' + errHTML();
+  let h = '<div class="screen"><div class="top" style="gap:4px"><h1 class="h1">' + (esEnvio(v) ? 'Cancelar envío' : 'Cancelar viaje') + '</h1><div class="sub">' + esc(quien) + ' · ' + esc(v.destino ? v.destino.texto : '') + ' · ' + money(v.precioFinal || 0) + '</div></div><div class="pad">' + errHTML();
   h += '<h2 class="h2">¿Por qué cancelas?</h2><div class="card" style="gap:0;padding:4px 14px" role="radiogroup" aria-label="Motivo de la cancelación">';
   MOTIVOS[rol].forEach(o => {
     const on = m === o[0];
@@ -262,7 +281,32 @@ function sosBlock() {
   }
   return '';
 }
+function vEnvioP() {
+  const v = S.viaje || {}, c = v.conductor || {}, st = v.estado, dev = !!v.devolucion, hasDest = !!destOf(v), R = S.recibe || {};
+  const sub = st === 'asignado' ? 'El conductor va a recoger tu envío' : st === 'en_punto' ? 'El conductor llegó al punto de recogida' : dev ? 'Tu envío se está devolviendo' : 'Tu envío va en camino';
+  const big = st === 'asignado' ? 'Llega en <span data-eta>' + esc(S.drvPos ? etaText() : '…') + '</span>' : st === 'en_punto' ? 'Entrégale el paquete' : dev ? 'De regreso a ti' : hasDest ? 'Llega en <span data-eta>' + esc(etaText()) + '</span>' : 'A ' + esc(v.destino ? v.destino.texto : '');
+  let h = '<div class="screen"><div class="top" style="gap:10px"><div class="row between" style="align-items:flex-start"><div class="col" style="gap:6px"><div>' + TAG_ENV + '</div><div class="sub">' + sub + '</div><div class="h1" style="color:#C9A227">' + big + '</div></div><button class="sos" data-act="sos" aria-label="Botón de pánico">SOS</button></div></div>';
+  h += '<div id="map" class="lmap" role="img" aria-label="Mapa del envío"></div>' + legendHTML(REC(st) ? [['person', 'Punto de recogida'], ['moto', 'Conductor']] : [['moto', 'Conductor']].concat(dev ? [['dest', 'Devolución']] : hasDest ? [['dest', 'Entrega']] : []));
+  h += '<div class="sheet"><div class="handle"></div>' + sosBlock() + errHTML() + bannerHTML(S.banner);
+  if (st === 'en_punto') h += '<div class="card" style="align-items:center;gap:6px"><div class="muted small strong">El conductor te espera para recoger el paquete</div><div class="amount" style="line-height:1.25" data-timer="espera">' + fmtClock(ESPERA_S - 10 - (Date.now() - tsMs(v.enPuntoEn)) / 1000) + '</div><div class="bar" style="width:100%"><div data-timerbar="espera" style="width:' + Math.min(100, (Date.now() - tsMs(v.enPuntoEn)) / 3000) + '%;background:#C9A227"></div></div></div>';
+  h += '<div class="card"><div class="row"><div class="avatar">' + esc(initials(c.nombre)) + '</div><div class="col grow"><div class="strong">' + esc(c.nombre) + '</div><div class="muted small">' + ratingLine(S.ratings[v.conductorId]) + ' · ' + esc(c.moto) + ' ' + esc(c.color) + ' · ' + esc(c.placa) + '</div></div></div>' + (S.cPhone ? '<a class="btn btn-ghost" href="tel:' + esc(S.cPhone) + '">' + I.phone + 'Llamar al conductor</a>' : '') + '</div>';
+  if (S.envCod) {
+    const txt = 'Hola ' + (R.nombre || '') + ', te envié un paquete con JNF Moto. Te lo lleva ' + (c.nombre || 'el conductor') + (c.placa ? ' (placa ' + c.placa + ')' : '') + ' a ' + (v.destino ? v.destino.texto : '') + '. Para recibirlo, dale este código: ' + S.envCod + (pagaRec(v) ? '. El envío lo pagas tú: ' + money(v.precioFinal || 0) + '.' : '.');
+    h += '<div class="card"><div class="strong">Código de entrega</div><div class="code" aria-label="Código de entrega ' + S.envCod.split('').join(' ') + '">' + S.envCod + '</div>' +
+      '<div class="muted small">' + (dev ? 'El envío se devuelve: el conductor te pedirá <b>a ti</b> este código para confirmar la devolución.' : 'Compártelo solo con <b>' + esc(R.nombre || 'quien recibe') + '</b>. El conductor se lo pedirá al entregar; así sabes que llegó a la persona correcta.') + '</div>' +
+      (!dev && R.telefono ? '<a class="btn btn-navy" target="_blank" rel="noopener" href="https://wa.me/57' + esc(R.telefono) + '?text=' + encodeURIComponent(txt) + '">Enviar código a ' + esc((R.nombre || '').split(' ')[0] || 'quien recibe') + ' por WhatsApp</a>' : '') + '</div>';
+  } else if (S.envCod === null) h += '<div class="spinner" role="status" aria-label="Cargando código de entrega"></div>';
+  const paso = (ok, now, n, t) => '<div class="st' + (ok ? ' ok' : now ? ' now' : '') + '"><span class="b">' + (ok ? '✓' : n) + '</span><div class="strong">' + t + '</div></div>';
+  h += '<div class="card" style="gap:6px"><div class="steps">' + paso(true, false, 1, 'Conductor asignado') + paso(st === 'en_curso', REC(st), 2, st === 'en_curso' ? 'Paquete recogido' : 'Recoger el paquete') +
+    paso(false, st === 'en_curso', 3, dev ? 'Devolviéndolo a ti' + (v.devolucionMotivo ? ' · ' + esc(v.devolucionMotivo) : '') : 'Entregar a ' + esc(R.nombre || 'quien recibe')) + '</div></div>';
+  h += '<div class="offerbox" style="gap:8px"><div class="row"><span class="dot"></span>' + esc(v.origen ? v.origen.texto : '') + '</div><div class="row"><span class="sq"></span>' + esc(v.destino ? v.destino.texto : '') + '</div><div class="muted small">' + contTxt(v.envio && v.envio.contenido) + (v.envio && v.envio.desc ? ' · ' + esc(v.envio.desc) : '') + '</div><div class="row between" style="border-top:1px solid var(--line);padding-top:8px"><span class="muted">' + pagoTxt(v) + ' · ' + quienPaga(v) + '</span><span class="strong">' + money(v.precioFinal || 0) + '</span></div></div>';
+  if (v.pago === 'transferencia') h += S.cTransfer ? '<div class="banner info">' + I.info + '<div class="grow">Datos para transferir <b>' + money(v.precioFinal || 0) + '</b>: <b>' + esc(S.cTransfer) + '</b>' + (pagaRec(v) ? ' (compártelos con quien recibe).' : '') + '</div></div>' : '<div class="banner warn">' + I.info + '<div class="grow">El conductor no ha registrado datos para transferencia. Acuérdenlo por llamada o paguen en efectivo.</div></div>';
+  if (S.pushOk) h += '<div class="banner ok">' + I.info + '<div class="grow">Te avisamos cuando se recoja y cuando se entregue, aunque tengas la app cerrada.</div></div>';
+  if (REC(st)) h += '<button class="link danger" data-act="openCancel" style="align-self:center"' + busyAttr() + '>Cancelar envío</button>';
+  return h + '</div></div>';
+}
 function vViaje() {
+  if (esEnvio(S.viaje)) return vEnvioP();
   const v = S.viaje || {}, c = v.conductor || {}, st = v.estado;
   const hasDest = !!destOf(v);
   const sub = st === 'en_punto' ? 'Tu conductor llegó' : st === 'asignado' ? 'Tu conductor llega en' : hasDest ? 'Llegas a ' + esc(v.destino.texto) + ' en' : 'Vas en camino a';
@@ -281,7 +325,8 @@ function vViaje() {
 }
 function vCalificar() {
   const v = S.viaje || {}, c = v.conductor || {};
-  let h = '<div class="screen"><div class="top" style="padding-bottom:22px">' + brandRow() + '<div class="sub">Viaje finalizado · ' + money(v.precioFinal || 0) + (v.pago === 'transferencia' ? ' por transferencia' : ' en efectivo') + '</div><h1 class="h1">¿Cómo estuvo tu viaje?</h1></div><div class="pad">' + errHTML();
+  const env = esEnvio(v);
+  let h = '<div class="screen"><div class="top" style="padding-bottom:22px">' + brandRow() + '<div class="sub">' + (env ? (v.devolucion ? 'Envío devuelto · ' : 'Envío entregado · ') : 'Viaje finalizado · ') + money(v.precioFinal || 0) + (v.pago === 'transferencia' ? ' por transferencia' : ' en efectivo') + '</div><h1 class="h1">' + (env ? '¿Cómo estuvo tu envío?' : '¿Cómo estuvo tu viaje?') + '</h1></div><div class="pad">' + errHTML();
   h += '<div class="card" style="align-items:center;text-align:center"><div class="avatar lg">' + esc(initials(c.nombre)) + '</div><div class="col" style="align-items:center"><div class="strong" style="font-size:16px">' + esc(c.nombre) + '</div><div class="muted">' + esc(c.moto) + ' · Placa ' + esc(c.placa) + '</div></div>' + starsHTML(S.rating, 'rate') + '<div class="strong">' + LABELS[S.rating] + '</div></div>';
   h += '<div class="col" style="gap:8px"><span class="lbl">¿Qué destacas del conductor?</span>' + chipsHTML(ASP_C, S.chips, 'chip') + '</div>';
   h += '<div class="field"><label for="com">Comentario (opcional)</label><textarea id="com" data-in="comentario" maxlength="500" placeholder="Cuéntanos más sobre el servicio">' + fv('comentario') + '</textarea></div>';
@@ -316,7 +361,7 @@ function vHistorial() {
   if (!S.hist) return h + '<div class="spinner" role="status" aria-label="Cargando"></div></div></div>';
   if (!S.hist.length) h += '<div class="card"><div class="strong">Aún no tienes viajes.</div><div class="muted">Tus viajes aparecen aquí cuando terminas uno.</div><button class="btn btn-gold" data-act="modeP">Pedir un mototour</button></div>';
   const lab = { buscando: 'Buscando', asignado: 'Asignado', en_curso: 'En curso', finalizado: 'Finalizado', cancelado: 'Cancelado' };
-  S.hist.forEach(v => { h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(v.destino.texto) + '</div><div class="muted small">' + (v._rol === 'conductor' ? 'Como conductor · ' + esc(v.pasajeroNombre) : 'Como pasajero' + (v.conductor ? ' · ' + esc(v.conductor.nombre) : '')) + ' · ' + new Date(tsMs(v.creado)).toLocaleDateString('es-CO') + '</div></div><div class="col" style="align-items:flex-end"><div class="price" style="font-size:18px">' + money(v.precioFinal || v.oferta) + '</div><span class="pill ' + (v.estado === 'finalizado' ? 'p-ok' : v.estado === 'cancelado' ? 'p-warn' : 'p-info') + '">' + (lab[v.estado] || v.estado) + '</span></div></div></div>'; });
+  S.hist.forEach(v => { h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + (esEnvio(v) ? '📦 ' : '') + esc(v.destino.texto) + '</div><div class="muted small">' + (esEnvio(v) ? 'Envío · ' : '') + (v._rol === 'conductor' ? 'Como conductor · ' + esc(v.pasajeroNombre) : 'Como pasajero' + (v.conductor ? ' · ' + esc(v.conductor.nombre) : '')) + ' · ' + new Date(tsMs(v.creado)).toLocaleDateString('es-CO') + '</div></div><div class="col" style="align-items:flex-end"><div class="price" style="font-size:18px">' + money(v.precioFinal || v.oferta) + '</div><span class="pill ' + (v.estado === 'finalizado' ? 'p-ok' : v.estado === 'cancelado' ? 'p-warn' : 'p-info') + '">' + (lab[v.estado] || v.estado) + '</span></div></div></div>'; });
   return h + '</div></div>';
 }
 function vContactos() {
@@ -337,13 +382,30 @@ const validDir = s => s.length >= 5 && s.length <= 120;
 const cleanTel = v => String(v || '').replace(/\D/g, '');
 // Dirección y celular del conductor: van en conductores/{id}/privado/datos (solo los ven el conductor y el administrador)
 const privRef = cid => doc(db, 'conductores', cid, 'privado', 'datos');
+// Documento de identidad: tipo en conductores/{id}.idTipo; número en privado/datos.idNumero; fotos id1 (frente o página de datos) e id2 (reverso).
+const ID_TIPOS = [['CC', 'Cédula de ciudadanía'], ['CE', 'Cédula de extranjería'], ['PPT', 'PPT (Permiso por Protección Temporal)'], ['PA', 'Pasaporte']];
+const idNombre = t => (ID_TIPOS.find(x => x[0] === t) || [0, 'Documento de identidad'])[1];
+const cleanId = v => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const idErr = (t, n) => !ID_TIPOS.some(x => x[0] === t) ? 'Elige el tipo de documento de identidad.' : (t === 'CC' ? !/^[0-9]{6,10}$/.test(n) : !/^[A-Z0-9]{4,15}$/.test(n)) ? (t === 'CC' ? 'El número de cédula debe tener entre 6 y 10 dígitos.' : 'Escribe el número del documento (entre 4 y 15 letras o números).') : '';
+function docsReq(t) {
+  const id = t === 'PA' ? [['id1', 'Pasaporte · página de datos', 'Foto clara de la página con tu foto y tus datos']]
+    : [['id1', idNombre(t) + ' · frente', 'Foto clara, sin reflejos, que se lean los datos'], ['id2', idNombre(t) + ' · reverso', 'Parte de atrás del documento']];
+  return id.concat(DOCS_C);
+}
+const ID_DOCS = ['id1', 'id2'];
+const idChips = (key, sel, act) => '<div class="chips" role="group" aria-label="Tipo de documento">' + ID_TIPOS.map(x => '<button class="chip" data-act="' + act + '" data-v="' + x[0] + '" aria-pressed="' + (sel === x[0]) + '">' + x[1] + '</button>').join('') + '</div>';
 const DOCS_C = [['licencia', 'Licencia de conducción', 'Foto clara del documento vigente'], ['foto', 'Foto del conductor', 'Rostro visible, de frente y sin gafas'], ['tarjeta', 'Tarjeta de propiedad', 'Licencia de tránsito del mototour'], ['soat', 'SOAT', 'Póliza vigente del mototour'], ['transito', 'Registro ante la Secretaría de Tránsito', 'Certificado o carné expedido por la Secretaría de Tránsito']];
 function vRegistroC() {
   const c = S.conductor, reg = !!c, locked = reg && c.estado === 'aprobado';
   const lab = { pendiente: ['p-warn', 'En revisión'], aprobado: ['p-ok', 'Aprobado'], rechazado: ['p-danger', 'Rechazado'], suspendido: ['p-danger', 'Suspendido'] };
   let h = '<div class="screen">' + subTop(reg ? 'Mis documentos' : 'Registro de conductor') + '<div class="pad">' + errHTML() + bannerHTML(S.banner);
   if (!reg) h += '<div class="banner" style="background:#EDE6FA;color:#4B2A8A">' + I.info + '<div class="grow"><b>Tu primer mes es gratis.</b> Empieza a contar desde el día en que te inscribes.</div></div>';
+  const idT = (c && c.idTipo && c.estado === 'aprobado' ? c.idTipo : S.f.idTipo || (c && c.idTipo)) || '';
+  const idCard = (titulo, extra) => '<div class="card" style="gap:12px;border:2px solid var(--gold)"><div class="h2">' + titulo + '</div><div class="col" style="gap:8px"><span class="lbl" id="lbid">Tipo de documento</span>' + (c && c.idTipo && c.estado === 'aprobado' ? '<div class="strong">' + esc(idNombre(c.idTipo)) + '</div>' : idChips('idTipo', idT, 'idTipo')) + '</div>' +
+    '<div class="field"><label for="rid">Número de documento</label><input type="text" id="rid" data-in="idNum" inputmode="' + (idT === 'CC' ? 'numeric' : 'text') + '" autocapitalize="characters" autocomplete="off" placeholder="' + (idT === 'CC' ? 'Ej. 1082456789' : 'Número como aparece en el documento') + '" value="' + fv('idNum') + '"></div>' +
+    '<div class="muted small">Solo lo ven tú y el administrador. No se muestra a los pasajeros.</div>' + (extra || '') + '</div>';
   if (!reg) {
+    h += idCard('Documento de identidad');
     h += '<div class="field"><label for="rm">Marca y modelo del mototour</label><input type="text" id="rm" data-in="moto" placeholder="Marca y modelo" value="' + fv('moto') + '"></div>' +
       '<div class="field"><label for="rc">Color</label><input type="text" id="rc" data-in="color" placeholder="Ej. Blanco" value="' + fv('color') + '"></div>' +
       '<div class="field"><label for="rp">Placa</label><input type="text" id="rp" data-in="placa" placeholder="Ej. ABC12D" autocapitalize="characters" value="' + fv('placa') + '"></div>' +
@@ -356,25 +418,32 @@ function vRegistroC() {
     h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.moto) + ' ' + esc(c.color) + '</div><div class="muted small">Placa ' + esc(c.placa) + (c.registro ? ' · Registro de tránsito N° ' + esc(c.registro) : '') + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' +
       (locked ? '<div class="muted small">Tus documentos fueron aprobados y ya no se pueden cambiar.</div>' : '<div class="muted small">Si cambias una foto, se envía de inmediato al administrador.</div>') + '</div>';
     if (S.cpriv === null) h += '<div class="spinner" role="status" aria-label="Cargando datos de contacto"></div>';
-    else h += '<div class="card"><div class="h2">Mis datos de contacto</div>' + (!S.cpriv.direccion ? '<div class="banner warn">' + I.info + '<div class="grow">Registra tu dirección y tu celular.</div></div>' : '') +
+    else {
+      const faltaId = !c.idTipo || !S.cpriv.idNumero;
+      if (faltaId) h += idCard('Documento de identidad', '<div class="banner warn">' + I.info + '<div class="grow">Registra tu documento de identidad y sube la foto más abajo. Luego toca "Guardar mis datos".</div></div>');
+      else h += '<div class="card" style="gap:4px"><div class="h2">Documento de identidad</div><div class="strong">' + esc(idNombre(c.idTipo)) + ' N° ' + esc(S.cpriv.idNumero) + '</div><div class="muted small">Si hay un error, pídele al administrador que lo corrija.</div></div>';
+      h += '<div class="card"><div class="h2">Mis datos de contacto</div>' + (!S.cpriv.direccion ? '<div class="banner warn">' + I.info + '<div class="grow">Registra tu dirección y tu celular.</div></div>' : '') +
       '<div class="field"><label for="rd">Dirección de residencia</label><input type="text" id="rd" data-in="drvDir" maxlength="120" placeholder="Ej. Calle 5 # 12-30, barrio Centro" autocomplete="street-address" value="' + fv('drvDir') + '"></div>' +
       '<div class="field"><label for="rcel">Celular</label><input type="tel" id="rcel" data-in="drvTel" inputmode="numeric" placeholder="10 dígitos" autocomplete="tel" value="' + fv('drvTel') + '"></div>' +
-      '<button class="btn btn-ghost" data-act="saveCpriv"' + busyAttr() + '>Guardar datos de contacto</button></div>';
+      '<button class="btn btn-ghost" data-act="saveCpriv"' + busyAttr() + '>' + (faltaId ? 'Guardar mis datos' : 'Guardar datos de contacto') + '</button></div>';
+    }
   }
-  const faltan = DOCS_C.filter(d => !S.docs[d[0]]).length;
+  const REQ = docsReq(idT);
+  const faltan = REQ.filter(d => !S.docs[d[0]]).length;
   h += '<span class="lbl">Documentos</span>';
   if (!locked && (!reg || S.docsFor === S.user.uid) && faltan) h += '<div class="banner info">' + I.info + '<div class="grow">' + (reg ? 'Te faltan ' + faltan + ' documento(s). Súbelos cuando los tengas; el administrador también puede adjuntarlos.' : 'Puedes enviar el registro aunque te falte algún documento. Lo subes después, o el administrador lo adjunta, y él activa tu cuenta.') + '</div></div>';
   if (reg && S.docsFor !== S.user.uid) return h + '<div class="spinner" role="status" aria-label="Cargando documentos"></div></div></div>';
   h += '<div class="card" style="gap:0;padding:4px 14px">';
-  DOCS_C.forEach(d => {
-    const x = S.docs[d[0]];
+  REQ.forEach(d => {
+    const x = S.docs[d[0]], lk = locked && !(ID_DOCS.includes(d[0]) && !x);
     const pill = !x ? '<span style="align-self:flex-start" class="pill p-warn">Falta</span>' : x.estado === 'local' ? '<span style="align-self:flex-start" class="pill p-info">Lista para enviar</span>' : '<span style="align-self:flex-start" class="pill p-ok">Enviada</span>';
     const thumb = x ? '<img src="' + x.img + '" alt="' + d[1] + '" style="width:52px;height:52px;object-fit:cover;border-radius:8px;flex-shrink:0;border:1px solid var(--line)">' : '<span style="width:52px;height:52px;border-radius:8px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--muted)">' + I.doc + '</span>';
-    const btn = locked ? '' : '<label class="upl">' + (x ? 'Cambiar' : 'Subir') + '<input class="vh" type="file" accept="image/*" data-docup="' + d[0] + '"' + (d[0] === 'foto' ? ' capture="user"' : '') + ' aria-label="' + (x ? 'Cambiar ' : 'Subir ') + d[1] + '"></label>';
+    const btn = lk ? '' : '<label class="upl">' + (x ? 'Cambiar' : 'Subir') + '<input class="vh" type="file" accept="image/*" data-docup="' + d[0] + '"' + (d[0] === 'foto' ? ' capture="user"' : '') + ' aria-label="' + (x ? 'Cambiar ' : 'Subir ') + d[1] + '"></label>';
     h += '<div class="docrow">' + thumb + '<div class="col grow"><div class="strong" style="font-size:14px">' + d[1] + '</div><div class="muted small">' + d[2] + '</div>' + pill + '</div>' + btn + '</div>';
   });
   h += '</div>';
   if (S.docMsg) h += '<div class="banner info" role="status">' + I.info + '<div class="grow">' + esc(S.docMsg) + '</div></div>';
+  if (!reg && idT === 'PA') h += '<div class="banner info">' + I.info + '<div class="grow">Con pasaporte se pide solo la página de datos (sin reverso).</div></div>';
   if (!reg) h += '<button class="btn btn-navy" data-act="saveConductor"' + busyAttr() + '>Enviar registro</button>';
   return h + '</div></div>';
 }
@@ -399,6 +468,16 @@ function compressImage(file) {
     img.src = url;
   });
 }
+// Conductores aprobados antes de pedir el documento de identidad: se les avisa que lo registren
+async function checkIdFalta() {
+  const c = S.conductor; if (!c || c.estado !== 'aprobado') return;
+  try {
+    const n = (await getCountFromServer(query(collection(db, 'conductores', S.user.uid, 'documentos'), where('tipo', 'in', ID_DOCS)))).data().count;
+    let num = true; try { const p = await getDoc(privRef(S.user.uid)); num = !!(p.exists() && p.data().idNumero); } catch (e) { }
+    S.idFalta = !c.idTipo || !num || n < (c.idTipo === 'PA' ? 1 : 2);
+  } catch (e) { S.idFalta = false; }
+  if (S.screen === 'solicitudes') render();
+}
 async function loadMyDocs() {
   try {
     const qs = await getDocs(collection(db, 'conductores', S.user.uid, 'documentos'));
@@ -408,6 +487,7 @@ async function loadMyDocs() {
     try { const p = await getDoc(privRef(S.user.uid)); S.cpriv = p.exists() ? p.data() : {}; } catch (e) { S.cpriv = {}; }
     if (S.f.drvDir == null || S.f.drvDir === '') S.f.drvDir = S.cpriv.direccion || '';
     if (S.f.drvTel == null || S.f.drvTel === '') S.f.drvTel = S.cpriv.telefono || S.perfil.telefono || '';
+    if (!S.f.idNum && S.cpriv.idNumero) S.f.idNum = S.cpriv.idNumero;
     if (S.screen === 'registroC') render();
   } catch (e) { fail(e); }
 }
@@ -421,16 +501,19 @@ function vSolicitudes() {
   if (blc) return h + blockCard('conductor', blc) + '</div></div>';
   if (conductorBloqueado()) return h + susAviso() + '</div></div>';
   h += susAviso();
+  if (S.idFalta) h += '<div class="banner warn">' + I.info + '<div class="grow"><b>Falta tu documento de identidad.</b> Regístralo y sube la foto; sigues trabajando normal mientras tanto.</div><button data-act="go" data-v="registroC">Subir</button></div>';
   if (rtc && rtc.pct != null && rtc.pct > 10) h += '<div class="banner warn">' + I.info + '<div class="grow">Tu tasa de cancelación es de <b>' + rtc.pct + ' %</b>. Si supera el 20 %, tu cuenta pasa a revisión del administrador.</div></div>';
   if (S.online && S.gps === 'error') h += gpsBanner().replace('<div class="grow">', '<div class="grow"><b>Los pasajeros no te ven en el mapa.</b> ');
   if (S.online) h += pushCard(true);
+  const acE = !!(S.conductor && S.conductor.envios);
+  h += '<div class="card" style="flex-direction:row;align-items:center;gap:12px"><div class="col grow"><div class="strong">Acepto envíos</div><div class="muted small">' + (acE ? 'Recibes también solicitudes de mensajería. Apágalo cuando lleves pasajeros.' : 'Actívalo para recibir también solicitudes de envío de paquetes.') + '</div></div><button class="swi' + (acE ? ' on' : '') + '" role="switch" aria-checked="' + acE + '" aria-label="Acepto envíos" data-act="envios"' + busyAttr() + '></button></div>';
   if (!S.online) h += '<div class="card"><div class="strong">Estás desconectado.</div><div class="muted">Conéctate para recibir solicitudes de pasajeros. La app debe permanecer abierta.</div><button class="btn btn-gold" data-act="online">Conectarme</button></div>';
   else if (!S.requests.length) h += '<div class="card"><div class="spinner" aria-hidden="true"></div><div class="strong center">Buscando pasajeros…</div><div class="muted center">Las solicitudes aparecen aquí con un sonido. Puedes aceptar el precio o contraofertar.</div></div>';
   if (S.online) S.requests.forEach(r => {
-    const o = S.cOtro[r.id] || {}, pr = S.ratings['p_' + r.pasajeroId], km = distKm(S.pos, r.origen);
-    h += '<div class="card"><div class="row between" style="align-items:flex-start"><div class="col"><div class="strong">' + esc(r.pasajeroNombre) + ' <span class="muted" style="font-weight:500">' + (pr ? '★ ' + fmtRating(pr.avg) : '') + '</span></div>' + ratePill(r.pasajeroId, 'pasajero') + '<div class="muted small">' + (km != null ? 'A ' + fmtDist(km) + ' de ti' : 'Distancia no disponible') + '</div></div><div class="col" style="align-items:flex-end;gap:4px"><div class="price">' + money(r.oferta) + '</div><span class="pill ' + (r.pago === 'transferencia' ? 'p-info' : 'p-ok') + '">' + pagoTxt(r) + '</span></div></div>' +
-      '<div class="col" style="gap:6px"><div class="row"><span class="dot"></span>' + esc(r.origen.texto) + '</div><div class="row"><span class="sq"></span>' + esc(r.destino.texto) + '</div>' + (r.nota ? '<div class="muted small">Nota: ' + esc(r.nota) + '</div>' : '') + '</div>' +
-      (pickupOf(r) ? '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="reqMap" data-v="' + r.id + '" aria-expanded="' + (S.reqMap === r.id) + '">' + (S.reqMap === r.id ? 'Ocultar mapa' : 'Ver ubicación del pasajero') + '</button>' : '<div class="muted small">El pasajero no compartió su GPS; usa la referencia.</div>') +
+    const o = S.cOtro[r.id] || {}, pr = S.ratings['p_' + r.pasajeroId], km = distKm(S.pos, r.origen), env = esEnvio(r);
+    h += '<div class="card' + (env ? ' sel' : '') + '"><div class="row between" style="align-items:flex-start"><div class="col">' + (env ? '<div>' + TAG_ENV + '</div>' : '') + '<div class="strong">' + esc(r.pasajeroNombre) + ' <span class="muted" style="font-weight:500">' + (pr ? '★ ' + fmtRating(pr.avg) : '') + '</span></div>' + ratePill(r.pasajeroId, 'pasajero') + '<div class="muted small">' + (km != null ? 'A ' + fmtDist(km) + ' de ti' : 'Distancia no disponible') + '</div></div><div class="col" style="align-items:flex-end;gap:4px"><div class="price">' + money(r.oferta) + '</div><span class="pill ' + (r.pago === 'transferencia' ? 'p-info' : 'p-ok') + '">' + pagoTxt(r) + '</span></div></div>' + (env ? '<div class="small strong" style="color:var(--ok-ink)">El envío lo ' + quienPaga(r) + '</div>' : '') +
+      '<div class="col" style="gap:6px"><div class="row"><span class="dot"></span>' + (env ? 'Recoger: ' : '') + esc(r.origen.texto) + '</div><div class="row"><span class="sq"></span>' + (env ? 'Entregar: ' : '') + esc(r.destino.texto) + '</div>' + (env ? '<div class="muted small">Contenido: <b>' + contTxt(r.envio && r.envio.contenido) + '</b>' + (r.envio && r.envio.desc ? ' · ' + esc(r.envio.desc) : '') + '</div>' : '') + (r.nota ? '<div class="muted small">Nota: ' + esc(r.nota) + '</div>' : '') + '</div>' +
+      (pickupOf(r) ? '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="reqMap" data-v="' + r.id + '" aria-expanded="' + (S.reqMap === r.id) + '">' + (S.reqMap === r.id ? 'Ocultar mapa' : env ? 'Ver punto de recogida' : 'Ver ubicación del pasajero') + '</button>' : '<div class="muted small">El pasajero no compartió su GPS; usa la referencia.</div>') +
       (S.reqMap === r.id ? '<div style="border-radius:12px;overflow:hidden;border:1px solid var(--line)"><div id="map" class="lmap" style="height:220px" role="img" aria-label="Mapa con la ubicación del pasajero"></div>' + legendHTML([['person', 'Pasajero'], ['moto', 'Tú']].concat(destOf(r) ? [['dest', 'Destino']] : [])) + '</div>' : '') +
       '<button class="btn btn-gold" data-act="cOffer" data-v="' + r.id + '" data-p="' + r.oferta + '" style="min-height:48px;font-size:15px"' + busyAttr() + '>Aceptar ' + money(r.oferta) + '</button>' +
       '<div class="col" style="gap:6px"><span class="lbl">O contraoferta</span><div class="grid4">' + [500, 1000, 1500].map(d => '<button class="cbtn" data-act="cOffer" data-v="' + r.id + '" data-p="' + (r.oferta + d) + '"' + busyAttr() + '>' + money(r.oferta + d) + '</button>').join('') +
@@ -448,7 +531,50 @@ function vEspera() {
   if (e.perdida) return h + '<div class="card"><div class="strong">El pasajero eligió otra oferta o canceló la solicitud.</div><button class="btn btn-gold" data-act="backToRequests">Ver más solicitudes</button></div></div></div>';
   return h + '<div class="card"><div class="spinner" aria-hidden="true"></div><div class="row"><span class="dot"></span>' + esc(e.origen) + '</div><div class="row"><span class="sq"></span>' + esc(e.destino) + '</div></div><button class="btn btn-ghost" data-act="cWithdraw"' + busyAttr() + '>Retirar oferta</button></div></div>';
 }
+function vCEnvio() {
+  const v = S.viaje || {}, st = v.estado, dev = !!v.devolucion, o = v.origen || {}, live = S.paxPos || pickupOf(v), dst = dev ? pickupOf(v) : destOf(v), target = REC(st) ? live : dst, R = S.recibe || {};
+  const q = target ? target.lat + ',' + target.lng : encodeURIComponent(REC(st) || dev ? o.texto : v.destino.texto);
+  const waze = target ? 'https://waze.com/ul?ll=' + q + '&navigate=yes' : 'https://waze.com/ul?q=' + q + '&navigate=yes';
+  const gm = 'https://www.google.com/maps/dir/?api=1&destination=' + q;
+  const sub = st === 'asignado' ? 'Recoge el paquete de' : st === 'en_punto' ? 'Llegaste a recoger el paquete de' : dev ? 'Devuelve el paquete a' : 'Entrega el paquete a';
+  const big = REC(st) || dev ? v.pasajeroNombre : (R.nombre || (v.destino ? v.destino.texto : ''));
+  let h = '<div class="screen"><div class="top" style="gap:10px"><div class="row between" style="align-items:flex-start"><div class="col" style="gap:6px"><div>' + TAG_ENV + '</div><div class="sub">' + sub + '</div><div class="h1" style="color:#C9A227">' + esc(big) + '</div></div><button class="sos" data-act="sos" aria-label="Botón de pánico">SOS</button></div></div>';
+  h += '<div id="map" class="lmap" role="img" aria-label="Mapa del envío"></div>' + legendHTML(REC(st) ? [['moto', 'Tú'], ['person', 'Quien envía'], ['otro', 'Otros conductores']] : [['moto', 'Tú']].concat(dst ? [['dest', dev ? 'Devolución' : 'Entrega']] : [])) + '<div class="sheet"><div class="handle"></div>' + sosBlock() + errHTML() + bannerHTML(S.banner);
+  if (st === 'en_punto') { const t = (Date.now() - tsMs(v.enPuntoEn)) / 1000; h += '<div class="card" style="align-items:center;gap:6px"><div class="muted small strong">Quien envía tiene para entregarte el paquete</div><div class="amount" style="line-height:1.25" data-timer="espera">' + fmtClock(ESPERA_S - 10 - t) + '</div><div class="bar" style="width:100%"><div data-timerbar="espera" style="width:' + Math.min(100, t / 3) + '%;background:#C9A227"></div></div></div>'; }
+  if (st === 'asignado') h += live ? '<div class="row between"><span class="muted">Ruta hasta el punto de recogida</span><span class="strong" data-eta>' + esc(S.pos ? etaText() : 'Ubicándote…') + '</span></div>' : '<div class="banner warn">' + I.info + '<div class="grow">Quien envía no compartió su GPS. Guíate por la referencia y llámalo.</div></div>';
+  if (st === 'en_curso') h += dst ? '<div class="row between"><span class="muted">' + (dev ? 'Ruta de regreso' : 'Ruta hasta la entrega') + '</span><span class="strong" data-eta>' + esc(S.pos ? etaText() : 'Ubicándote…') + '</span></div>' : '<div class="banner warn">' + I.info + '<div class="grow">' + (dev ? 'El punto de recogida no está en el mapa.' : 'La entrega no está marcada en el mapa.') + ' Usa Waze o Google Maps con la dirección.</div></div>';
+  const paso = (ok, now, n, t, d) => '<div class="st' + (ok ? ' ok' : now ? ' now' : '') + '"><span class="b">' + (ok ? '✓' : n) + '</span><div class="col"><div class="strong">' + t + '</div>' + (d ? '<div class="muted small">' + d + '</div>' : '') + '</div></div>';
+  h += '<div class="card"><div class="steps">' + paso(st === 'en_curso', REC(st), 1, st === 'en_curso' ? 'Paquete recogido' : 'Recoger el paquete', esc(o.texto)) +
+    paso(false, st === 'en_curso', 2, dev ? 'Devolver a ' + esc(v.pasajeroNombre) : 'Entregar a ' + esc(R.nombre || 'quien recibe'), esc(dev ? o.texto : v.destino.texto)) + paso(false, false, 3, dev ? 'Devuelto' : 'Entregado') + '</div></div>';
+  h += '<div class="row"><div class="avatar">' + esc(initials(v.pasajeroNombre)) + '</div><div class="col grow"><div class="strong">' + esc(v.pasajeroNombre) + '</div><div class="muted small">Quien envía' + (S.ratings['p_' + v.pasajeroId] ? ' · ★ ' + fmtRating(S.ratings['p_' + v.pasajeroId].avg) : '') + '</div><div class="small strong">El envío lo ' + quienPaga(v) + '</div></div><div class="col" style="align-items:flex-end;flex-shrink:0"><span class="muted small">' + cobroTxt(v) + '</span><span class="price">' + money(v.precioFinal || 0) + '</span></div></div>';
+  h += '<div class="offerbox" style="gap:8px"><div class="row"><span class="dot"></span>Recoger: ' + esc(o.texto) + '</div><div class="row"><span class="sq"></span>Entregar: ' + esc(v.destino.texto) + '</div><div class="muted small">Contenido: <b>' + contTxt(v.envio && v.envio.contenido) + '</b>' + (v.envio && v.envio.desc ? ' · ' + esc(v.envio.desc) : '') + '</div></div>';
+  h += '<div class="row"><a class="btn btn-ghost" style="flex:1" target="_blank" rel="noopener" href="' + waze + '">Navegar con Waze</a><a class="btn btn-ghost" style="flex:1" target="_blank" rel="noopener" href="' + gm + '">Google Maps</a></div>';
+  if (st === 'en_curso' && !dev) h += '<div class="card" style="gap:8px"><div class="strong">Quien recibe</div><div class="row between"><div class="col"><div class="strong">' + esc(R.nombre || '…') + '</div><div class="muted small">' + esc(R.telefono || '') + '</div></div>' + (R.telefono ? '<a class="btn btn-ghost btn-sm" href="tel:' + esc(R.telefono) + '">' + I.phone + 'Llamar</a>' : '') + '</div></div>';
+  if (S.pPhone) h += '<a class="btn btn-ghost" href="tel:' + esc(S.pPhone) + '">' + I.phone + 'Llamar a quien envía</a>';
+  if (st === 'asignado') {
+    const d = distKm(S.pos, live), cerca = !live || (d != null && d <= 0.1);
+    h += '<button class="btn btn-gold" data-act="llegue"' + (S.busy || !cerca ? ' disabled' : '') + '>Llegué al punto</button>' +
+      (cerca ? '' : '<div class="muted small center">Se habilita cuando estés a menos de 100 m del punto de recogida' + (d != null ? ' (estás a ' + fmtDist(d) + ')' : '') + '.</div>') +
+      '<button class="btn btn-ghost" data-act="cStart"' + busyAttr() + '>Recogí el paquete</button>';
+  } else if (st === 'en_punto') {
+    const listo = (Date.now() - tsMs(v.enPuntoEn)) / 1000 >= ESPERA_S;
+    h += '<button class="btn btn-gold" data-act="cStart"' + busyAttr() + '>Recogí el paquete</button>' +
+      '<button class="btn btn-ghost" data-act="noShow" data-noshow' + (S.busy || !listo ? ' disabled' : '') + '>Quien envía no se presentó</button>' +
+      '<div class="muted small center">' + (listo ? 'Cancelar por no presentarse no afecta tu tasa de cancelación.' : 'Se habilita al terminar los 5 minutos de espera. No afecta tu tasa de cancelación.') + '</div>';
+  } else {
+    const cobra = pagaRec(v) && !dev ? '<div class="banner warn">' + I.info + '<div class="grow">Antes de entregar, cobra <b>' + money(v.precioFinal || 0) + '</b> a quien recibe (' + pagoTxt(v).toLowerCase() + ').</div></div>' : '';
+    h += '<div class="card" style="gap:10px">' + cobra + '<div class="field"><label for="cod">Código de entrega (te lo dicta ' + (dev ? 'quien envía' : 'quien recibe') + ')</label><input type="text" id="cod" data-in="codEnt" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="····" aria-describedby="codh" value="' + fv('codEnt') + '" style="font-size:22px;font-weight:800;letter-spacing:8px;text-align:center"></div>' +
+      '<button class="btn btn-gold" data-act="cEntregar"' + busyAttr() + '>' + (dev ? 'Confirmar devolución' : 'Confirmar entrega') + '</button><div class="muted small" id="codh">Son 4 dígitos. Sin el código correcto no se puede cerrar el envío.' + (dev ? '' : ' Si quien recibe no está, comunícate con quien envía.') + '</div></div>';
+    if (!dev) {
+      if (S.devAsk) h += '<div class="card" style="gap:10px;border:2px solid var(--danger)"><div class="strong">Devolver el paquete a quien envía</div><div class="field"><label for="dvm">¿Por qué no pudiste entregar?</label><textarea id="dvm" data-in="devMotivo" maxlength="200" placeholder="Ej. No había nadie y no contesta el celular">' + fv('devMotivo') + '</textarea></div><div class="muted small">Quien envía recibe un aviso. Para cerrar, te dará el mismo código de entrega.</div><div class="row"><button class="btn btn-danger btn-sm" style="flex:1" data-act="cDevolver"' + busyAttr() + '>Devolver</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="devAsk">Seguir con la entrega</button></div></div>';
+      else h += '<button class="link danger" data-act="devAsk" style="align-self:center">No pude entregar · Devolver a quien envía</button>';
+    }
+  }
+  if (REC(st)) h += '<button class="link danger" data-act="openCancel" style="align-self:center"' + busyAttr() + '>Cancelar envío</button>';
+  return h + '</div></div>';
+}
 function vCViaje() {
+  if (esEnvio(S.viaje)) return vCEnvio();
   const v = S.viaje || {}, st = v.estado, o = v.origen || {}, live = S.paxPos || pickupOf(v), dst = destOf(v), target = REC(st) ? live : dst;
   const q = target ? target.lat + ',' + target.lng : encodeURIComponent(REC(st) ? o.texto : v.destino.texto);
   const waze = target ? 'https://waze.com/ul?ll=' + q + '&navigate=yes' : 'https://waze.com/ul?q=' + q + '&navigate=yes';
@@ -478,8 +604,9 @@ function vCViaje() {
 }
 function vCCalificar() {
   const v = S.viaje || {};
-  let h = '<div class="screen"><div class="top">' + brandRow() + '<div class="row between" style="align-items:flex-end"><div class="col"><div class="sub">Cobra al pasajero</div><div class="amount" style="color:#C9A227">' + money(v.precioFinal || 0) + '</div></div><div class="sub" style="text-align:right">' + pagoTxt(v) + '</div></div></div><div class="pad">' + errHTML();
-  h += '<div class="card" style="align-items:center;text-align:center"><div class="h2">Califica a ' + esc(v.pasajeroNombre) + '</div><div class="muted">Solo los conductores ven la calificación de los pasajeros.</div>' + starsHTML(S.rating, 'rate') + '<div class="strong">' + LABELS[S.rating] + '</div></div>';
+  const env = esEnvio(v);
+  let h = '<div class="screen"><div class="top">' + brandRow() + '<div class="row between" style="align-items:flex-end"><div class="col"><div class="sub">' + (!env ? 'Cobra al pasajero' : pagaRec(v) && !v.devolucion ? 'Cobrado a quien recibe' : 'Cobra a quien envía') + '</div><div class="amount" style="color:#C9A227">' + money(v.precioFinal || 0) + '</div></div><div class="sub" style="text-align:right">' + pagoTxt(v) + '</div></div></div><div class="pad">' + errHTML();
+  h += '<div class="card" style="align-items:center;text-align:center"><div class="h2">Califica a ' + (env ? 'quien envía: ' : '') + esc(v.pasajeroNombre) + '</div><div class="muted">Solo los conductores ven la calificación de los pasajeros.</div>' + starsHTML(S.rating, 'rate') + '<div class="strong">' + LABELS[S.rating] + '</div></div>';
   h += '<div class="col" style="gap:8px"><span class="lbl">¿Qué destacas del pasajero?</span>' + chipsHTML(ASP_P, S.chips, 'chip') + '</div>';
   return h + '<button class="btn btn-gold" data-act="cSendRating"' + busyAttr() + '>Enviar y seguir conectado</button><button class="link" data-act="cSkipRating" style="align-self:center">Ahora no</button></div></div>';
 }
@@ -758,7 +885,7 @@ function admBody(t) {
     if (!pend) tbl = '<div class="spinner" role="status" aria-label="Cargando"></div>';
     else if (!pend.length) tbl = '<div class="muted">No hay conductores pendientes de aprobación.</div>';
     else {
-      const docs = c => { const n = S.admDocCount[c.id]; return n == null ? '<span class="pill p-info">…</span>' : '<span class="pill ' + (n >= DOCS_C.length ? 'p-ok' : 'p-warn') + '">' + n + ' de ' + DOCS_C.length + '</span>'; };
+      const docs = c => { const N = docsReq(c.idTipo).length, n = S.admDocCount[c.id] == null ? null : Math.min(S.admDocCount[c.id], N); return n == null ? '<span class="pill p-info">…</span>' : '<span class="pill ' + (n >= N ? 'p-ok' : 'p-warn') + '">' + n + ' de ' + N + '</span>'; };
       const btn = c => '<button class="btn btn-ghost btn-sm" data-act="admReview" data-v="' + c.id + '">Revisar</button>';
       tbl = wide ? '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th scope="col">Conductor</th><th scope="col">Mototour / placa</th><th scope="col">Documentos</th><th scope="col">Acción</th></tr></thead><tbody>' +
         pend.map(c => '<tr><td class="strong">' + esc(c.nombre) + '</td><td>' + esc(c.moto) + ' · ' + esc(c.placa) + '</td><td>' + docs(c) + '</td><td>' + btn(c) + '</td></tr>').join('') + '</tbody></table></div>'
@@ -778,13 +905,13 @@ function admBody(t) {
     h += admDrvFiltros(L.length, fl.length);
     fl.forEach(c => {
       const l = lab[c.estado] || ['p-info', c.estado];
-      const open = S.admOpen === c.id, dl = S.admDocs[c.id], nDocs = dl && dl !== 'cargando' ? Object.keys(dl).length : null;
+      const REQ = docsReq(c.idTipo), open = S.admOpen === c.id, dl = S.admDocs[c.id], nDocs = dl && dl !== 'cargando' ? REQ.filter(d => dl[d[0]]).length : null;
       h += '<div class="card"><div class="row between"><div class="col"><div class="strong">' + esc(c.nombre) + '</div><div class="muted small">' + esc(c.moto) + ' ' + esc(c.color) + ' · Placa ' + esc(c.placa) + '</div><div class="small strong">' + (c.registro ? 'Registro de tránsito N° ' + esc(c.registro) : 'Sin número de registro de tránsito') + '</div></div><span class="pill ' + l[0] + '">' + l[1] + '</span></div>' + admDrvRating(c) +
         '<div class="row"><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admDocs" data-v="' + c.id + '" aria-expanded="' + open + '">' + (open ? 'Ocultar documentos' : 'Ver documentos') + '</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admDriver" data-v="' + c.id + '">Servicios e ingresos</button></div>';
       if (open) {
         if (!dl || dl === 'cargando') h += '<div class="spinner" role="status" aria-label="Cargando documentos"></div>';
         else {
-          h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + DOCS_C.map(d => {
+          h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + REQ.map(d => {
             const x = dl[d[0]], big = S.admBig === c.id + ':' + d[0];
             const up = '<label class="upl" style="min-height:36px;align-self:flex-start">' + (x ? 'Cambiar' : 'Adjuntar') + '<input class="vh" type="file" accept="image/*" data-admdocup="' + c.id + ':' + d[0] + '" aria-label="' + (x ? 'Cambiar ' : 'Adjuntar ') + d[1] + ' de ' + esc(c.nombre) + '"></label>';
             return '<div class="col" style="gap:4px' + (big ? ';grid-column:1 / -1' : '') + '"><span class="small strong">' + d[1] + '</span>' + (x ? '<button data-act="admBig" data-v="' + c.id + ':' + d[0] + '" aria-label="' + (big ? 'Reducir ' : 'Ampliar ') + d[1] + '" style="padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--field)"><img src="' + x + '" alt="' + d[1] + ' de ' + esc(c.nombre) + '" style="width:100%;' + (big ? 'height:auto' : 'height:110px;object-fit:cover') + ';display:block"></button>' : '<div class="pill p-danger" style="align-self:flex-start">Falta</div>') + up + '</div>';
@@ -797,19 +924,21 @@ function admBody(t) {
               '<div class="field"><label for="ec' + c.id + '">Color</label><input type="text" id="ec' + c.id + '" data-in="aeColor" value="' + fv('aeColor') + '"></div>' +
               '<div class="field"><label for="ep' + c.id + '">Placa</label><input type="text" id="ep' + c.id + '" data-in="aePlaca" autocapitalize="characters" value="' + fv('aePlaca') + '"></div>' +
               '<div class="field"><label for="er' + c.id + '">Número de registro de tránsito (opcional)</label><input type="text" id="er' + c.id + '" data-in="aeReg" autocapitalize="characters" value="' + fv('aeReg') + '"></div>' +
+              '<div class="col" style="gap:6px"><span class="lbl">Tipo de documento de identidad</span>' + idChips('aeIdTipo', S.f.aeIdTipo, 'aeIdTipo') + '</div>' +
+              '<div class="field"><label for="ei' + c.id + '">Número de documento</label><input type="text" id="ei' + c.id + '" data-in="aeIdNum" autocapitalize="characters" autocomplete="off" value="' + fv('aeIdNum') + '"></div>' +
               '<div class="field"><label for="ed' + c.id + '">Dirección de residencia</label><input type="text" id="ed' + c.id + '" data-in="aeDir" maxlength="120" value="' + fv('aeDir') + '"></div>' +
               '<div class="field"><label for="et' + c.id + '">Celular</label><input type="tel" id="et' + c.id + '" data-in="aeTel" inputmode="numeric" placeholder="10 dígitos" value="' + fv('aeTel') + '"></div>' +
               '<div class="row"><button class="btn btn-gold btn-sm" style="flex:1" data-act="admEditSave" data-v="' + c.id + '"' + busyAttr() + '>Guardar datos</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="admEdit" data-v="">Cancelar</button></div></div>';
           } else {
-            h += '<div class="col" style="gap:2px;border-top:1px solid var(--line);padding-top:10px"><span class="small"><b>Dirección:</b> ' + (pv ? (pv.direccion ? esc(pv.direccion) : '<span class="pill p-warn">Sin registrar</span>') : '…') + '</span><span class="small"><b>Celular:</b> ' + (pv ? (pv.telefono ? esc(pv.telefono) : '<span class="pill p-warn">Sin registrar</span>') : '…') + '</span></div>' +
+            h += '<div class="col" style="gap:2px;border-top:1px solid var(--line);padding-top:10px"><span class="small"><b>Documento:</b> ' + (pv ? (c.idTipo && pv.idNumero ? esc(idNombre(c.idTipo)) + ' N° ' + esc(pv.idNumero) : '<span class="pill p-warn">Sin registrar</span>') : '…') + '</span><span class="small"><b>Dirección:</b> ' + (pv ? (pv.direccion ? esc(pv.direccion) : '<span class="pill p-warn">Sin registrar</span>') : '…') + '</span><span class="small"><b>Celular:</b> ' + (pv ? (pv.telefono ? esc(pv.telefono) : '<span class="pill p-warn">Sin registrar</span>') : '…') + '</span></div>' +
               '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="admEdit" data-v="' + c.id + '">Editar datos del conductor</button>';
           }
         }
       }
-      const canApprove = nDocs === DOCS_C.length;
+      const canApprove = nDocs === REQ.length;
       const incompleto = nDocs !== null && !canApprove;
       if (c.estado !== 'aprobado' && nDocs === null) h += '<div class="muted small">Revisa los documentos antes de aprobar.</div>';
-      if (c.estado !== 'aprobado' && incompleto) h += '<div class="muted small">Faltan ' + (DOCS_C.length - nDocs) + ' documento(s).</div>' +
+      if (c.estado !== 'aprobado' && incompleto) h += '<div class="muted small">Faltan ' + (REQ.length - nDocs) + ' documento(s).</div>' +
         '<label class="check"><input type="checkbox" data-in="force_' + c.id + '"' + (S.f['force_' + c.id] ? ' checked' : '') + '><span>Confirmo que verifiqué al conductor y lo apruebo sin documentos completos.</span></label>';
       if (c.aprobadoSinDocs) h += '<span class="pill p-warn" style="align-self:flex-start">Aprobado sin documentos completos</span>';
       h += '<div class="row">' +
@@ -933,8 +1062,10 @@ function calBox(t, c, quien) {
   return '<div class="small"><b>' + t + ':</b> ' + stars(c.estrellas) + ' ' + LABELS[c.estrellas] + ((c.aspectos || []).length ? ' · ' + esc(c.aspectos.join(', ')) : '') + (c.comentario ? '<div class="muted" style="margin-top:2px">"' + esc(c.comentario) + '"</div>' : '') + '</div>';
 }
 function admVFiltrados() {
-  const q = fold(S.f.admVQ).trim(), rol = S.f.admVRol || '', est = S.f.admVEst || '';
+  const q = fold(S.f.admVQ).trim(), rol = S.f.admVRol || '', est = S.f.admVEst || '', tp = S.f.admVTipo || '';
   return (S.admV || []).filter(v => {
+    if (tp === 'envio' && !esEnvio(v)) return false;
+    if (tp === 'viaje' && esEnvio(v)) return false;
     if (est === 'finalizado' && v.estado !== 'finalizado') return false;
     if (est === 'cancelado' && v.estado !== 'cancelado') return false;
     if (est === 'activo' && !['buscando', 'asignado', 'en_punto', 'en_curso'].includes(v.estado)) return false;
@@ -948,6 +1079,7 @@ function admVFiltrados() {
 function admViajes() {
   let h = '<section class="card"><h2 class="h2">Buscar viajes</h2><div class="field"><label for="avq">Nombre del pasajero o del conductor, placa o lugar</label><input type="text" id="avq" data-in="admVQ" data-live="1" placeholder="Ej. Ana, ABC12D, Terminal" value="' + fv('admVQ') + '" autocomplete="off"></div>' +
     '<div class="col" style="gap:6px"><span class="lbl">Buscar en</span><div class="chips">' + fchip('admVRol', '', 'Todos') + fchip('admVRol', 'pasajero', 'Pasajero') + fchip('admVRol', 'conductor', 'Conductor') + '</div></div>' +
+    '<div class="col" style="gap:6px"><span class="lbl">Servicio</span><div class="chips">' + fchip('admVTipo', '', 'Todos') + fchip('admVTipo', 'viaje', 'Viajes') + fchip('admVTipo', 'envio', 'Envíos') + '</div></div>' +
     '<div class="col" style="gap:6px"><span class="lbl">Estado</span><div class="chips">' + fchip('admVEst', '', 'Todos') + fchip('admVEst', 'finalizado', 'Finalizados') + fchip('admVEst', 'cancelado', 'Cancelados') + fchip('admVEst', 'activo', 'En curso') + '</div></div>' +
     '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + dateIn('avi', 'admVIni', 'Desde') + dateIn('avf', 'admVFin', 'Hasta') + '</div>' +
     '<button class="btn btn-navy btn-sm" style="min-height:44px" data-act="admVLoad"' + busyAttr() + '>Consultar fechas</button></section>';
@@ -961,10 +1093,11 @@ function admViajes() {
   h += '<div class="vgrid">';
   page.forEach(v => {
     const e = EST_TXT[v.estado] || ['p-info', v.estado], cal = S.admCal[v.id] || {};
-    h += '<article class="card" style="gap:8px"><div class="row between" style="gap:8px;flex-wrap:wrap"><span class="muted small">' + fmtFecha(tsMs(v.creado)) + '</span><span class="pill ' + e[0] + '">' + e[1] + '</span></div>' +
+    h += '<article class="card" style="gap:8px"><div class="row between" style="gap:8px;flex-wrap:wrap"><span class="muted small">' + fmtFecha(tsMs(v.creado)) + '</span><span class="row" style="gap:6px">' + (esEnvio(v) ? TAG_ENV : '') + '<span class="pill ' + e[0] + '">' + e[1] + '</span></span></div>' +
       '<div class="row between" style="align-items:flex-start;gap:10px"><div class="col" style="gap:2px"><span class="small muted">Pasajero</span><button class="link" style="min-height:28px;padding:0" data-act="admVWho" data-v="pasajero|' + esc(v.pasajeroNombre) + '">' + esc(v.pasajeroNombre) + '</button></div>' +
       '<div class="col" style="gap:2px;align-items:flex-end;text-align:right"><span class="small muted">Conductor</span>' + (v.conductor ? '<button class="link" style="min-height:28px;padding:0;text-align:right" data-act="admVWho" data-v="conductor|' + esc(v.conductor.nombre) + '">' + esc(v.conductor.nombre) + '</button><span class="small muted">' + esc(v.conductor.placa || '') + '</span>' : '<span class="small">Sin asignar</span>') + '</div></div>' +
       '<div class="col" style="gap:4px"><div class="row" style="align-items:flex-start"><span class="dot" style="margin-top:5px"></span><div class="small"><b>Recogida:</b> ' + esc(v.origen ? v.origen.texto : '') + mapLink(v.origen) + '</div></div><div class="row" style="align-items:flex-start"><span class="sq" style="margin-top:5px"></span><div class="small"><b>Destino:</b> ' + esc(v.destino ? v.destino.texto : '') + mapLink(v.destino) + '</div></div></div>' +
+      (esEnvio(v) ? '<div class="small muted">Contenido: <b>' + contTxt(v.envio && v.envio.contenido) + '</b>' + (v.envio && v.envio.desc ? ' · ' + esc(v.envio.desc) : '') + ' · ' + quienPaga(v) + (v.devolucion ? ' · <b>devuelto</b>' + (v.devolucionMotivo ? ': ' + esc(v.devolucionMotivo) : '') : '') + '</div>' : '') +
       '<div class="row between"><span class="small muted">' + (v.estado === 'finalizado' ? 'Pagó' : 'Ofreció') + ' · ' + pagoTxt(v) + '</span><span class="price" style="font-size:19px">' + money(v.precioFinal || v.oferta) + '</span></div>';
     if (v.estado === 'finalizado') h += '<div class="col" style="gap:6px;border-top:1px solid var(--line);padding-top:8px">' + calBox('Pasajero calificó al conductor', cal.pc, 'El pasajero') + calBox('Conductor calificó al pasajero', cal.cp, 'El conductor') + '</div>';
     if (v.estado === 'cancelado') h += '<div class="muted small">Motivo: ' + esc(MOTIVO_TXT[v.motivo] || v.motivo || 'sin motivo') + (v.motivoTexto ? ': ' + esc(v.motivoTexto) : '') + (v.canceladoPor ? ' · canceló el ' + (v.canceladoPor === v.pasajeroId ? 'pasajero' : 'conductor') : '') + (v.penalizaA ? ' · penaliza al ' + esc(v.penalizaA) : '') + '</div>';
@@ -1072,13 +1205,14 @@ function vTerminos() {
   const p = t => '<div class="small" style="line-height:1.55">' + t + '</div>';
   return '<div class="screen">' + subTop('Términos y condiciones', S.perfil ? 'menu' : 'login') + '<div class="pad"><div class="card" style="gap:14px">' +
     sec('1. Titular', p('JNF Moto es una aplicación de Asesorías y Consultorías JNF S.A.S., NIT 901.904.435-9, con oficina en la Cra. 13 N° 10-01, Of. 1. Contacto: 310 657 1274 · 311 302 8402.')) +
-    sec('2. Qué es JNF Moto', p('Es una plataforma tecnológica que permite a pasajeros y conductores de mototour ponerse en contacto. El valor de cada viaje lo acuerdan libremente el pasajero y el conductor dentro de la aplicación; la tarifa mínima es la que indica la app.')) +
+    sec('2. Qué es JNF Moto', p('Es una plataforma tecnológica que permite a pasajeros y conductores de mototour ponerse en contacto para viajes y para envíos de documentos y paquetes. El valor de cada servicio lo acuerdan libremente el usuario y el conductor dentro de la aplicación; la tarifa mínima es la que indica la app.')) +
     sec('3. Uso de la aplicación', p('Quien usa JNF Moto se compromete a dar información verdadera, a tratar con respeto a los demás usuarios y a no usar la aplicación con fines ilegales o fraudulentos. Las cuentas pueden ser suspendidas por incumplir estas condiciones, por calificaciones bajas reiteradas o por cancelaciones frecuentes, según las reglas que muestra la app.')) +
-    sec('4. Conductores', p('Para conducir se requiere estar aprobado por el administrador y mantener vigentes la licencia de conducción, el SOAT, la tarjeta de propiedad y el registro ante la Secretaría de Tránsito. El uso del modo conductor tiene una suscripción: el primer mes es gratis desde la fecha de inscripción y luego se paga según el plan y las tarifas vigentes publicadas en "Mi suscripción". Si el pago se vence y terminan los días de gracia, el modo conductor queda bloqueado hasta que se registre el pago.')) +
-    sec('5. Seguridad', p('La app ofrece botón de pánico y contactos de emergencia. En una emergencia comunícate también con la línea 123.')) +
-    sec('6. Propiedad intelectual', p('El nombre JNF Moto, el logo de JNF S.A.S., el diseño, los textos y el código de la aplicación son propiedad de Asesorías y Consultorías JNF S.A.S. Todos los derechos reservados. Se prohíbe su reproducción, copia, modificación o distribución, total o parcial, sin autorización escrita del titular.')) +
-    sec('7. Tratamiento de datos personales', p('Asesorías y Consultorías JNF S.A.S. trata tus datos (nombre, celular, correo, ubicación durante los viajes y, para conductores, documentos, dirección y datos del vehículo) conforme a la Ley 1581 de 2012 y sus decretos reglamentarios, únicamente para prestar el servicio de la app, garantizar la seguridad de los viajes y llevar el control de las suscripciones. Como titular puedes conocer, actualizar, rectificar y suprimir tus datos, y revocar la autorización, escribiendo a los contactos del numeral 1.')) +
-    sec('8. Cambios', p('Estos términos pueden actualizarse; la versión vigente es la publicada en la aplicación.')) +
+    sec('4. Conductores', p('Para conducir se requiere estar aprobado por el administrador y registrar su documento de identidad (cédula de ciudadanía, cédula de extranjería, PPT o pasaporte) y mantener vigentes la licencia de conducción, el SOAT, la tarjeta de propiedad y el registro ante la Secretaría de Tránsito. El uso del modo conductor tiene una suscripción: el primer mes es gratis desde la fecha de inscripción y luego se paga según el plan y las tarifas vigentes publicadas en "Mi suscripción". Si el pago se vence y terminan los días de gracia, el modo conductor queda bloqueado hasta que se registre el pago.')) +
+    sec('5. Envíos', p('Quien solicita un envío declara que su contenido no incluye dinero en efectivo, armas, sustancias prohibidas, animales vivos ni objetos ilegales, y responde por esa declaración. El conductor puede negarse a llevar un envío si duda de su contenido. Asesorías y Consultorías JNF S.A.S. actúa solo como intermediario tecnológico: no recibe, custodia ni transporta los envíos. La entrega se confirma con el código de 4 dígitos que la app le da a quien envía; si no es posible entregar, el conductor devuelve el envío a quien lo envió, y en ese caso el valor lo paga quien envía.')) +
+    sec('6. Seguridad', p('La app ofrece botón de pánico y contactos de emergencia. En una emergencia comunícate también con la línea 123.')) +
+    sec('7. Propiedad intelectual', p('El nombre JNF Moto, el logo de JNF S.A.S., el diseño, los textos y el código de la aplicación son propiedad de Asesorías y Consultorías JNF S.A.S. Todos los derechos reservados. Se prohíbe su reproducción, copia, modificación o distribución, total o parcial, sin autorización escrita del titular.')) +
+    sec('8. Tratamiento de datos personales', p('Asesorías y Consultorías JNF S.A.S. trata tus datos (nombre, celular, correo, ubicación durante los viajes; en los envíos, el nombre y el celular de quien recibe; y, para conductores, número y copia del documento de identidad, demás documentos, dirección y datos del vehículo) conforme a la Ley 1581 de 2012 y sus decretos reglamentarios, únicamente para prestar el servicio de la app, garantizar la seguridad de los viajes y llevar el control de las suscripciones. Como titular puedes conocer, actualizar, rectificar y suprimir tus datos, y revocar la autorización, escribiendo a los contactos del numeral 1.')) +
+    sec('9. Cambios', p('Estos términos pueden actualizarse; la versión vigente es la publicada en la aplicación.')) +
     '<div class="muted small">' + COPY() + '</div></div></div></div>';
 }
 /* ---------- suscripciones, pagos, referidos e ingresos ---------- */
@@ -1331,12 +1465,14 @@ function mapPoints() {
   if (S.screen === 'viaje') {
     const me = S.pos || pickupOf(v); if (me && REC(st)) m.push(['me', me, 'person', 'Tú']);
     if (S.drvPos) m.push(['drv', S.drvPos, 'moto', 'Tu conductor']);
-    if (st === 'en_curso' && destOf(v)) m.push(['dest', destOf(v), 'dest', 'Destino']);
+    if (st === 'en_curso' && !v.devolucion && destOf(v)) m.push(['dest', destOf(v), 'dest', esEnvio(v) ? 'Entrega' : 'Destino']);
+    if (st === 'en_curso' && v.devolucion && pickupOf(v)) m.push(['dest', pickupOf(v), 'dest', 'Devolución']);
   }
   if (S.screen === 'cviaje') {
     if (S.pos) m.push(['me', S.pos, 'moto', 'Tú']);
-    if (REC(st)) { const p = S.paxPos || pickupOf(v); if (p) m.push(['pax', p, 'person', 'Pasajero']); }
-    if (st === 'en_curso' && destOf(v)) m.push(['dest', destOf(v), 'dest', 'Destino']);
+    if (REC(st)) { const p = S.paxPos || pickupOf(v); if (p) m.push(['pax', p, 'person', esEnvio(v) ? 'Quien envía' : 'Pasajero']); }
+    const dd = v && v.devolucion ? pickupOf(v) : destOf(v);
+    if (st === 'en_curso' && dd) m.push(['dest', dd, 'dest', v.devolucion ? 'Devolución' : esEnvio(v) ? 'Entrega' : 'Destino']);
   }
   return m;
 }
@@ -1396,8 +1532,9 @@ function fitMap() {
 function routeEnds() {
   const v = S.viaje, st = v && v.estado;
   if (S.screen === 'home') return [S.pos, S.destPin];
-  if (S.screen === 'viaje') return REC(st) ? [S.drvPos, S.pos || pickupOf(v)] : st === 'en_curso' ? [S.drvPos || S.pos, destOf(v)] : [null, null];
-  if (S.screen === 'cviaje') return REC(st) ? [S.pos, S.paxPos || pickupOf(v)] : st === 'en_curso' ? [S.pos, destOf(v)] : [null, null];
+  const fin = v && v.devolucion ? pickupOf(v) : destOf(v);
+  if (S.screen === 'viaje') return REC(st) ? [S.drvPos, S.pos || pickupOf(v)] : st === 'en_curso' ? [S.drvPos || (esEnvio(v) ? null : S.pos), fin] : [null, null];
+  if (S.screen === 'cviaje') return REC(st) ? [S.pos, S.paxPos || pickupOf(v)] : st === 'en_curso' ? [S.pos, fin] : [null, null];
   return [null, null];
 }
 const routeActive = () => { const e = routeEnds(); return !!(e[0] && e[1]) || (S.screen !== 'home' && S.viaje && REC(S.viaje.estado)); };
@@ -1407,7 +1544,7 @@ function drawRoute() {
   const e = routeEnds();
   if (S.route && e[0] && e[1] && S.route.key === routeKey()) mk.route = window.L.polyline(S.route.coords, { color: S.route.straight ? '#8A93B8' : navyCol(), weight: 5, opacity: 0.85, dashArray: S.route.straight ? '8 8' : null }).addTo(map);
 }
-const routeKey = () => S.screen + ':' + (S.viaje ? S.viaje.estado : 'previa');
+const routeKey = () => S.screen + ':' + (S.viaje ? S.viaje.estado + (S.viaje.devolucion ? ':dev' : '') : 'previa');
 let routeBusy = false;
 async function refreshRoute() {
   if (routeBusy) return;
@@ -1725,8 +1862,8 @@ async function pushSync(pedir) {
     let sub = await reg.pushManager.getSubscription();
     if (sub && !sameKey(sub)) { await sub.unsubscribe(); sub = null; }
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: u8Key(VAPID_PUB) });
-    const drv = !!(S.conductor && S.conductor.estado === 'aprobado'), online = drv && S.mode === 'conductor' && S.online, txt = JSON.stringify(sub), key = txt + '|' + online + '|' + drv;
-    if (S._pushKey !== key) { await setDoc(doc(db, 'push', S.user.uid), { sub: txt, online, rol: drv ? 'conductor' : 'pasajero', actualizado: serverTimestamp() }); S._pushKey = key; }
+    const drv = !!(S.conductor && S.conductor.estado === 'aprobado'), online = drv && S.mode === 'conductor' && S.online, envios = drv && !!S.conductor.envios, txt = JSON.stringify(sub), key = txt + '|' + online + '|' + drv + '|' + envios;
+    if (S._pushKey !== key) { await setDoc(doc(db, 'push', S.user.uid), { sub: txt, online, rol: drv ? 'conductor' : 'pasajero', envios, actualizado: serverTimestamp() }); S._pushKey = key; }
     S.pushOk = true; return true;
   } catch (e) { S.pushOk = false; return false; }
 }
@@ -1815,7 +1952,7 @@ function enter(s) {
       if (prev && prev !== st) tripSound(S.viaje, 'pasajero');
       if (st === 'finalizado') { writeStats(S.viaje); S.rating = 5; S.chips = {}; S.f.comentario = ''; go('calificar'); return; }
       if (st === 'cancelado') { writeStats(S.viaje); S.banner = { kind: 'warn', text: cancelMsg(S.viaje, 'pasajero') }; S.viajeId = null; S.viaje = null; go('home'); return; }
-      if (prev !== st) render();
+      if (prev !== st || esEnvio(S.viaje)) render();
     }, fail));
     addSub(onValue(ref(rtdb, 'ubicaciones/' + S.viaje.conductorId), snap => {
       const p = snap.val(); if (!p) return; const first = !S.drvPos; S.drvPos = { lat: p.lat, lng: p.lng };
@@ -1823,12 +1960,18 @@ function enter(s) {
     }));
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId, 'privado', S.viaje.conductorId), d => { if (d.exists()) { S.cPhone = d.data().telefono; S.cTransfer = d.data().transferencia || null; render(); } }, () => { }));
     loadRating(S.viaje.conductorId, ['conductores', S.viaje.conductorId, 'calificaciones']).then(() => { if (S.screen === 'viaje') render(); });
+    if (esEnvio(S.viaje) && (!S.envCod || !S.recibe)) {
+      const vid = S.viajeId; S.envCod = S.envCod || null;
+      Promise.all([getDoc(doc(db, 'viajes', vid, 'entrega', 'codigo')), getDoc(doc(db, 'viajes', vid, 'entrega', 'recibe'))])
+        .then(([a, b]) => { if (S.viajeId !== vid) return; S.envCod = a.exists() ? a.data().c : ''; S.recibe = b.exists() ? b.data() : {}; if (S.screen === 'viaje') render(); })
+        .catch(() => { S.envCod = ''; if (S.screen === 'viaje') render(); });
+    }
     S.sharing = true; startWatch();
   }
   if (s === 'solicitudes') {
     listenOthers(); startTick(); pushSync(false).then(() => { if (S.screen === 'solicitudes') render(); });
     delete S.rates[S.user.uid]; loadRate(S.user.uid).then(() => { if (blockOf(S.user.uid, 'conductor') && S.online) { S.online = false; stopWatch(); } if (S.screen === 'solicitudes') render(); });
-    loadStats();
+    loadStats(); if (S.idFalta == null) checkIdFalta();
     loadRating(S.user.uid, ['conductores', S.user.uid, 'calificaciones']).then(() => { if (S.screen === 'solicitudes') render(); });
     if (S.online) listenRequests();
   }
@@ -1848,9 +1991,10 @@ function enter(s) {
       if (prev && prev !== S.viaje.estado) tripSound(S.viaje, 'conductor');
       if (S.viaje.estado === 'cancelado') { writeStats(S.viaje); S.banner = { kind: 'warn', text: cancelMsg(S.viaje, 'conductor') }; S.viajeId = null; go('solicitudes'); return; }
       if (S.viaje.estado === 'finalizado') { writeStats(S.viaje); S.rating = 5; S.chips = {}; go('ccalificar'); return; }
-      if (prev !== S.viaje.estado) render();
+      if (prev !== S.viaje.estado || esEnvio(S.viaje)) render();
     }, fail));
     addSub(onSnapshot(doc(db, 'viajes', S.viajeId, 'privado', S.viaje.pasajeroId), d => { if (d.exists()) { S.pPhone = d.data().telefono; render(); } }, () => { }));
+    if (esEnvio(S.viaje) && !S.recibe) { const vid = S.viajeId; getDoc(doc(db, 'viajes', vid, 'entrega', 'recibe')).then(d => { if (S.viajeId !== vid) return; S.recibe = d.exists() ? d.data() : {}; if (S.screen === 'cviaje') render(); }).catch(() => { S.recibe = {}; }); }
     loadRating('p_' + S.viaje.pasajeroId, ['usuarios', S.viaje.pasajeroId, 'calificaciones']).then(() => { if (S.screen === 'cviaje') render(); });
     addSub(onValue(ref(rtdb, 'ubicaciones/' + S.viaje.pasajeroId), snap => {
       const p = snap.val(); if (!p || !S.viaje || !REC(S.viaje.estado)) return; const first = !S.paxPos; S.paxPos = { lat: p.lat, lng: p.lng };
@@ -1882,7 +2026,7 @@ function listenRequests() {
   addSub(onSnapshot(query(collection(db, 'viajes'), where('estado', '==', 'buscando'), limit(30)), qs => {
     const now = Date.now();
     S.requests = qs.docs.map(d => Object.assign({ id: d.id }, d.data()))
-      .filter(v => v.pasajeroId !== S.user.uid && !S.ignored[v.id] && now - tsMs(v.creado) < 20 * 60 * 1000)
+      .filter(v => v.pasajeroId !== S.user.uid && !S.ignored[v.id] && now - tsMs(v.creado) < 20 * 60 * 1000 && (!esEnvio(v) || (S.conductor && S.conductor.envios)))
       .sort((a, b) => tsMs(b.creado) - tsMs(a.creado));
     const fresh = S.requests.some(r => !known.has(r.id));
     if (fresh && !first) beep();
@@ -1981,14 +2125,14 @@ appEl.addEventListener('change', async e => {
   }
   const ad = e.target.getAttribute('data-admdocup');
   if (ad && e.target.files && e.target.files[0]) {
-    const [cid, tipo] = ad.split(':'), nom = (DOCS_C.find(d => d[0] === tipo) || [0, 'Documento'])[1];
+    const [cid, tipo] = ad.split(':'), cc = (S.adm.conductores || []).find(x => x.id === cid) || {}, nom = (docsReq(cc.idTipo).find(d => d[0] === tipo) || [0, 'Documento'])[1];
     S.err = null; S.admDocMsg = cid + '|Procesando ' + nom + '…'; render();
     try {
       const img = await compressImage(e.target.files[0]);
       S.admDocMsg = cid + '|Guardando ' + nom + '…'; render();
       await setDoc(doc(db, 'conductores', cid, 'documentos', tipo), { tipo, img, subido: serverTimestamp() });
       const m = Object.assign({}, S.admDocs[cid] && S.admDocs[cid] !== 'cargando' ? S.admDocs[cid] : {}); m[tipo] = img; S.admDocs[cid] = m;
-      S.admDocCount[cid] = Object.keys(m).length; S.admDocMsg = ''; S.banner = { kind: 'ok', text: nom + ' adjuntado.' }; render();
+      S.admDocCount[cid] = docsReq(cc.idTipo).filter(d => m[d[0]]).length; S.admDocMsg = ''; S.banner = { kind: 'ok', text: nom + ' adjuntado.' }; render();
     } catch (err) { S.admDocMsg = ''; S.err = err && err.code ? errMsg(err) : (err.message || 'No se pudo procesar la foto.'); render(); }
     return;
   }
@@ -1998,10 +2142,10 @@ appEl.addEventListener('change', async e => {
     try {
       const img = await compressImage(e.target.files[0]);
       S.docs[t] = { img, estado: 'local' };
-      if (S.conductor && S.conductor.estado !== 'aprobado') {
+      if (S.conductor && (S.conductor.estado !== 'aprobado' || ID_DOCS.includes(t))) {
         S.docMsg = 'Enviando la foto…'; render();
         await setDoc(doc(db, 'conductores', S.user.uid, 'documentos', t), { tipo: t, img, subido: serverTimestamp() });
-        S.docs[t].estado = 'subido';
+        S.docs[t].estado = 'subido'; if (ID_DOCS.includes(t)) S.idFalta = null;
       }
       S.docMsg = ''; render();
     } catch (err) { S.docMsg = ''; S.err = err && err.code ? errMsg(err) : (err.message || 'No se pudo procesar la foto.'); render(); }
@@ -2086,18 +2230,35 @@ async function act(a, v, b) {
     case 'otroToggle': S.otroOpen = !S.otroOpen; S.f.otroErr = ''; render(); break;
     case 'otroUse': { const n = parseMoney(S.f.otroVal), er = validAmount(n); if (er) { S.f.otroErr = er; render(); break; } S.offer = n; S.otroOpen = false; S.f.otroVal = ''; S.f.otroErr = ''; render(); break; }
     case 'notaToggle': S.notaOpen = !S.notaOpen; render(); break;
+    case 'tipoSrv': S.tipo = v === 'envio' ? 'envio' : 'viaje'; S.err = null; render(); break;
+    case 'envCont': S.f.envCont = v; render(); break;
+    case 'pagaRecibe': S.pagaRecibe = v === '1'; render(); break;
     case 'pago': S.pago = v === 'transferencia' ? 'transferencia' : 'efectivo'; render(); break;
     case 'buscar': {
       if (blockOf(uid, 'pasajero')) { S.err = 'Tu cuenta tiene una restricción temporal por cancelaciones.'; render(); break; }
-      const dest = (S.f.destino || '').trim(), refTxt = (S.f.ref || '').trim();
-      if (dest.length < 2) { S.err = 'Escribe o elige el destino del viaje.'; render(); break; }
+      const dest = (S.f.destino || '').trim(), refTxt = (S.f.ref || '').trim(), env = S.tipo === 'envio';
+      const verErr = m => { S.err = m; render(); const el = document.querySelector('[role=alert]'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' }); };
+      if (dest.length < 2) { verErr(env ? 'Escribe a dónde llevamos el envío.' : 'Escribe o elige el destino del viaje.'); break; }
+      const recNom = String(S.f.recNom || '').trim().replace(/\s+/g, ' '), recTel = cleanTel(S.f.recTel);
+      if (env) {
+        if (!S.f.envCont) { verErr('Elige qué envías.'); break; }
+        if (recNom.length < 2) { verErr('Escribe el nombre de quien recibe.'); break; }
+        if (recTel.length !== 10) { verErr('El celular de quien recibe debe tener 10 dígitos.'); break; }
+        if (!S.f.envOk) { verErr('Confirma la declaración sobre el contenido del envío.'); break; }
+      }
       S.busy = true; S.err = null; S.banner = null; render();
       if (!S.pos) await gpsOnce(8000);
       if (!S.pos && refTxt.length < 3) { S.busy = false; S.err = 'No pudimos obtener tu ubicación GPS. Escribe una referencia del punto de recogida.'; render(); break; }
       try {
         const data = { pasajeroId: uid, pasajeroNombre: S.perfil.nombre, origen: { texto: refTxt || 'Ubicación GPS', lat: S.pos ? S.pos.lat : null, lng: S.pos ? S.pos.lng : null }, destino: S.destPin ? { texto: dest, lat: S.destPin.lat, lng: S.destPin.lng } : { texto: dest }, oferta: S.offer, nota: S.notaOpen ? (S.f.nota || '').trim().slice(0, 200) : '', pago: S.pago, estado: 'buscando', creado: serverTimestamp(), conductorId: null, precioFinal: null, conductor: null };
+        if (env) { data.tipo = 'envio'; data.envio = { contenido: S.f.envCont, desc: String(S.f.envDesc || '').trim().slice(0, 120), pagaRecibe: !!S.pagaRecibe }; }
         const r = await addDoc(collection(db, 'viajes'), data);
-        await setDoc(doc(db, 'viajes', r.id, 'privado', uid), { telefono: S.perfil.telefono, nombre: S.perfil.nombre });
+        const cod = String(crypto.getRandomValues(new Uint32Array(1))[0] % 10000).padStart(4, '0');
+        const bt = writeBatch(db);
+        bt.set(doc(db, 'viajes', r.id, 'privado', uid), { telefono: S.perfil.telefono, nombre: S.perfil.nombre });
+        if (env) { bt.set(doc(db, 'viajes', r.id, 'entrega', 'recibe'), { nombre: recNom.slice(0, 60), telefono: recTel }); bt.set(doc(db, 'viajes', r.id, 'entrega', 'codigo'), { c: cod }); }
+        try { await bt.commit(); } catch (e) { if (env) await updateDoc(doc(db, 'viajes', r.id), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid }).catch(() => { }); throw e; }
+        S.envCod = env ? cod : null; S.recibe = env ? { nombre: recNom, telefono: recTel } : null;
         S.viajeId = r.id; S.viaje = Object.assign({ id: r.id }, data); S.ofertas = []; S.busy = false; sound('ok'); avisarSolicitud(r.id); pushSync(true); go('buscando');
       } catch (e) { fail(e); }
       break;
@@ -2156,12 +2317,23 @@ async function act(a, v, b) {
       try { await updateDoc(doc(db, 'usuarios', uid), { contactos: cs }); S.perfil.contactos = cs; render(); } catch (e) { fail(e); }
       break;
     }
+    case 'idTipo': S.f.idTipo = v; S.err = null; render(); break;
     case 'saveCpriv': {
       const dir = String(S.f.drvDir || '').trim().replace(/\s+/g, ' '), tel = cleanTel(S.f.drvTel);
       if (!validDir(dir)) { S.err = 'Escribe tu dirección de residencia (mínimo 5 caracteres).'; render(); break; }
       if (tel.length !== 10) { S.err = 'El celular debe tener 10 dígitos.'; render(); break; }
+      const c0 = S.conductor || {}, cp = S.cpriv || {}, faltaId = !c0.idTipo || !cp.idNumero;
+      const puedeTipo = !c0.idTipo || c0.estado !== 'aprobado', idT = (puedeTipo && S.f.idTipo) || c0.idTipo || '', idN = cp.idNumero || cleanId(S.f.idNum);
+      if (faltaId) { const er = idErr(idT, idN); if (er) { S.err = er; render(); break; } }
       S.busy = true; render();
-      try { await setDoc(privRef(uid), { direccion: dir, telefono: tel, actualizado: serverTimestamp() }); S.cpriv = { direccion: dir, telefono: tel }; S.busy = false; S.banner = { kind: 'ok', text: 'Datos de contacto guardados.' }; render(); } catch (e) { fail(e); }
+      try {
+        const pd = { direccion: dir, telefono: tel, actualizado: serverTimestamp() }; if (idN) pd.idNumero = idN;
+        const bt = writeBatch(db); bt.set(privRef(uid), pd);
+        if (idT && idT !== c0.idTipo) bt.update(doc(db, 'conductores', uid), { idTipo: idT });
+        await bt.commit();
+        if (idT && idT !== c0.idTipo) S.conductor = Object.assign({}, S.conductor, { idTipo: idT });
+        S.cpriv = { direccion: dir, telefono: tel, idNumero: idN || undefined }; S.idFalta = null; S.busy = false; S.banner = { kind: 'ok', text: faltaId ? 'Datos guardados.' : 'Datos de contacto guardados.' }; render();
+      } catch (e) { fail(e); }
       break;
     }
     case 'saveConductor': {
@@ -2174,23 +2346,25 @@ async function act(a, v, b) {
       const dir = String(S.f.drvDir || '').trim().replace(/\s+/g, ' '), tel = cleanTel(S.f.drvTel);
       if (!validDir(dir)) { S.err = 'Escribe tu dirección de residencia (mínimo 5 caracteres).'; render(); break; }
       if (tel.length !== 10) { S.err = 'El celular debe tener 10 dígitos.'; render(); break; }
+      const idT = S.f.idTipo || '', idN = cleanId(S.f.idNum), idE = idErr(idT, idN);
+      if (idE) { S.err = idE; render(); window.scrollTo(0, 0); break; }
       const refC = String(S.f.drvRef || '').toUpperCase().replace(/\s+/g, '');
       if (refC) {
         if (!/^JNF-[A-Z0-9]{5,7}$/.test(refC)) { S.err = 'El código de referido tiene la forma JNF-placa, por ejemplo JNF-ABC12D.'; render(); break; }
         if (refC === 'JNF-' + placa) { S.err = 'No puedes usar tu propio código de referido.'; render(); break; }
         try { const rq = await getDocs(query(collection(db, 'conductores'), where('placa', '==', refC.slice(4)), limit(1))); if (rq.empty) { S.err = 'No encontramos un conductor con el código ' + refC + '. Revísalo o déjalo vacío.'; render(); break; } } catch (e) { }
       }
-      const subir = DOCS_C.filter(d => S.docs[d[0]] && S.docs[d[0]].estado === 'local'), faltan = DOCS_C.length - DOCS_C.filter(d => S.docs[d[0]]).length;
+      const REQ = docsReq(idT), subir = REQ.filter(d => S.docs[d[0]] && S.docs[d[0]].estado === 'local'), faltan = REQ.length - REQ.filter(d => S.docs[d[0]]).length;
       S.busy = true; S.docMsg = 'Enviando registro…'; render();
       try {
-        if (!S.conductor) { const cd = { nombre: S.perfil.nombre, moto, color, placa, registro, estado: 'pendiente', creado: serverTimestamp() }; if (refC) cd.refCodigo = refC; await setDoc(doc(db, 'conductores', uid), cd); }
-        await setDoc(privRef(uid), { direccion: dir, telefono: tel, actualizado: serverTimestamp() });
+        if (!S.conductor) { const cd = { nombre: S.perfil.nombre, moto, color, placa, registro, idTipo: idT, estado: 'pendiente', creado: serverTimestamp() }; if (refC) cd.refCodigo = refC; await setDoc(doc(db, 'conductores', uid), cd); }
+        await setDoc(privRef(uid), { direccion: dir, telefono: tel, idNumero: idN, actualizado: serverTimestamp() });
         let n = 0;
         for (const d of subir) {
           n++; S.docMsg = 'Subiendo documentos (' + n + ' de ' + subir.length + ')…'; render();
           await setDoc(doc(db, 'conductores', uid, 'documentos', d[0]), { tipo: d[0], img: S.docs[d[0]].img, subido: serverTimestamp() }); S.docs[d[0]].estado = 'subido';
         }
-        S.docMsg = ''; S.busy = false; S.cpriv = { direccion: dir, telefono: tel }; S.docsFor = uid; sound('ok'); avisar('registro', null, { conductorId: uid });
+        S.docMsg = ''; S.busy = false; S.cpriv = { direccion: dir, telefono: tel, idNumero: idN }; S.docsFor = uid; sound('ok'); avisar('registro', null, { conductorId: uid });
         S.banner = { kind: 'info', text: 'Registro enviado. ' + (faltan ? 'Te faltan ' + faltan + ' documento(s); puedes subirlos después desde "Mis documentos". ' : '') + 'El administrador revisará y activará tu cuenta.' }; go('menu');
       } catch (e) { S.docMsg = ''; fail(e); }
       break;
@@ -2201,6 +2375,12 @@ async function act(a, v, b) {
       S.online = !S.online;
       if (S.online) { beepUnlock(); sound('ok'); pushSync(true); go('solicitudes'); } else { S.requests = []; stopWatch(); pushSync(false); go('solicitudes'); }
       break;
+    case 'envios': {
+      const nv = !(S.conductor && S.conductor.envios);
+      S.busy = true; render();
+      try { await updateDoc(doc(db, 'conductores', uid), { envios: nv }); S.conductor = Object.assign({}, S.conductor, { envios: nv }); S.busy = false; S._pushKey = null; pushSync(false); S.banner = { kind: 'ok', text: nv ? 'Ahora recibes también solicitudes de envío.' : 'Ya no recibes solicitudes de envío.' }; go('solicitudes'); } catch (e) { fail(e); }
+      break;
+    }
     case 'reqMap': S.reqMap = S.reqMap === v ? null : v; render(); break;
     case 'cIgnore': S.ignored[v] = true; S.requests = S.requests.filter(r => r.id !== v); render(); break;
     case 'cOtroToggle': { const cur = S.cOtro[v] || {}; S.cOtro[v] = { open: !cur.open, val: cur.val || '', err: '' }; render(); break; }
@@ -2243,7 +2423,23 @@ async function act(a, v, b) {
       S.busy = true; render();
       try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid, motivo: 'no_se_presento', motivoTexto: '', penalizaA: 'pasajero' }); avisar('cancelado', S.viajeId); S.busy = false; render(); } catch (e) { fail(e); }
       break;
-    case 'cStart': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'en_curso', iniciadoEn: serverTimestamp() }); S.busy = false; render(); } catch (e) { fail(e); } break;
+    case 'cStart': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'en_curso', iniciadoEn: serverTimestamp() }); if (esEnvio(S.viaje)) avisar('recogido', S.viajeId); S.busy = false; render(); } catch (e) { fail(e); } break;
+    case 'cEntregar': {
+      const cod = String(S.f.codEnt || '').replace(/\D/g, ''), dev = !!(S.viaje && S.viaje.devolucion);
+      if (cod.length !== 4) { S.err = 'Escribe el código de 4 dígitos.'; render(); break; }
+      S.busy = true; S.err = null; render();
+      try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'finalizado', finalizadoEn: serverTimestamp(), codigoEntrega: cod }); S.f.codEnt = ''; avisar('entregado', S.viajeId); S.busy = false; render(); }
+      catch (e) { if (e && e.code === 'permission-denied') { S.busy = false; S.err = 'El código no coincide. Pídelo de nuevo a ' + (dev ? 'quien envía' : 'quien recibe') + '.'; render(); } else fail(e); }
+      break;
+    }
+    case 'devAsk': S.devAsk = !S.devAsk; S.f.devMotivo = ''; S.err = null; render(); break;
+    case 'cDevolver': {
+      const m = String(S.f.devMotivo || '').trim().replace(/\s+/g, ' ');
+      if (m.length < 5) { S.err = 'Escribe por qué no pudiste entregar (mínimo 5 caracteres).'; render(); break; }
+      S.busy = true; S.err = null; render();
+      try { await updateDoc(doc(db, 'viajes', S.viajeId), { devolucion: true, devolucionEn: serverTimestamp(), devolucionMotivo: m.slice(0, 200) }); S.devAsk = false; S.f.codEnt = ''; avisar('devolucion', S.viajeId); S.busy = false; S.banner = { kind: 'info', text: 'Devuelve el paquete a quien envía. Para cerrar, pídele el código de entrega.' }; render(); } catch (e) { fail(e); }
+      break;
+    }
     case 'cFinish': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'finalizado', finalizadoEn: serverTimestamp() }); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'cCancel': S.busy = true; render(); try { await updateDoc(doc(db, 'viajes', S.viajeId), { estado: 'cancelado', canceladoEn: serverTimestamp(), canceladoPor: uid }); S.busy = false; render(); } catch (e) { fail(e); } break;
     case 'cSendRating':
@@ -2513,11 +2709,12 @@ async function act(a, v, b) {
       try { const qs = await getDocs(collection(db, 'conductores', v, 'documentos')); const m = {}; qs.docs.forEach(x => { m[x.id] = x.data().img; }); S.admDocs[v] = m; } catch (e) { S.admDocs[v] = {}; S.err = errMsg(e); }
       try { const p = await getDoc(privRef(v)); S.admPriv[v] = p.exists() ? p.data() : {}; } catch (e) { S.admPriv[v] = {}; }
       render(); break;
+    case 'aeIdTipo': S.f.aeIdTipo = v; render(); break;
     case 'admBig': S.admBig = S.admBig === v ? null : v; render(); break;
     case 'admEdit': {
       S.admEdit = v || null; S.err = null;
       if (v) { const c = (S.adm.conductores || []).find(x => x.id === v) || {}, pv = S.admPriv[v] || {}, u = (S.admUsers || []).find(x => x.id === v) || {};
-        S.f.aeMoto = c.moto || ''; S.f.aeColor = c.color || ''; S.f.aePlaca = c.placa || ''; S.f.aeReg = c.registro || ''; S.f.aeDir = pv.direccion || ''; S.f.aeTel = pv.telefono || u.telefono || ''; }
+        S.f.aeMoto = c.moto || ''; S.f.aeColor = c.color || ''; S.f.aePlaca = c.placa || ''; S.f.aeReg = c.registro || ''; S.f.aeDir = pv.direccion || ''; S.f.aeTel = pv.telefono || u.telefono || ''; S.f.aeIdTipo = c.idTipo || ''; S.f.aeIdNum = pv.idNumero || ''; }
       render(); break;
     }
     case 'admEditSave': {
@@ -2528,14 +2725,18 @@ async function act(a, v, b) {
       if (reg && (reg.length < 2 || reg.length > 30)) { S.err = 'El número de registro de tránsito debe tener entre 2 y 30 caracteres.'; render(); break; }
       if (!validDir(dir)) { S.err = 'Escribe la dirección de residencia del conductor (mínimo 5 caracteres).'; render(); break; }
       if (tel.length !== 10) { S.err = 'El celular debe tener 10 dígitos.'; render(); break; }
+      const idT = S.f.aeIdTipo || '', idN = cleanId(S.f.aeIdNum);
+      if (idT || idN) { const er = idErr(idT, idN); if (er) { S.err = er; render(); break; } }
       S.busy = true; render();
       try {
         const bt = writeBatch(db), upd = { moto, color, placa };
         if (reg) upd.registro = reg;
+        if (idT) upd.idTipo = idT;
         bt.update(doc(db, 'conductores', v), upd);
-        bt.set(privRef(v), { direccion: dir, telefono: tel, actualizado: serverTimestamp() });
+        const pd = { direccion: dir, telefono: tel, actualizado: serverTimestamp() }; if (idN) pd.idNumero = idN;
+        bt.set(privRef(v), pd);
         await bt.commit();
-        S.admPriv[v] = { direccion: dir, telefono: tel }; S.admEdit = null; S.busy = false; S.banner = { kind: 'ok', text: 'Datos del conductor guardados.' }; render();
+        S.admPriv[v] = { direccion: dir, telefono: tel, idNumero: idN || undefined }; S.admEdit = null; S.busy = false; S.banner = { kind: 'ok', text: 'Datos del conductor guardados.' }; render();
       } catch (e) { fail(e); }
       break;
     }
@@ -2544,8 +2745,8 @@ async function act(a, v, b) {
   }
 }
 function beepUnlock() { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { } }
-function endPassengerTrip() { S.viajeId = null; S.viaje = null; S.ofertas = []; S.sos = null; S.cPhone = null; S.cTransfer = null; S.pago = 'efectivo'; S.drvPos = null; S.route = null; S.destPin = null; S.pickDest = false; S.sharing = false; stopWatch(); S.offer = MIN; S.f.destino = ''; S.f.ref = ''; S.f.nota = ''; S.notaOpen = false; go('home'); }
-function endDriverTrip() { S.viajeId = null; S.viaje = null; S.sos = null; S.pPhone = null; S.paxPos = null; S.route = null; S.stats = null; S.banner = { kind: 'ok', text: 'Viaje finalizado. Sigues conectado.' }; go('solicitudes'); }
+function endPassengerTrip() { S.envCod = null; S.recibe = null; S.f.recNom = ''; S.f.recTel = ''; S.f.envDesc = ''; S.f.envCont = ''; S.f.envOk = false; S.pagaRecibe = false; S.viajeId = null; S.viaje = null; S.ofertas = []; S.sos = null; S.cPhone = null; S.cTransfer = null; S.pago = 'efectivo'; S.drvPos = null; S.route = null; S.destPin = null; S.pickDest = false; S.sharing = false; stopWatch(); S.offer = MIN; S.f.destino = ''; S.f.ref = ''; S.f.nota = ''; S.notaOpen = false; go('home'); }
+function endDriverTrip() { S.recibe = null; S.devAsk = false; S.f.codEnt = ''; S.f.devMotivo = ''; S.viajeId = null; S.viaje = null; S.sos = null; S.pPhone = null; S.paxPos = null; S.route = null; S.stats = null; S.banner = { kind: 'ok', text: 'Viaje finalizado. Sigues conectado.' }; go('solicitudes'); }
 document.addEventListener('pointerdown', beepUnlock, { once: true });
 appEl.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b || b.disabled) return; act(b.getAttribute('data-act'), b.getAttribute('data-v'), b); });
 

@@ -219,6 +219,22 @@ input[type=email],input[type=password]{min-height:48px;border:1px solid var(--li
 .wide .mform{grid-template-columns:repeat(2,minmax(0,1fr))}
 .vgrid{display:grid;grid-template-columns:1fr;gap:12px}
 .wide .vgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+/* envíos */
+.seg2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;border-radius:16px;background:var(--field);border:1px solid var(--line)}
+.seg2 button{min-height:46px;border-radius:12px;border:none;background:transparent;color:var(--ink);font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
+.seg2 button[aria-current="true"]{background:var(--chip-on);color:var(--chip-on-ink)}
+.tag{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:8px;background:#C9A227;color:#1A2580;letter-spacing:.3px;white-space:nowrap}
+.code{font-size:34px;font-weight:800;letter-spacing:10px;color:var(--ink);text-align:center;background:var(--field);border-radius:14px;padding:10px;border:2px dashed #C9A227}
+.steps{display:flex;flex-direction:column}
+.st{display:flex;gap:12px;align-items:flex-start;padding-bottom:12px}
+.st:last-child{padding-bottom:0}
+.st .b{width:26px;height:26px;border-radius:13px;background:var(--line);color:var(--muted);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.st.ok .b{background:#1F6F43;color:#FFFFFF}
+.st.now .b{background:#C9A227;color:#1A2580}
+.swi{width:52px;height:30px;border-radius:15px;border:none;background:var(--line);position:relative;flex-shrink:0;padding:0}
+.swi::after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:12px;background:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .15s}
+.swi.on{background:#1A2580}
+.swi.on::after{left:25px;background:#C9A227}
 .p-free{background:#EDE6FA;color:#4B2A8A}
 .kpis5{grid-template-columns:repeat(2,minmax(0,1fr))}
 .wide .kpis5{grid-template-columns:repeat(5,minmax(0,1fr))}
@@ -229,6 +245,6 @@ input[type=email],input[type=password]{min-height:48px;border:1px solid var(--li
 </head>
 <body>
 <div id="app" aria-live="polite"><div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="icon-192.png" alt="Logo JNF S.A.S." style="width:96px;height:96px"><noscript><p>JNF Moto necesita JavaScript activado.</p></noscript></div></div></div>
-<script type="module" src="app.js?v=23"></script>
+<script type="module" src="app.js?v=24"></script>
 </body>
 </html>
