@@ -20,7 +20,7 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '20'; // número interno (actualiza la caché)
+const APP_VERSION = '23'; // número interno (actualiza la caché)
 const APP_LABEL = '1.0'; // versión oficial que ve el usuario
 const LOGO = 'icon-192.png';
 const appEl = document.getElementById('app');
@@ -67,7 +67,7 @@ const S = {
   f: {}, err: null, banner: null, busy: false,
   pos: null, gps: 'pendiente',
   offer: MIN, otroOpen: false, notaOpen: false, pago: 'efectivo', cTransfer: null,
-  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null, admPriv: {}, admEdit: null, admDocMsg: '', cpriv: null, pushUrl: '', pushOk: false, admV: null, admVPage: 20, admCal: {}, admRate: {}, admRateList: {}, admRateOpen: null, admPush: null, admPushRes: '', admAllUsers: null, sus: null, tarifas: null, susMap: null, susId: null, susPagos: null, pagosMes: null, ingresos: null, ingOtro: false, misPagos: null, misRef: null,
+  viajeId: null, viaje: null, ofertas: [], ratings: {}, cPhone: null, pPhone: null, sos: null, drvPos: null, paxPos: null, route: null, sharing: false, reqMap: null, others: {}, destPin: null, pickDest: false, docs: {}, docsFor: null, rates: {}, cancel: { motivo: null, texto: '' }, admUsers: null, admQ: {}, admLimit: 30, admDocCount: {}, admDriver: null, admTrips: {}, admBack: 'conductores', admMake: null, admKpi: null, hideInstall: false, showPass: false, docMsg: '', admOpen: null, admDocs: {}, admBig: null, admPriv: {}, admEdit: null, admDocMsg: '', cpriv: null, pushUrl: '', pushOk: false, admV: null, admVPage: 20, admCal: {}, admRate: {}, admRateList: {}, admRateOpen: null, admPush: null, admPushRes: '', admAllUsers: null, sus: null, tarifas: null, susMap: null, susId: null, susPagos: null, pagosMes: null, ingresos: null, ingOtro: false, misPagos: null, misRef: null, anularId: null,
   rating: 5, chips: {}, reportOpen: false,
   online: false, requests: [], ignored: {}, cOtro: {}, stats: null, espera: null,
   cal: null, hist: null, admTab: 'resumen', adm: {},
@@ -614,7 +614,7 @@ const mascClosed = m => !!S.mascClosed[mascKey(m)] || !!lsGet(mascKey(m));
 const mAlt = m => m.mensaje || 'Imagen de temporada';
 const mImg = (src, alt, st) => '<img src="' + src + '" alt="' + esc(alt) + '" style="width:auto;max-width:100%;object-fit:contain;display:block;' + (st || '') + '">';
 // Piezas que se muestran en la app
-function mascBadge() { const m = mascOn(); if (!m || (m.opcion !== 'A' && m.opcion !== 'D')) return ''; return '<div class="mbadge">' + mImg(S.mascSrc, mAlt(m), 'max-height:38px') + '</div>'; }
+function mascBadge() { const m = mascOn(); if (!m || (m.opcion !== 'A' && m.opcion !== 'D')) return ''; return '<div class="mbadge">' + mImg(S.mascSrc, mAlt(m), 'height:36px;max-width:100%') + '</div>'; }
 function mascBand() {
   const m = mascOn(); if (!m || m.opcion !== 'B') return ''; const c = mascPal(m);
   return '<div class="mband" style="background:' + c.t + ';border-top:3px solid ' + c.p + ';border-bottom:3px solid ' + c.a + '">' + mImg(S.mascSrc, mAlt(m), 'height:60px;max-width:' + (m.mensaje ? '38%' : '100%') + ';flex-shrink:0' + (m.mensaje ? '' : ';margin:0 auto')) +
@@ -628,13 +628,13 @@ function mascNotice(force) { // aviso pequeño (opción A, y en la pantalla del 
 }
 function mascBig() {
   const m = mascOn(); if (!m || m.opcion !== 'C' || mascClosed(m)) return ''; const c = mascPal(m);
-  return '<div class="card" style="align-items:center;text-align:center;border:2px solid ' + c.p + ';gap:10px">' + mImg(S.mascSrc, mAlt(m), 'max-height:150px') +
+  return '<div class="card" style="align-items:center;text-align:center;border:2px solid ' + c.p + ';gap:10px">' + mImg(S.mascSrc, mAlt(m), 'height:150px;max-width:100%') +
     (m.mensaje ? '<div class="strong" style="font-size:16px">' + esc(m.mensaje) + '</div>' : '') +
     '<button class="btn btn-ghost btn-sm" style="border:1px solid ' + c.p + '" data-act="mascClose">Cerrar aviso</button></div>';
 }
 function mascLogin() {
   const m = mascOn(); if (!m) return ''; const c = mascPal(m);
-  return '<div class="mlogin">' + mImg(S.mascSrc, mAlt(m), 'max-height:' + (m.opcion === 'C' ? 150 : 110) + 'px;margin:0 auto') + (m.mensaje ? '<div class="strong center" style="color:' + c.p + '">' + esc(m.mensaje) + '</div>' : '') + '</div>';
+  return '<div class="mlogin">' + mImg(S.mascSrc, mAlt(m), 'height:' + (m.opcion === 'C' ? 150 : 110) + 'px;max-width:100%;margin:0 auto') + (m.mensaje ? '<div class="strong center" style="color:' + c.p + '">' + esc(m.mensaje) + '</div>' : '') + '</div>';
 }
 // Opción D: colores de la temporada en toda la app (menos en el panel de administración)
 function applyMascTheme() {
@@ -669,7 +669,7 @@ function admMascaras() {
   let h = '<div class="muted">Cambia la máscara de la app cuando quieras. Solo una máscara puede estar activa a la vez; las programadas se muestran solas en sus fechas y, mientras estén en sus fechas, reemplazan a la activa.</div><div class="mgrid">';
   L.forEach(m => {
     const th = S.mascThumbs[m.id];
-    h += '<div class="card" style="gap:10px"><div class="mthumb">' + (th ? mImg(th, m.nombre, 'max-height:110px;margin:0 auto') : '<div class="spinner" aria-hidden="true"></div>') + '</div>' +
+    h += '<div class="card" style="gap:10px"><div class="mthumb">' + (th ? mImg(th, m.nombre, 'height:110px;max-width:100%;margin:0 auto') : '<div class="spinner" aria-hidden="true"></div>') + '</div>' +
       '<div class="row between" style="gap:8px;align-items:flex-start"><div class="strong">' + esc(m.nombre) + '</div>' + mascEstado(m, vig) + '</div>' +
       '<div class="muted small">Opción ' + m.opcion + ' · ' + OPC[m.opcion][0] + ' · ' + fechasTxt(m) + '</div>';
     if (S.mascDel === m.id) h += '<div class="banner danger">' + I.info + '<div class="grow">¿Eliminar la máscara "' + esc(m.nombre) + '"? No se puede deshacer.</div></div><div class="row"><button class="btn btn-danger btn-sm" style="flex:1" data-act="mascDelOk" data-v="' + m.id + '"' + busyAttr() + '>Sí, eliminar</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="mascDel" data-v="">Cancelar</button></div>';
@@ -684,7 +684,7 @@ function admMascEdit() {
   const E = S.me || {};
   let h = '<button class="link" data-act="admTab" data-v="mascaras" style="align-self:flex-start">← Volver a mis máscaras</button>';
   h += '<section class="card"><h2 class="h2">1. Adjunta la imagen</h2><div class="row" style="gap:16px;flex-wrap:wrap;align-items:flex-start">';
-  h += '<div class="mdrop">' + (E.src ? mImg(E.src, 'Imagen de la máscara', 'max-height:120px;margin:auto') : '<span class="muted small center">Sin imagen</span>') + '</div><div class="col" style="gap:8px">';
+  h += '<div class="mdrop">' + (E.src ? mImg(E.src, 'Imagen de la máscara', 'height:120px;max-width:100%;margin:auto') : '<span class="muted small center">Sin imagen</span>') + '</div><div class="col" style="gap:8px">';
   if (E.src) h += '<span class="muted small">Colores detectados automáticamente:</span><div class="row" style="flex-wrap:wrap;gap:8px">' + (E.colores.length ? E.colores.map(c => '<span class="row small" style="gap:6px"><span style="width:22px;height:22px;border-radius:6px;background:' + c + ';border:1px solid var(--line);flex-shrink:0"></span>' + c + '</span>').join('') : '<span class="muted small">No se detectaron colores; se usarán los de JNF.</span>') + '</div>';
   else h += '<span class="muted small">PNG con fondo transparente, JPG, WebP o SVG. La app la reduce sola y conserva la transparencia.</span>';
   h += '<label class="upl" style="align-self:flex-start">' + (E.src ? 'Cambiar imagen' : 'Adjuntar imagen') + '<input type="file" accept="image/*" class="vh" data-mascup="1"></label>' + (S.mascMsg ? '<span class="muted small" role="status">' + esc(S.mascMsg) + '</span>' : '') + '</div></div></section>';
@@ -848,10 +848,32 @@ function admBody(t) {
     const kpi = (k, v) => '<div class="card" style="gap:2px;padding:12px"><span class="muted small">' + k + '</span><span class="price" style="font-size:24px">' + (v == null ? '…' : v) + '</span></div>';
     const enLinea = Object.keys(S.others || {}).filter(u => livePos(u)).length;
     h += '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + kpi('Personas registradas', K && K.total) + kpi('Conductores en línea ahora', enLinea) + kpi('Conductores aprobados', K && K.aprob) + kpi('Conductores pendientes', K && K.pend) + '</div>';
-    if (!U) return h + '<div class="spinner" role="status" aria-label="Cargando"></div>';
     const cmap = {}; (A.conductores || []).forEach(c => { cmap[c.id] = c; });
+    const uq = fold(S.f.admUQ).trim(), ut = S.f.admUTipo || '', filtro = !!(uq || ut);
+    h += '<section class="card" style="gap:10px"><div class="field"><label for="auq">Buscar persona (nombre, celular o placa)</label><input type="text" id="auq" data-in="admUQ" data-live="1" placeholder="Ej. María o 300 123 4567" value="' + fv('admUQ') + '" autocomplete="off"></div><div class="chips">' +
+      fchip('admUTipo', '', 'Todos') + fchip('admUTipo', 'pas', 'Pasajeros') + fchip('admUTipo', 'aprob', 'Conductores aprobados') + fchip('admUTipo', 'pend', 'Conductores pendientes') + fchip('admUTipo', 'susp', 'Suspendidos o rechazados') + fchip('admUTipo', 'rev', 'Para revisar') + '</div></section>';
+    if (filtro && !S.admAllUsers) { loadAllUsers(); return h + '<div class="spinner" role="status" aria-label="Cargando"></div><div class="muted small" style="text-align:center">Buscando entre todas las personas…</div>'; }
+    if (!U) return h + '<div class="spinner" role="status" aria-label="Cargando"></div>';
+    const base = filtro ? S.admAllUsers : U;
+    const lista = base.filter(u => {
+      const c = cmap[u.id];
+      if (uq && !(fold(u.nombre).includes(uq) || String(u.telefono || '').replace(/\D/g, '').includes(uq.replace(/\D/g, '') || '\u0000') || (c && fold(c.placa).replace(/\s/g, '').includes(uq.replace(/\s/g, ''))))) return false;
+      if (ut === 'pas') return !c;
+      if (ut === 'aprob') return !!c && c.estado === 'aprobado';
+      if (ut === 'pend') return !!c && c.estado === 'pendiente';
+      if (ut === 'susp') return !!c && c.estado !== 'aprobado' && c.estado !== 'pendiente';
+      if (ut === 'rev') return admAlerta(S.admQ[u.id], c);
+      return true;
+    });
+    const vis = filtro ? lista.slice(0, S.admLimit) : lista;
+    if (filtro) {
+      const faltan = ut === 'rev' ? base.filter(u => !S.admQ[u.id]).length : 0;
+      h += '<div class="muted small" aria-live="polite">' + lista.length + (lista.length === 1 ? ' persona encontrada' : ' personas encontradas') + ' de ' + base.length + (faltan ? ' · revisando calidad de ' + faltan + ' más…' : '') + '</div>';
+      if (ut === 'rev') admQFill(base); else admQFill(vis);
+      if (!lista.length) h += '<div class="card muted" style="text-align:center">Nadie coincide con la búsqueda.</div>';
+    }
     h += '<div class="muted small">Calidad de cada persona: calificación recibida como pasajero y como conductor, y tasa de cancelación histórica.</div>';
-    U.forEach(u => {
+    vis.forEach(u => {
       const q = S.admQ[u.id], c = cmap[u.id];
       const st = c ? (c.estado === 'aprobado' ? '<span class="pill p-ok">Conductor' + (c.aprobadoSinDocs ? ' · sin documentos' : '') + '</span>' : '<span class="pill p-warn">Conductor ' + esc(c.estado) + '</span>') : '<span class="pill p-info">Pasajero</span>';
       let ql = '<span class="muted small">Calculando calidad…</span>';
@@ -860,8 +882,7 @@ function admBody(t) {
         ql = '<div class="col" style="gap:2px"><span class="small">' + (q.pN ? '★ ' + fmtRating(q.pAvg) + ' como pasajero (' + q.pN + ')' : 'Sin calificaciones como pasajero') + '</span>' +
           (c ? '<span class="small">' + (q.cN ? '★ ' + fmtRating(q.cAvg) + ' como conductor (' + q.cN + ')' : 'Sin calificaciones como conductor') + '</span>' : '') +
           '<span class="small">' + (pc == null ? 'Sin viajes aceptados' : 'Cancela ' + pc + ' % (' + q.tot + ' viajes)') + '</span></div>';
-        const alerta = (pc != null && q.tot >= 3 && pc > (c ? 20 : 30)) || (q.pN >= 5 && q.pAvg < 4.2) || (q.cN >= 5 && q.cAvg < 4.2);
-        if (alerta) ql += '<span class="pill p-danger" style="align-self:flex-start">Revisar</span>';
+        if (admAlerta(q, c)) ql += '<span class="pill p-danger" style="align-self:flex-start">Revisar</span>';
       }
       h += '<div class="card" style="gap:8px"><div class="row between" style="align-items:flex-start"><div class="col"><div class="strong">' + esc(u.nombre) + '</div><div class="muted small">' + esc(u.telefono || '') + '</div></div>' + st + '</div>' + ql;
       if (c) h += '<button class="btn btn-ghost btn-sm" style="width:100%" data-act="admDriver" data-v="' + u.id + '">Servicios e ingresos</button>';
@@ -880,7 +901,7 @@ function admBody(t) {
       }
       h += '</div>';
     });
-    if (U.length >= S.admLimit) h += '<button class="btn btn-ghost" data-act="admMore">Ver más personas</button>';
+    if (filtro ? lista.length > vis.length : U.length >= S.admLimit) h += '<button class="btn btn-ghost" data-act="admMore">Ver más personas</button>';
   }
   if (t === 'mascaras') h += admMascaras();
   if (t === 'mascEdit') h += admMascEdit();
@@ -1118,7 +1139,7 @@ function vMiSus() {
 }
 async function loadMiSus() {
   const uid = S.user.uid;
-  try { const qs = await getDocs(query(collection(db, 'pagos'), where('cid', '==', uid), limit(100))); S.misPagos = qs.docs.map(d => d.data()).sort((a, b) => b.fecha.localeCompare(a.fecha)); } catch (e) { S.misPagos = []; }
+  try { const qs = await getDocs(query(collection(db, 'pagos'), where('cid', '==', uid), limit(100))); S.misPagos = qs.docs.map(d => d.data()).filter(p => !p.anulado).sort((a, b) => b.fecha.localeCompare(a.fecha)); } catch (e) { S.misPagos = []; }
   if (S.screen === 'suscripcion') render();
   const cod = codigoDe(S.conductor);
   if (cod) { try { const qs = await getDocs(query(collection(db, 'conductores'), where('refCodigo', '==', cod), limit(50))); const pend = (S.sus && S.sus.refPend) || [], apl = (S.sus && S.sus.refAplic) || []; S.misRef = qs.docs.map(d => ({ nombre: d.data().nombre, ok: pend.includes(d.id) || apl.includes(d.id) })); } catch (e) { S.misRef = []; } }
@@ -1185,10 +1206,11 @@ function admSusFicha() {
   if (!s.nPagos) izq += '<div class="col" style="gap:6px"><span class="lbl">Fecha de inscripción (inicio del mes gratis)</span><div class="row"><input type="date" data-in="susIni" value="' + fv('susIni') + '" aria-label="Fecha de inscripción" style="min-height:44px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font:inherit;color:var(--ink);background:var(--field);flex:1"><button class="btn btn-ghost btn-sm" data-act="susIniSave"' + busyAttr() + '>Cambiar</button></div><span class="small muted">Solo se puede cambiar antes del primer pago.</span></div>';
   izq += '<div class="col" style="gap:6px"><span class="lbl">Referido por</span><div class="row"><input type="text" data-in="susRefCod" placeholder="Código del conductor que lo refirió (JNF-placa)" value="' + fv('susRefCod') + '" aria-label="Código de quien lo refirió" autocapitalize="characters" style="min-height:44px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font:inherit;color:var(--ink);background:var(--field);flex:1;min-width:0"><button class="btn btn-ghost btn-sm" data-act="susRefSave"' + busyAttr() + '>Guardar</button></div><span class="small">' + (refDe ? 'Referido por <b>' + esc(refDe) + '</b>' + (s.refAcreditado ? ' · descuento ya acreditado' : ' · se acredita en su primer pago') : 'Sin referido') + '</span></div>';
   izq += '<div class="col" style="gap:6px"><span class="lbl">Conductores que refirió</span>' + (suyos.length ? suyos.map(x => { const sx = S.susMap[x.id] || {}, st = (s.refAplic || []).includes(x.id) ? ['p-ok', 'Descuento aplicado'] : (s.refPend || []).includes(x.id) ? ['p-warn', 'Descuento por aplicar'] : ['p-info', 'Descuento cuando pague']; return '<div class="row between small" style="background:var(--field);border-radius:10px;padding:8px 10px"><span>' + esc(x.nombre) + (sx.inicio ? ' · inscrito ' + fmtYmd(sx.inicio).slice(0, 5) : '') + '</span><span class="pill ' + st[0] + '">' + st[1] + '</span></div>'; }).join('') : '<span class="small muted">Ninguno aún.</span>') + '</div></section>';
-  const P = S.susPagos;
+  const P = S.susPagos, ultimoPago = P ? P.find(x => !x.anulado) : null;
   izq += '<section class="card"><h2 class="h2">Historial de pagos</h2>' + (!P ? '<div class="spinner" role="status" aria-label="Cargando"></div>' : !P.length ? '<div class="muted small">Sin pagos registrados.</div>' :
     '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th scope="col">Recibo</th><th scope="col">Fecha</th><th scope="col">Periodo cubierto</th><th scope="col">Pagó</th><th scope="col">Medio</th></tr></thead><tbody>' +
-    P.map(p => '<tr><td>' + esc(p.recibo) + '</td><td>' + fmtYmd(p.fecha) + '</td><td>' + fmtYmd(p.desde).slice(0, 5) + ' al ' + fmtYmd(p.hasta).slice(0, 5) + '</td><td class="strong">' + money(p.neto) + ((p.descRef || p.descOtro) ? '<br><span class="small muted">desc. ' + money((p.descRef || 0) + (p.descOtro || 0)) + '</span>' : '') + '</td><td>' + esc(p.medio) + '</td></tr>').join('') + '</tbody></table></div>') + '</section>';
+    P.map(p => { const ult = ultimoPago === p, an = p.anulado; return '<tr' + (an ? ' style="opacity:.6"' : '') + '><td>' + esc(p.recibo) + (an ? '<br><span class="pill p-danger">Anulado</span>' : '') + '</td><td>' + fmtYmd(p.fecha) + '</td><td>' + fmtYmd(p.desde).slice(0, 5) + ' al ' + fmtYmd(p.hasta).slice(0, 5) + '</td><td class="strong"' + (an ? ' style="text-decoration:line-through"' : '') + '>' + money(p.neto) + ((p.descRef || p.descOtro) ? '<br><span class="small muted">desc. ' + money((p.descRef || 0) + (p.descOtro || 0)) + '</span>' : '') + '</td><td>' + esc(p.medio) + (ult ? '<br><button class="link danger" style="font-size:12px;min-height:30px;padding:0" data-act="pagAnularAsk" data-v="' + p.id + '">Anular</button>' : '') + (an && p.motivoAnulacion ? '<br><span class="small muted">' + esc(p.motivoAnulacion) + '</span>' : '') + '</td></tr>'; }).join('') + '</tbody></table></div>') +
+    (S.anularId && P && P.find(x => x.id === S.anularId) ? '<div class="col" style="gap:8px;border:2px solid #B42318;border-radius:12px;padding:12px"><div class="strong">¿Anular el recibo ' + esc(P.find(x => x.id === S.anularId).recibo) + '?</div><div class="small">El conductor vuelve a quedar con el próximo pago del ' + fmtYmd(P.find(x => x.id === S.anularId).pagadoHastaAntes || P.find(x => x.id === S.anularId).desde) + '. El recibo queda marcado como anulado (no se borra) y deja de sumar en Ingresos.</div><div class="field"><label for="anm">Motivo</label><input type="text" id="anm" data-in="anMotivo" maxlength="80" placeholder="Ej. registrado por error" value="' + fv('anMotivo') + '"></div><div class="row"><button class="btn btn-danger btn-sm" style="flex:1;min-height:44px" data-act="pagAnular"' + busyAttr() + '>Sí, anular</button><button class="btn btn-ghost btn-sm" style="flex:1;min-height:44px" data-act="pagAnularAsk" data-v="">Cancelar</button></div></div>' : '') + '</section>';
   const atraso = s.pagadoHasta < (S.f.pagFecha || ymd(new Date())), desde = atraso && S.f.pagDesde === 'hoy' ? S.f.pagFecha : s.pagadoHasta, hasta = finPeriodo(desde, s.plan), otro = Math.max(0, parseMoney(S.f.pagOtro) || 0), total = Math.max(0, val - dr - otro);
   const der = '<section class="card"><h2 class="h2">Registrar pago</h2><div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + dateIn('pgf', 'pagFecha', 'Fecha del pago') +
     '<div class="field"><span class="lbl">Medio de pago</span><div class="chips">' + MEDIOS.map(m => fchip('pagMedio', m, m)).join('') + '</div></div></div>' +
@@ -1221,15 +1243,15 @@ function admIngresos() {
     '<div class="grid3" style="grid-template-columns:repeat(2,minmax(0,1fr))">' + dateIn('oif', 'oiFecha', 'Fecha') + '<div class="field"><span class="lbl">Medio</span><div class="chips">' + MEDIOS.map(m => fchip('oiMedio', m, m)).join('') + '</div></div></div><button class="btn btn-gold btn-sm" style="align-self:flex-start;min-height:44px" data-act="ingOtroSave"' + busyAttr() + '>Guardar ingreso y recibo</button></div>';
   h += '</section>';
   const L = S.ingresos; if (!L) return h + '<div class="spinner" role="status" aria-label="Cargando"></div>';
-  const neto = L.reduce((a, p) => a + (p.neto || 0), 0), desc = L.reduce((a, p) => a + (p.descRef || 0) + (p.descOtro || 0), 0);
+  const V = L.filter(p => !p.anulado), neto = V.reduce((a, p) => a + (p.neto || 0), 0), desc = V.reduce((a, p) => a + (p.descRef || 0) + (p.descOtro || 0), 0);
   const moraVal = Object.values(S.susMap || {}).filter(s => { const e = susEstado(s); return e && (e.k === 'gracia' || e.k === 'mora'); }).reduce((a, s) => a + (tarifas()[s.plan] || 0), 0);
-  h += '<div class="kpis"><div class="card kpi navy"><span class="k">Ingresos netos</span><span class="v">' + money(neto) + '</span></div><div class="card kpi"><span class="k">Pagos recibidos</span><span class="v">' + L.length + '</span></div><div class="card kpi"><span class="k">Descuentos otorgados</span><span class="v">' + money(desc) + '</span></div><div class="card kpi alert"><span class="k">Por cobrar (mora)</span><span class="v">' + (S.susMap ? money(moraVal) : '…') + '</span></div></div>';
+  h += '<div class="kpis"><div class="card kpi navy"><span class="k">Ingresos netos</span><span class="v">' + money(neto) + '</span></div><div class="card kpi"><span class="k">Pagos recibidos</span><span class="v">' + V.length + '</span></div><div class="card kpi"><span class="k">Descuentos otorgados</span><span class="v">' + money(desc) + '</span></div><div class="card kpi alert"><span class="k">Por cobrar (mora)</span><span class="v">' + (S.susMap ? money(moraVal) : '…') + '</span></div></div>';
   if (!L.length) return h + '<div class="card"><div class="muted">No hay ingresos en ese periodo.</div></div>';
-  const porMedio = {}; L.forEach(p => { porMedio[p.medio] = (porMedio[p.medio] || 0) + (p.neto || 0); });
-  const conc = p => p.tipo === 'otro' ? 'Otro ingreso · ' + esc(p.concepto) : esc(p.nombre) + ' · ' + planTxt(p.plan).toLowerCase();
+  const porMedio = {}; V.forEach(p => { porMedio[p.medio] = (porMedio[p.medio] || 0) + (p.neto || 0); });
+  const conc = p => (p.tipo === 'otro' ? 'Otro ingreso · ' + esc(p.concepto) : esc(p.nombre) + ' · ' + planTxt(p.plan).toLowerCase()) + (p.anulado ? ' <span class="pill p-danger">Anulado</span>' : '');
   const desTxt = p => { const d = (p.descRef || 0) + (p.descOtro || 0); return d ? '<span class="small" style="color:var(--ok-ink)">−' + money(d) + (p.descRef ? ' referido' : '') + (p.descOtro ? (p.descRef ? ' + otro' : ' ' + esc(p.motivo || 'descuento')) : '') + '</span>' : '—'; };
   const mov = isWide() ? '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th scope="col">Fecha</th><th scope="col">Recibo</th><th scope="col">Concepto</th><th scope="col">Valor</th><th scope="col">Descuento</th><th scope="col">Neto</th><th scope="col">Medio</th></tr></thead><tbody>' +
-    L.map(p => '<tr><td>' + fmtYmd(p.fecha).slice(0, 5) + '</td><td>' + esc(p.recibo) + '</td><td>' + conc(p) + '</td><td>' + money(p.valor || 0) + '</td><td>' + desTxt(p) + '</td><td class="strong">' + money(p.neto || 0) + '</td><td>' + esc(p.medio) + '</td></tr>').join('') + '</tbody></table></div>'
+    L.map(p => '<tr><td>' + fmtYmd(p.fecha).slice(0, 5) + '</td><td>' + esc(p.recibo) + '</td><td>' + conc(p) + '</td><td>' + money(p.valor || 0) + '</td><td>' + desTxt(p) + '</td><td class="strong"' + (p.anulado ? ' style="text-decoration:line-through;opacity:.6"' : '') + '>' + money(p.neto || 0) + '</td><td>' + esc(p.medio) + '</td></tr>').join('') + '</tbody></table></div>'
     : L.map(p => '<div class="col" style="gap:2px;padding:8px 0;border-bottom:1px solid var(--line)"><div class="row between"><span class="strong small">' + conc(p) + '</span><span class="strong">' + money(p.neto || 0) + '</span></div><span class="small muted">' + fmtYmd(p.fecha) + ' · ' + esc(p.recibo) + ' · ' + esc(p.medio) + '</span>' + ((p.descRef || p.descOtro) ? desTxt(p) : '') + '</div>').join('');
   return h + '<div class="ing-cols"><section class="card"><h2 class="h2">Movimientos</h2>' + mov + '</section><section class="card"><h2 class="h2">Por medio de pago</h2>' + Object.keys(porMedio).map(m => '<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)"><span>' + esc(m) + '</span><span class="strong">' + money(porMedio[m]) + '</span></div>').join('') + '</section></div>';
 }
@@ -1245,12 +1267,12 @@ async function loadIngresos() {
 }
 async function loadPagosMes() {
   const hoy = new Date(), a = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1)), b = ymd(hoy);
-  try { const qs = await getDocs(query(collection(db, 'pagos'), where('fecha', '>=', a), where('fecha', '<=', b), limit(2000))); S.pagosMes = qs.docs.map(d => d.data()); } catch (e) { S.pagosMes = []; }
+  try { const qs = await getDocs(query(collection(db, 'pagos'), where('fecha', '>=', a), where('fecha', '<=', b), limit(2000))); S.pagosMes = qs.docs.map(d => d.data()).filter(p => !p.anulado); } catch (e) { S.pagosMes = []; }
   if (S.screen === 'admin') render();
 }
 async function loadSusPagos(cid) {
   S.susPagos = null;
-  try { const qs = await getDocs(query(collection(db, 'pagos'), where('cid', '==', cid), limit(200))); S.susPagos = qs.docs.map(d => d.data()).sort((a, b) => b.fecha.localeCompare(a.fecha)); } catch (e) { S.susPagos = []; S.err = errMsg(e); }
+  try { const qs = await getDocs(query(collection(db, 'pagos'), where('cid', '==', cid), limit(200))); S.susPagos = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => b.fecha.localeCompare(a.fecha) || String(b.recibo).localeCompare(String(a.recibo))); } catch (e) { S.susPagos = []; S.err = errMsg(e); }
   if (S.screen === 'admin') render();
 }
 // Recibo consecutivo JNF-0001 (contador en config/contador) y registro del pago en una sola transacción
@@ -1595,8 +1617,28 @@ async function loadAdmUsers() {
     S.admUsers = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((x, y) => String(x.nombre).localeCompare(String(y.nombre), 'es'));
   } catch (e) { S.admUsers = []; S.err = errMsg(e); }
   if (S.screen === 'admin') render();
-  for (const u of S.admUsers) {
-    if (S.admQ[u.id]) continue;
+  admQFill(S.admUsers);
+}
+function admAlerta(q, c) {
+  if (!q) return false;
+  const pc = q.tot ? Math.round(q.pen * 100 / q.tot) : null;
+  return (pc != null && q.tot >= 3 && pc > (c ? 20 : 30)) || (q.pN >= 5 && q.pAvg < 4.2) || (q.cN >= 5 && q.cAvg < 4.2);
+}
+let _allUsersBusy = false;
+async function loadAllUsers() {
+  if (_allUsersBusy) return; _allUsersBusy = true;
+  try {
+    const qs = await getDocs(query(collection(db, 'usuarios'), limit(3000)));
+    S.admAllUsers = qs.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((x, y) => String(x.nombre).localeCompare(String(y.nombre), 'es'));
+  } catch (e) { S.admAllUsers = []; S.err = errMsg(e); }
+  _allUsersBusy = false;
+  if (S.screen === 'admin' && S.admTab === 'usuarios') render();
+}
+const _qBusy = new Set();
+async function admQFill(list) {
+  for (const u of list || []) {
+    if (S.admQ[u.id] || _qBusy.has(u.id)) continue;
+    _qBusy.add(u.id);
     try {
       const esC = (S.adm.conductores || []).some(c => c.id === u.id);
       const [p, cc, tot, pen] = await Promise.all([
@@ -1606,6 +1648,7 @@ async function loadAdmUsers() {
         getCountFromServer(query(collection(db, 'stats', u.id, 'viajes'), where('pen', '==', true)))]);
       S.admQ[u.id] = { pN: p.data().n, pAvg: p.data().avg || 0, cN: cc ? cc.data().n : 0, cAvg: cc ? cc.data().avg || 0 : 0, tot: tot.data().count, pen: pen.data().count };
     } catch (e) { S.admQ[u.id] = { pN: 0, pAvg: 0, cN: 0, cAvg: 0, tot: 0, pen: 0 }; }
+    _qBusy.delete(u.id);
     if (S.screen === 'admin' && S.admTab === 'usuarios') render();
   }
 }
@@ -2001,7 +2044,15 @@ async function act(a, v, b) {
       const em = (S.f.email || '').trim(), pw = S.f.pass || '';
       if (!em || !pw) { S.err = 'Escribe tu correo y tu contraseña.'; render(); break; }
       S.busy = true; S.err = null; render();
-      try { if (a === 'signup') await createUserWithEmailAndPassword(auth, em, pw); else await signInWithEmailAndPassword(auth, em, pw); S.busy = false; render(); S.f.pass = ''; } catch (e) { fail(e); }
+      try { if (a === 'signup') await createUserWithEmailAndPassword(auth, em, pw); else await signInWithEmailAndPassword(auth, em, pw); S.busy = false; render(); S.f.pass = ''; }
+      catch (e) {
+        if (a === 'signup' && e && e.code === 'auth/email-already-in-use') {
+          // La cuenta ya existía (por ejemplo, se creó en un intento anterior): se intenta ingresar con esa misma contraseña
+          try { await signInWithEmailAndPassword(auth, em, pw); S.busy = false; S.f.pass = ''; S.f.modoCrear = false; render(); break; }
+          catch (e2) { S.busy = false; S.f.modoCrear = false; S.err = 'Ya existe una cuenta con ese correo, pero la contraseña no coincide. Escribe la contraseña con la que la creaste y toca "Ingresar", toca "Olvidé mi contraseña" o, si la creaste con Google, usa "Entrar con Google".'; render(); break; }
+        }
+        fail(e);
+      }
       break;
     }
     case 'reset': {
@@ -2264,7 +2315,7 @@ async function act(a, v, b) {
         S.busy = false; S.mascDel = null; delete S.mascThumbs[v]; S.banner = { kind: 'ok', text: 'Máscara eliminada.' }; render(); await loadMascAdmin(); loadMasc();
       } catch (e) { fail(e); }
       break;
-    case 'admTab': S.admTab = v; S.err = null; S.mascDel = null; S.admPushRes = ''; if (v === 'notificaciones') S.f.admPushUrl = S.pushUrl; render(); if (v === 'usuarios' && !S.admUsers) loadAdmUsers(); if (v === 'mascaras') loadMascAdmin(); if (v === 'viajes' && S.admV === null) loadAdmViajes(); if (v === 'conductores') loadAdmRates(); if (v === 'notificaciones') loadAdmPush(); if (v === 'suscripciones') { loadSus(); loadPagosMes(); } if (v === 'ingresos') { if (!S.susMap) loadSus(); loadIngresos(); } if (v === 'tarifas') { const T = tarifas(); ['semanal', 'quincenal', 'mensual', 'diasGratis', 'diasGracia', 'refValor', 'refTipo', 'instrucciones'].forEach(k => { S.f['t_' + k] = String(T[k]); }); render(); } break;
+    case 'admTab': S.admTab = v; S.err = null; if (v === 'usuarios') S.admAllUsers = null; S.mascDel = null; S.admPushRes = ''; if (v === 'notificaciones') S.f.admPushUrl = S.pushUrl; render(); if (v === 'usuarios' && !S.admUsers) loadAdmUsers(); if (v === 'mascaras') loadMascAdmin(); if (v === 'viajes' && S.admV === null) loadAdmViajes(); if (v === 'conductores') loadAdmRates(); if (v === 'notificaciones') loadAdmPush(); if (v === 'suscripciones') { loadSus(); loadPagosMes(); } if (v === 'ingresos') { if (!S.susMap) loadSus(); loadIngresos(); } if (v === 'tarifas') { const T = tarifas(); ['semanal', 'quincenal', 'mensual', 'diasGratis', 'diasGracia', 'refValor', 'refTipo', 'instrucciones'].forEach(k => { S.f['t_' + k] = String(T[k]); }); render(); } break;
     case 'admF': { const i = v.indexOf('='); S.f[v.slice(0, i)] = v.slice(i + 1); S.admVPage = 20; render(); break; }
     case 'admVLoad': loadAdmViajes(); break;
     case 'admVMore': S.admVPage += 20; render(); break;
@@ -2290,7 +2341,7 @@ async function act(a, v, b) {
     }
     case 'susFicha': {
       const s = S.susMap && S.susMap[v]; if (!s) break;
-      S.susId = v; S.admTab = 'susFicha'; S.err = null; S.banner = null;
+      S.susId = v; S.admTab = 'susFicha'; S.err = null; S.banner = null; S.anularId = null;
       S.f.pagFecha = ymd(new Date()); S.f.pagDesde = ''; S.f.pagMedio = 'Efectivo'; S.f.pagOtro = ''; S.f.pagMotivo = ''; S.f.susIni = s.inicio;
       const rc = s.referidoPor && (S.adm.conductores || []).find(x => x.id === s.referidoPor); S.f.susRefCod = rc ? codigoDe(rc) : ((S.adm.conductores || []).find(x => x.id === v) || {}).refCodigo || '';
       render(); window.scrollTo(0, 0); loadSusPagos(v);
@@ -2334,11 +2385,36 @@ async function act(a, v, b) {
       if (R) upd.refAcreditado = true;
       S.busy = true; render();
       try {
-        const recibo = await guardarPago({ tipo: 'suscripcion', cid: s.id, nombre: s.nombre, placa: s.placa, plan: s.plan, fecha, desde, hasta, valor: val, descRef: dr, descOtro: otro, motivo: otro ? String(S.f.pagMotivo || '').trim().slice(0, 80) : '', neto, medio },
+        const recibo = await guardarPago({ tipo: 'suscripcion', cid: s.id, nombre: s.nombre, placa: s.placa, plan: s.plan, fecha, desde, hasta, valor: val, descRef: dr, descOtro: otro, motivo: otro ? String(S.f.pagMotivo || '').trim().slice(0, 80) : '', neto, medio, pagadoHastaAntes: s.pagadoHasta, refIds: (s.refPend || []).slice(), acreditoA: R ? R.id : null },
           tx => { tx.update(doc(db, 'suscripciones', s.id), upd); if (R) tx.update(doc(db, 'suscripciones', R.id), { refPend: (R.refPend || []).concat([s.id]) }); });
         Object.assign(s, upd); if (R) R.refPend = (R.refPend || []).concat([s.id]);
         S.busy = false; S.f.pagOtro = ''; S.f.pagMotivo = ''; S.banner = { kind: 'ok', text: 'Pago registrado · recibo ' + recibo + ' · ' + money(neto) + '. Próximo pago: ' + fmtYmd(hasta) + '.' + (R ? ' ' + R.nombre + ' recibirá su descuento por referido en su siguiente pago.' : '') };
         render(); window.scrollTo(0, 0); loadSusPagos(s.id); loadPagosMes();
+      } catch (e) { fail(e); }
+      break;
+    }
+    case 'pagAnularAsk': S.anularId = v || null; S.f.anMotivo = ''; render(); break;
+    case 'pagAnular': {
+      const P = S.susPagos || [], pg = P.find(x => x.id === S.anularId), s = pg && S.susMap[pg.cid]; if (!pg || !s) break;
+      if (P.find(x => !x.anulado) !== pg) { S.err = 'Solo se puede anular el último pago del conductor.'; render(); break; }
+      const mot = String(S.f.anMotivo || '').trim(); if (mot.length < 3) { S.err = 'Escribe el motivo de la anulación.'; render(); break; }
+      const T = tarifas(), prev = pg.pagadoHastaAntes || pg.desde, n = Math.max(0, (s.nPagos || 0) - 1), ids = pg.refIds || [];
+      const upd = { pagadoHasta: prev, venceGracia: venceGraciaDe(prev, T), nPagos: n };
+      let aviso = '';
+      if (ids.length) { upd.refPend = (s.refPend || []).concat(ids.filter(x => !(s.refPend || []).includes(x))); upd.refAplic = (s.refAplic || []).filter(x => !ids.includes(x)); }
+      else if (pg.descRef && pg.refIds === undefined) aviso = ' Este pago tenía descuento por referido registrado antes de esta versión: revisa a mano si el conductor debe recuperarlo.';
+      const rid = pg.acreditoA !== undefined ? pg.acreditoA : (n === 0 && s.refAcreditado ? s.referidoPor : null), R = rid ? S.susMap[rid] : null;
+      let updR = null;
+      if (R) { if ((R.refPend || []).includes(s.id)) { updR = { refPend: R.refPend.filter(x => x !== s.id) }; upd.refAcreditado = false; } else aviso += ' ' + R.nombre + ' ya usó el descuento que le generó este pago; no se puede revertir.'; }
+      S.busy = true; render();
+      try {
+        const bt = writeBatch(db);
+        bt.update(doc(db, 'pagos', pg.id), { anulado: true, anuladoEn: serverTimestamp(), motivoAnulacion: mot.slice(0, 80) });
+        bt.update(doc(db, 'suscripciones', s.id), upd);
+        if (updR) bt.update(doc(db, 'suscripciones', R.id), updR);
+        await bt.commit();
+        Object.assign(s, upd); if (updR) Object.assign(R, updR); pg.anulado = true; pg.motivoAnulacion = mot;
+        S.busy = false; S.anularId = null; S.banner = { kind: 'ok', text: 'Recibo ' + pg.recibo + ' anulado. Próximo pago: ' + fmtYmd(prev) + '.' + aviso }; render(); loadPagosMes();
       } catch (e) { fail(e); }
       break;
     }
@@ -2377,15 +2453,15 @@ async function act(a, v, b) {
     case 'ingCsv': {
       const L = S.ingresos || []; if (!L.length) { S.err = 'No hay ingresos para descargar en ese periodo.'; render(); break; }
       const q = x => '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"';
-      const filas = [['Fecha', 'Recibo', 'Tipo', 'Conductor / concepto', 'Placa', 'Plan', 'Periodo desde', 'Periodo hasta', 'Valor', 'Descuento referido', 'Otro descuento', 'Motivo', 'Neto', 'Medio']]
-        .concat(L.map(p => [fmtYmd(p.fecha), p.recibo, p.tipo === 'otro' ? 'Otro ingreso' : 'Suscripción', p.tipo === 'otro' ? p.concepto : p.nombre, p.placa || '', p.plan ? planTxt(p.plan) : '', p.desde ? fmtYmd(p.desde) : '', p.hasta ? fmtYmd(p.hasta) : '', p.valor || 0, p.descRef || 0, p.descOtro || 0, p.motivo || '', p.neto || 0, p.medio]));
-      filas.push([], ['Total neto', '', '', '', '', '', '', '', '', '', '', '', L.reduce((a, p) => a + (p.neto || 0), 0)]);
+      const filas = [['Fecha', 'Recibo', 'Tipo', 'Conductor / concepto', 'Placa', 'Plan', 'Periodo desde', 'Periodo hasta', 'Valor', 'Descuento referido', 'Otro descuento', 'Motivo', 'Neto', 'Medio', 'Estado']]
+        .concat(L.map(p => [fmtYmd(p.fecha), p.recibo, p.tipo === 'otro' ? 'Otro ingreso' : 'Suscripción', p.tipo === 'otro' ? p.concepto : p.nombre, p.placa || '', p.plan ? planTxt(p.plan) : '', p.desde ? fmtYmd(p.desde) : '', p.hasta ? fmtYmd(p.hasta) : '', p.valor || 0, p.descRef || 0, p.descOtro || 0, p.motivo || '', p.anulado ? 0 : (p.neto || 0), p.medio, p.anulado ? 'Anulado' + (p.motivoAnulacion ? ': ' + p.motivoAnulacion : '') : 'Válido']));
+      filas.push([], ['Total neto', '', '', '', '', '', '', '', '', '', '', '', L.filter(p => !p.anulado).reduce((a, p) => a + (p.neto || 0), 0)]);
       const csv = '﻿' + [['Asesorías y Consultorías JNF S.A.S. · NIT 901.904.435-9'], ['Ingresos JNF Moto del ' + fmtYmd(S.f.ingIni) + ' al ' + fmtYmd(S.f.ingFin)], []].concat(filas).map(f => f.map(q).join(';')).join('\r\n');
       const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })), el = document.createElement('a');
       el.href = url; el.download = 'ingresos_jnf_moto_' + S.f.ingIni + '_a_' + S.f.ingFin + '.csv'; document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
       break;
     }
-    case 'admMore': S.admLimit += 30; S.admUsers = null; render(); loadAdmUsers(); break;
+    case 'admMore': S.admLimit += 30; if (fold(S.f.admUQ).trim() || S.f.admUTipo) { render(); break; } S.admUsers = null; render(); loadAdmUsers(); break;
     case 'admMake': { S.admMake = v || null; S.f.amMoto = ''; S.f.amColor = ''; S.f.amPlaca = ''; S.f.amReg = ''; S.f.amDir = ''; S.f.amOk = false; const u = (S.admUsers || []).find(x => x.id === v); S.f.amTel = u && u.telefono ? u.telefono : ''; render(); break; }
     case 'admMakeSave': {
       const u = (S.admUsers || []).find(x => x.id === v); if (!u) break;

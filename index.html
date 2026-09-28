@@ -42,7 +42,7 @@
 *,*::before,*::after{box-sizing:inherit}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
 body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:Montserrat,system-ui,-apple-system,"Segoe UI",Helvetica,sans-serif;font-size:15px;line-height:1.4;-webkit-text-size-adjust:100%}
-#app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg)}
+#app{overflow-x:clip;max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg)}
 .screen{flex:1;display:flex;flex-direction:column;min-height:0}
 button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -229,6 +229,6 @@ input[type=email],input[type=password]{min-height:48px;border:1px solid var(--li
 </head>
 <body>
 <div id="app" aria-live="polite"><div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="icon-192.png" alt="Logo JNF S.A.S." style="width:96px;height:96px"><noscript><p>JNF Moto necesita JavaScript activado.</p></noscript></div></div></div>
-<script type="module" src="app.js?v=20"></script>
+<script type="module" src="app.js?v=23"></script>
 </body>
 </html>
