@@ -20,7 +20,7 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '28'; // número interno (actualiza la caché)
+const APP_VERSION = '29'; // número interno (actualiza la caché)
 const APP_LABEL = '1.0'; // versión oficial que ve el usuario
 const LOGO = 'logo-jnf.png';
 const appEl = document.getElementById('app');
@@ -120,7 +120,7 @@ const ASP_C = ['Conducción segura', 'Puntualidad', 'Amabilidad', 'Vehículo lim
 const ASP_P = ['Pagó completo', 'Puntual en el punto', 'Respetuoso', 'Cuidó el vehículo'];
 
 /* ---------- piezas de interfaz ---------- */
-const brandRow = right => '<div class="row between"><div class="row"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">Motocaimán</span></div>' + (right || '') + '</div>';
+const brandRow = right => '<div class="row between"><div class="row"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><img class="wm" src="logo-motocaiman.png" alt="Motocaimán"></div>' + (right || '') + '</div>';
 const subTop = (title, back) => '<div class="top"><div class="row"><button class="iconbtn" data-act="go" data-v="' + (back || 'menu') + '" aria-label="Volver">' + I.back + '</button><h1 class="h1">' + title + '</h1></div></div>';
 function bannerHTML(b) { if (!b) return ''; return '<div class="banner ' + b.kind + '" role="status">' + (b.kind === 'danger' ? I.shield : I.info) + '<div class="grow">' + esc(b.text) + '</div><button data-act="closeBanner" aria-label="Cerrar aviso">Cerrar</button></div>'; }
 const errHTML = () => S.err ? '<div class="banner danger" role="alert">' + I.info + '<div class="grow">' + esc(S.err) + '</div><button data-act="closeErr" aria-label="Cerrar error">Cerrar</button></div>' : '';
@@ -154,7 +154,7 @@ function installCard() {
 function vCargando() { return '<div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:96px;height:96px"><div class="spinner" role="status" aria-label="Cargando"></div></div></div>'; }
 function vLogin() {
   const crear = S.f.modoCrear;
-  return '<div class="screen"><div class="top" style="align-items:center;text-align:center;padding:20px 16px 24px"><img src="banner-motocaiman.jpg" alt="Motocaimán" width="1200" height="800" style="width:100%;max-width:440px;height:auto;border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.35)"><h1 class="h1" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Motocaimán</h1><div class="sub" style="margin-top:6px">Tu mototour, al precio que acuerdas.</div></div>' + mascLogin() +
+  return '<div class="screen"><div class="top hero-fix" style="align-items:center;text-align:center;padding:14px 16px 12px;gap:8px"><img src="banner-motocaiman.jpg" alt="Motocaimán" width="1200" height="800" style="width:min(100%,310px);height:auto;border-radius:18px;box-shadow:0 6px 22px rgba(0,0,0,.4)"><h1 class="h1" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Motocaimán</h1><div class="sub">Tu mototour, al precio que acuerdas.</div></div>' + mascLogin() +
     '<div class="pad">' + errHTML() + bannerHTML(S.banner) +
     '<button class="btn gbtn" data-act="google"' + busyAttr() + '>Entrar con Google</button><div class="divider">o con tu correo</div>' +
     '<div class="field"><label for="em">Correo electrónico</label><input type="email" id="em" data-in="email" autocomplete="email" value="' + fv('email') + '"></div>' +
@@ -178,7 +178,7 @@ function vHome() {
   else if (S.gps === 'pendiente') gps = '<div class="muted small">Buscando tu ubicación…</div>';
   else gps = gpsBanner();
   let h = '<div class="screen"><div class="row between hdr" style="padding:12px 16px;background:var(--bg)"><button class="iconbtn light" data-act="go" data-v="menu" aria-label="Abrir menú">' + I.menu + '</button>' +
-    '<div class="row hpill" style="background:#1A2580;border-radius:28px;padding:4px 16px 4px 4px"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">Motocaimán</span></div>' + (mascBadge() || '<div style="width:44px"></div>') + '</div>' + mascBand();
+    '<div class="row hpill" style="background:#1A2580;border-radius:28px;padding:4px 16px 4px 4px"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><img class="wm" src="logo-motocaiman.png" alt="Motocaimán"></div>' + (mascBadge() || '<div style="width:44px"></div>') + '</div>' + mascBand();
   h += S.gps === 'ok' ? '<div id="map" class="lmap" role="img" aria-label="Mapa con tu ubicación' + (S.destPin ? ' y el destino' : '') + '"></div>' + legendHTML([['person', 'Tú'], ['otro', 'Conductores cerca']].concat(S.destPin ? [['dest', 'Destino']] : [])) : '';
   h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + mascBig() + mascNotice() + homeInstallCard() + (S.pushUrl && pushPerm() === 'default' ? pushCard(false) : '');
   const env = S.tipo === 'envio';
@@ -861,7 +861,7 @@ const ADM_SECS = () => [['resumen', 'Resumen'], ['usuarios', 'Usuarios'], ['cond
 function vAdmin() {
   const t = S.admTab, secs = ADM_SECS(), title = t === 'detalle' ? 'Servicios e ingresos' : t === 'susFicha' ? 'Suscripción del conductor' : t === 'tarifas' ? 'Tarifas y referidos' : t === 'mascEdit' ? (S.me && S.me.id ? 'Editar máscara' : 'Crear máscara') : (secs.find(x => x[0] === t) || secs[0])[1].replace(/ \(\d+\)$/, '');
   if (isWide()) {
-    return '<div class="adm-wrap"><nav class="adm-side" aria-label="Secciones del panel"><div class="row" style="gap:12px;padding:0 8px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:52px;height:52px"><div class="col" style="gap:2px"><span class="brandname" style="font-size:18px">Motocaimán</span><span class="small" style="color:#D8DEE8;font-weight:600">Administración</span></div></div>' +
+    return '<div class="adm-wrap"><nav class="adm-side" aria-label="Secciones del panel"><div class="row" style="gap:12px;padding:0 8px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:52px;height:52px"><div class="col" style="gap:2px"><img class="wm" src="logo-motocaiman.png" alt="Motocaimán" style="height:34px"><span class="small" style="color:#D8DEE8;font-weight:600">Administración</span></div></div>' +
       secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0] || (t === 'detalle' && x[0] === S.admBack) || (t === 'mascEdit' && x[0] === 'mascaras') || ((t === 'susFicha' || t === 'tarifas') && x[0] === 'suscripciones')) + '">' + x[1] + '</button>').join('') +
       '<button data-act="go" data-v="menu" style="margin-top:auto">← Volver a la app</button><div style="font-size:11px;color:#B8C0E6;line-height:1.4;padding:8px 12px 0">' + COPY() + '</div></nav>' +
       '<main class="adm-main"><div class="row between" style="flex-wrap:wrap;gap:8px"><h1 class="h1" style="font-size:28px">' + title + '</h1><span class="muted">Hoy · ' + new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '</span></div>' +

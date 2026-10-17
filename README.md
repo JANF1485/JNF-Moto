@@ -50,3 +50,8 @@ Panel de administración → **Máscaras**: adjuntar una imagen, elegir una de l
 - Aviso de versión nueva: la app consulta `version.json` al abrirse, al volver a primer plano y cada 10 minutos. Si el número no coincide con el de la app, muestra «Hay una versión nueva de Motocaimán» con los botones Actualizar y Luego.
 - **En cada actualización futura:** subir `version.json` con un número mayor y cambiar `APP_VERSION` en `app.js` al mismo número (además de `CACHE` en `sw.js` y `?v=` en `index.html`). Si `version.json` no cambia, los celulares no avisan.
 - La app sigue mostrando «Versión 1.0».
+
+## Logo en encabezados y ingreso fijo (interno 29)
+- `logo-motocaiman.png`: palabra «Motocaimán» (recortada de la imagen oficial, fondo transparente). Reemplaza al texto en los encabezados de la app, el menú y el panel de administración.
+- Pantalla de ingreso: la imagen de Motocaimán queda fija arriba (más pequeña) y solo se desplaza lo que está debajo, desde la franja de los 400 años. Al tocar un campo para escribir, la imagen se suelta para dejar espacio al teclado.
+- La app sigue mostrando «Versión 1.0».

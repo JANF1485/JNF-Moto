@@ -3,8 +3,8 @@
 // Motocaimán — service worker
 // Estrategia "red primero": siempre intenta descargar la versión publicada más reciente
 // (sin usar la caché HTTP del navegador) y solo usa la copia guardada si no hay conexión. Así las actualizaciones se ven de inmediato.
-const CACHE = 'jnf-moto-v15';
-const SHELL = ['./', './index.html', './app.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './logo-jnf.png', './banner-motocaiman.jpg', './splash.js', './splash-1.png', './splash-2.png', './splash-3.png', './splash-4.png', './splash-5.png'];
+const CACHE = 'jnf-moto-v16';
+const SHELL = ['./', './index.html', './app.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './logo-jnf.png', './banner-motocaiman.jpg', './logo-motocaiman.png', './splash.js', './splash-1.png', './splash-2.png', './splash-3.png', './splash-4.png', './splash-5.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {

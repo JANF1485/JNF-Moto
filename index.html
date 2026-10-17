@@ -63,6 +63,9 @@ img{max-width:100%;display:block}
 .strong{font-weight:700}
 .logo{width:44px;height:44px;flex-shrink:0}
 .brandname{font-weight:800;font-size:17px;color:#C9A227;white-space:nowrap}
+.wm{height:26px;width:auto;display:block;flex-shrink:0}
+.hero-fix{position:sticky;top:0;z-index:20;box-shadow:0 8px 14px -8px rgba(0,0,0,.45)}
+.screen:has(input:focus) .hero-fix{position:static;box-shadow:none}
 .iconbtn{width:44px;height:44px;border-radius:22px;border:none;background:rgba(255,255,255,.14);color:#FFFFFF;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .iconbtn.light{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 .btn{min-height:52px;border-radius:14px;border:none;font-weight:800;font-size:16px;padding:12px 16px;display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;text-decoration:none;width:100%}
@@ -268,6 +271,6 @@ input[type=email],input[type=password]{min-height:48px;border:1px solid var(--li
 <div id="splash" aria-hidden="true"><div class="sp-logo"><div class="sp-glow"></div><div class="sp-l sp-l2"></div><div class="sp-l sp-l1"></div><div class="sp-l sp-l3"></div><div class="sp-l sp-l4"></div><div class="sp-l sp-l5"></div><div class="sp-shine"></div></div><div class="sp-word"><b>Motocaimán</b><span>Asesorías y Consultorías JNF S.A.S.</span></div></div>
 <div id="splash2" aria-hidden="true"><div class="s2-bg"></div><img class="s2-img" src="banner-motocaiman.jpg" alt="" width="1200" height="800"><div class="s2-load"><div class="s2-sp"></div>Entrando…</div></div>
 <script src="splash.js"></script>
-<script type="module" src="app.js?v=28"></script>
+<script type="module" src="app.js?v=29"></script>
 </body>
 </html>
