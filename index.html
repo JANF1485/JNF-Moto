@@ -1,14 +1,14 @@
 <!doctype html>
-<!-- JNF Moto · © 2026 Asesorías y Consultorías JNF S.A.S. (NIT 901.904.435-9). Todos los derechos reservados. Prohibida su reproducción total o parcial sin autorización escrita. -->
+<!-- Motocaimán · © 2026 Asesorías y Consultorías JNF S.A.S. (NIT 901.904.435-9). Todos los derechos reservados. Prohibida su reproducción total o parcial sin autorización escrita. -->
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1A2580">
-<meta name="description" content="JNF Moto: pide tu mototour y acuerda el precio con el conductor.">
+<meta name="description" content="Motocaimán: pide tu mototour y acuerda el precio con el conductor.">
 <meta name="author" content="Asesorías y Consultorías JNF S.A.S.">
 <meta name="copyright" content="© 2026 Asesorías y Consultorías JNF S.A.S. (NIT 901.904.435-9). Todos los derechos reservados.">
-<title>JNF Moto</title>
+<title>Motocaimán</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -241,10 +241,24 @@ input[type=email],input[type=password]{min-height:48px;border:1px solid var(--li
 .sus-cols,.ing-cols{display:flex;flex-direction:column;gap:16px}
 .wide .sus-cols{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start}
 .wide .ing-cols{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1fr);align-items:start}
+/* Entrada animada: el logo de JNF aparece por capas de color */
+@property --a{syntax:'<angle>';inherits:false;initial-value:360deg}
+#splash{display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:26px;background:radial-gradient(120% 80% at 50% 38%,#223099 0%,#1A2580 45%,#0F1758 100%);padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);-webkit-tap-highlight-color:transparent}
+#splash .sp-logo{position:relative;width:min(58vw,240px);aspect-ratio:1}
+#splash .sp-l{position:absolute;inset:0;background-size:100% 100%;background-repeat:no-repeat;opacity:0;will-change:transform,opacity}
+#splash .sp-l1{background-image:url(splash-1.png)}#splash .sp-l2{background-image:url(splash-2.png)}#splash .sp-l3{background-image:url(splash-3.png)}#splash .sp-l4{background-image:url(splash-4.png)}#splash .sp-l5{background-image:url(splash-5.png)}
+#splash .sp-glow{position:absolute;inset:-22%;border-radius:50%;background:radial-gradient(closest-side,rgba(201,162,39,.6),rgba(201,162,39,0) 70%);opacity:0}
+#splash .sp-shine{position:absolute;inset:0;border-radius:50%;overflow:hidden;opacity:0;-webkit-mask-image:radial-gradient(closest-side,#000 98%,transparent 100%);mask-image:radial-gradient(closest-side,#000 98%,transparent 100%)}
+#splash .sp-shine::after{content:"";position:absolute;top:-10%;bottom:-10%;width:34%;left:-50%;transform:skewX(-18deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent)}
+#splash .sp-word{text-align:center;opacity:0;transform:translateY(10px)}
+#splash .sp-word b{display:block;font-family:Montserrat,system-ui,sans-serif;font-weight:800;font-size:34px;letter-spacing:.04em;color:#C9A227;line-height:1.05}
+#splash .sp-word span{display:block;margin-top:8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#C5CAEE}
 </style>
 </head>
 <body>
-<div id="app" aria-live="polite"><div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="icon-192.png" alt="Logo JNF S.A.S." style="width:96px;height:96px"><noscript><p>JNF Moto necesita JavaScript activado.</p></noscript></div></div></div>
-<script type="module" src="app.js?v=24"></script>
+<div id="app" aria-live="polite"><div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="icon-192.png" alt="Logo JNF S.A.S." style="width:96px;height:96px"><noscript><p>Motocaimán necesita JavaScript activado.</p></noscript></div></div></div>
+<div id="splash" aria-hidden="true"><div class="sp-logo"><div class="sp-glow"></div><div class="sp-l sp-l2"></div><div class="sp-l sp-l1"></div><div class="sp-l sp-l3"></div><div class="sp-l sp-l4"></div><div class="sp-l sp-l5"></div><div class="sp-shine"></div></div><div class="sp-word"><b>Motocaimán</b><span>Asesorías y Consultorías JNF S.A.S.</span></div></div>
+<script src="splash.js"></script>
+<script type="module" src="app.js?v=26"></script>
 </body>
 </html>

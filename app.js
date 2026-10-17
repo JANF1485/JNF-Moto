@@ -1,4 +1,4 @@
-// JNF Moto — © 2026 Asesorías y Consultorías JNF S.A.S. (NIT 901.904.435-9). Todos los derechos reservados.
+// Motocaimán — © 2026 Asesorías y Consultorías JNF S.A.S. (NIT 901.904.435-9). Todos los derechos reservados.
 // Prohibida su reproducción, copia, modificación o distribución, total o parcial, sin autorización escrita del titular.
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
@@ -20,7 +20,7 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '24'; // número interno (actualiza la caché)
+const APP_VERSION = '26'; // número interno (actualiza la caché)
 const APP_LABEL = '1.0'; // versión oficial que ve el usuario
 const LOGO = 'icon-192.png';
 const appEl = document.getElementById('app');
@@ -120,7 +120,7 @@ const ASP_C = ['Conducción segura', 'Puntualidad', 'Amabilidad', 'Vehículo lim
 const ASP_P = ['Pagó completo', 'Puntual en el punto', 'Respetuoso', 'Cuidó el vehículo'];
 
 /* ---------- piezas de interfaz ---------- */
-const brandRow = right => '<div class="row between"><div class="row"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">JNF Moto</span></div>' + (right || '') + '</div>';
+const brandRow = right => '<div class="row between"><div class="row"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">Motocaimán</span></div>' + (right || '') + '</div>';
 const subTop = (title, back) => '<div class="top"><div class="row"><button class="iconbtn" data-act="go" data-v="' + (back || 'menu') + '" aria-label="Volver">' + I.back + '</button><h1 class="h1">' + title + '</h1></div></div>';
 function bannerHTML(b) { if (!b) return ''; return '<div class="banner ' + b.kind + '" role="status">' + (b.kind === 'danger' ? I.shield : I.info) + '<div class="grow">' + esc(b.text) + '</div><button data-act="closeBanner" aria-label="Cerrar aviso">Cerrar</button></div>'; }
 const errHTML = () => S.err ? '<div class="banner danger" role="alert">' + I.info + '<div class="grow">' + esc(S.err) + '</div><button data-act="closeErr" aria-label="Cerrar error">Cerrar</button></div>' : '';
@@ -135,18 +135,18 @@ let installEvt = null;
 const isStandalone = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (['login', 'home', 'menu'].includes(S.screen)) render(); });
-window.addEventListener('appinstalled', () => { installEvt = null; S.banner = { kind: 'ok', text: 'JNF Moto quedó instalada. Ábrela desde el ícono en tu celular.' }; render(); });
+window.addEventListener('appinstalled', () => { installEvt = null; S.banner = { kind: 'ok', text: 'Motocaimán quedó instalada. Ábrela desde el ícono en tu celular.' }; render(); });
 function homeInstallCard() {
   if (isStandalone() || S.hideInstall) return '';
   const body = installEvt ? '<div class="muted small">Así se abre a pantalla completa, sin la barra del navegador.</div><div class="row"><button class="btn btn-gold btn-sm" style="flex:1" data-act="install">Instalar</button><button class="btn btn-ghost btn-sm" style="flex:1" data-act="hideInstall">Ahora no</button></div>'
     : isIOS() ? '<div class="muted small">Ábrela en Safari, toca Compartir (el cuadro con la flecha) y elige "Agregar a inicio".</div><button class="link" data-act="hideInstall" style="align-self:flex-start;font-size:13px">Ahora no</button>'
       : '<div class="muted small">En Chrome toca ⋮ y luego "Instalar app". Si la abriste desde WhatsApp, primero toca ⋮ y "Abrir en Chrome".</div><button class="link" data-act="hideInstall" style="align-self:flex-start;font-size:13px">Ahora no</button>';
-  return '<div class="card" style="gap:8px"><div class="strong">Estás usando JNF Moto desde el navegador</div>' + body + '</div>';
+  return '<div class="card" style="gap:8px"><div class="strong">Estás usando Motocaimán desde el navegador</div>' + body + '</div>';
 }
 function installCard() {
   if (isStandalone()) return '';
-  if (installEvt) return '<div class="card" style="flex-direction:row;align-items:center;gap:12px"><img src="' + LOGO + '" alt="" style="width:44px;height:44px;flex-shrink:0"><div class="col grow"><div class="strong">Instala JNF Moto</div><div class="muted small">Ábrela desde un ícono, como cualquier app.</div></div><button class="btn btn-gold btn-sm" data-act="install" style="flex-shrink:0">Instalar</button></div>';
-  if (isIOS()) return '<div class="card"><div class="strong">Instala JNF Moto en tu iPhone</div><div class="muted small">En Safari toca el botón Compartir (el cuadro con la flecha) y elige "Agregar a inicio".</div></div>';
+  if (installEvt) return '<div class="card" style="flex-direction:row;align-items:center;gap:12px"><img src="' + LOGO + '" alt="" style="width:44px;height:44px;flex-shrink:0"><div class="col grow"><div class="strong">Instala Motocaimán</div><div class="muted small">Ábrela desde un ícono, como cualquier app.</div></div><button class="btn btn-gold btn-sm" data-act="install" style="flex-shrink:0">Instalar</button></div>';
+  if (isIOS()) return '<div class="card"><div class="strong">Instala Motocaimán en tu iPhone</div><div class="muted small">En Safari toca el botón Compartir (el cuadro con la flecha) y elige "Agregar a inicio".</div></div>';
   return '';
 }
 
@@ -154,7 +154,7 @@ function installCard() {
 function vCargando() { return '<div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:96px;height:96px"><div class="spinner" role="status" aria-label="Cargando"></div></div></div>'; }
 function vLogin() {
   const crear = S.f.modoCrear;
-  return '<div class="screen"><div class="top" style="align-items:center;text-align:center;padding:28px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px"><h1 class="h1" style="color:#C9A227">JNF Moto</h1><div class="sub">Tu mototour, al precio que acuerdas.</div></div>' + mascLogin() +
+  return '<div class="screen"><div class="top" style="align-items:center;text-align:center;padding:28px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px"><h1 class="h1" style="color:#C9A227">Motocaimán</h1><div class="sub">Tu mototour, al precio que acuerdas.</div></div>' + mascLogin() +
     '<div class="pad">' + errHTML() + bannerHTML(S.banner) +
     '<button class="btn gbtn" data-act="google"' + busyAttr() + '>Entrar con Google</button><div class="divider">o con tu correo</div>' +
     '<div class="field"><label for="em">Correo electrónico</label><input type="email" id="em" data-in="email" autocomplete="email" value="' + fv('email') + '"></div>' +
@@ -162,7 +162,7 @@ function vLogin() {
     '<button class="btn btn-gold" data-act="' + (crear ? 'signup' : 'signin') + '"' + busyAttr() + '>' + (crear ? 'Crear cuenta' : 'Ingresar') + '</button>' +
     '<button class="link" data-act="toggleCrear" style="align-self:center">' + (crear ? 'Ya tengo cuenta: ingresar' : 'No tengo cuenta: crear una') + '</button>' +
     (crear ? '' : '<button class="link" data-act="reset" style="align-self:center;font-size:13px">Olvidé mi contraseña</button>') +
-    installCard() + '</div><div class="demo">JNF Moto · Versión ' + APP_LABEL + '<br>' + COPY() + '<br><button class="link" data-act="go" data-v="terminos" style="font-size:12px;min-height:32px;text-align:center">Términos y condiciones · Tratamiento de datos</button></div></div>';
+    installCard() + '</div><div class="demo">Motocaimán · Versión ' + APP_LABEL + '<br>' + COPY() + '<br><button class="link" data-act="go" data-v="terminos" style="font-size:12px;min-height:32px;text-align:center">Términos y condiciones · Tratamiento de datos</button></div></div>';
 }
 function vOnboarding() {
   return '<div class="screen"><div class="top">' + brandRow() + '<h1 class="h1">Completa tu perfil</h1><div class="sub">Lo usamos para que conductores y pasajeros se identifiquen.</div></div><div class="pad">' + errHTML() +
@@ -178,7 +178,7 @@ function vHome() {
   else if (S.gps === 'pendiente') gps = '<div class="muted small">Buscando tu ubicación…</div>';
   else gps = gpsBanner();
   let h = '<div class="screen"><div class="row between hdr" style="padding:12px 16px;background:var(--bg)"><button class="iconbtn light" data-act="go" data-v="menu" aria-label="Abrir menú">' + I.menu + '</button>' +
-    '<div class="row hpill" style="background:#1A2580;border-radius:28px;padding:4px 16px 4px 4px"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">JNF Moto</span></div>' + (mascBadge() || '<div style="width:44px"></div>') + '</div>' + mascBand();
+    '<div class="row hpill" style="background:#1A2580;border-radius:28px;padding:4px 16px 4px 4px"><img class="logo" src="' + LOGO + '" alt="Logo JNF S.A.S."><span class="brandname">Motocaimán</span></div>' + (mascBadge() || '<div style="width:44px"></div>') + '</div>' + mascBand();
   h += S.gps === 'ok' ? '<div id="map" class="lmap" role="img" aria-label="Mapa con tu ubicación' + (S.destPin ? ' y el destino' : '') + '"></div>' + legendHTML([['person', 'Tú'], ['otro', 'Conductores cerca']].concat(S.destPin ? [['dest', 'Destino']] : [])) : '';
   h += '<div class="sheet"><div class="handle"></div>' + bannerHTML(S.banner) + errHTML() + mascBig() + mascNotice() + homeInstallCard() + (S.pushUrl && pushPerm() === 'default' ? pushCard(false) : '');
   const env = S.tipo === 'envio';
@@ -272,12 +272,12 @@ function vCancelar() {
   return h + '<button class="btn btn-danger" data-act="doCancel"' + busyAttr() + '>Cancelar viaje</button><button class="btn btn-ghost" data-act="backFromCancel">Volver al viaje</button></div></div>';
 }
 function sosBlock() {
-  if (S.sos === 'confirm') return '<div class="banner danger" role="alertdialog" aria-label="Confirmar alerta de pánico">' + I.shield + '<div class="grow col" style="gap:10px"><div class="strong">¿Activar la alerta de pánico?</div><div>Se registra una alerta con tu ubicación para el administrador de JNF Moto' + ((S.perfil.contactos || []).length ? ' y podrás avisar a tus contactos por WhatsApp' : '') + '.</div><div class="row"><button class="btn btn-danger btn-sm" data-act="sosSend" style="flex:1;min-height:44px">Activar alerta</button><button class="btn btn-ghost btn-sm" data-act="sosCancel" style="flex:1;min-height:44px">Cancelar</button></div></div></div>';
+  if (S.sos === 'confirm') return '<div class="banner danger" role="alertdialog" aria-label="Confirmar alerta de pánico">' + I.shield + '<div class="grow col" style="gap:10px"><div class="strong">¿Activar la alerta de pánico?</div><div>Se registra una alerta con tu ubicación para el administrador de Motocaimán' + ((S.perfil.contactos || []).length ? ' y podrás avisar a tus contactos por WhatsApp' : '') + '.</div><div class="row"><button class="btn btn-danger btn-sm" data-act="sosSend" style="flex:1;min-height:44px">Activar alerta</button><button class="btn btn-ghost btn-sm" data-act="sosCancel" style="flex:1;min-height:44px">Cancelar</button></div></div></div>';
   if (S.sos === 'sent') {
     const loc = S.pos ? 'https://maps.google.com/?q=' + S.pos.lat + ',' + S.pos.lng : '';
-    const txt = encodeURIComponent('Alerta JNF Moto: necesito ayuda durante un viaje en mototour.' + (loc ? ' Mi ubicación: ' + loc : ''));
+    const txt = encodeURIComponent('Alerta Motocaimán: necesito ayuda durante un viaje en mototour.' + (loc ? ' Mi ubicación: ' + loc : ''));
     const btns = (S.perfil.contactos || []).map(c => '<a class="btn btn-danger btn-sm" style="width:100%;min-height:44px" target="_blank" rel="noopener" href="https://wa.me/57' + esc(c.telefono) + '?text=' + txt + '">Avisar a ' + esc(c.nombre) + ' por WhatsApp</a>').join('');
-    return '<div class="banner danger" role="alert">' + I.shield + '<div class="grow col" style="gap:8px"><div><b>Alerta registrada.</b> El administrador de JNF Moto la ve en su panel.</div>' + btns + '</div></div>';
+    return '<div class="banner danger" role="alert">' + I.shield + '<div class="grow col" style="gap:8px"><div><b>Alerta registrada.</b> El administrador de Motocaimán la ve en su panel.</div>' + btns + '</div></div>';
   }
   return '';
 }
@@ -291,7 +291,7 @@ function vEnvioP() {
   if (st === 'en_punto') h += '<div class="card" style="align-items:center;gap:6px"><div class="muted small strong">El conductor te espera para recoger el paquete</div><div class="amount" style="line-height:1.25" data-timer="espera">' + fmtClock(ESPERA_S - 10 - (Date.now() - tsMs(v.enPuntoEn)) / 1000) + '</div><div class="bar" style="width:100%"><div data-timerbar="espera" style="width:' + Math.min(100, (Date.now() - tsMs(v.enPuntoEn)) / 3000) + '%;background:#C9A227"></div></div></div>';
   h += '<div class="card"><div class="row"><div class="avatar">' + esc(initials(c.nombre)) + '</div><div class="col grow"><div class="strong">' + esc(c.nombre) + '</div><div class="muted small">' + ratingLine(S.ratings[v.conductorId]) + ' · ' + esc(c.moto) + ' ' + esc(c.color) + ' · ' + esc(c.placa) + '</div></div></div>' + (S.cPhone ? '<a class="btn btn-ghost" href="tel:' + esc(S.cPhone) + '">' + I.phone + 'Llamar al conductor</a>' : '') + '</div>';
   if (S.envCod) {
-    const txt = 'Hola ' + (R.nombre || '') + ', te envié un paquete con JNF Moto. Te lo lleva ' + (c.nombre || 'el conductor') + (c.placa ? ' (placa ' + c.placa + ')' : '') + ' a ' + (v.destino ? v.destino.texto : '') + '. Para recibirlo, dale este código: ' + S.envCod + (pagaRec(v) ? '. El envío lo pagas tú: ' + money(v.precioFinal || 0) + '.' : '.');
+    const txt = 'Hola ' + (R.nombre || '') + ', te envié un paquete con Motocaimán. Te lo lleva ' + (c.nombre || 'el conductor') + (c.placa ? ' (placa ' + c.placa + ')' : '') + ' a ' + (v.destino ? v.destino.texto : '') + '. Para recibirlo, dale este código: ' + S.envCod + (pagaRec(v) ? '. El envío lo pagas tú: ' + money(v.precioFinal || 0) + '.' : '.');
     h += '<div class="card"><div class="strong">Código de entrega</div><div class="code" aria-label="Código de entrega ' + S.envCod.split('').join(' ') + '">' + S.envCod + '</div>' +
       '<div class="muted small">' + (dev ? 'El envío se devuelve: el conductor te pedirá <b>a ti</b> este código para confirmar la devolución.' : 'Compártelo solo con <b>' + esc(R.nombre || 'quien recibe') + '</b>. El conductor se lo pedirá al entregar; así sabes que llegó a la persona correcta.') + '</div>' +
       (!dev && R.telefono ? '<a class="btn btn-navy" target="_blank" rel="noopener" href="https://wa.me/57' + esc(R.telefono) + '?text=' + encodeURIComponent(txt) + '">Enviar código a ' + esc((R.nombre || '').split(' ')[0] || 'quien recibe') + ' por WhatsApp</a>' : '') + '</div>';
@@ -343,7 +343,7 @@ function vMenu() {
   else if (st === 'ninguno') h += '<button data-act="go" data-v="registroC" aria-current="false">' + I.lock + 'Modo conductor</button>';
   else h += '<button disabled aria-current="false">' + I.lock + 'No habilitado</button>';
   h += '</div></div><div class="pad">' + bannerHTML(S.banner) + errHTML() + installCard();
-  if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes mototour? Conduce con JNF Moto</div><div class="muted">Regístrate con los datos de tu mototour, tu dirección y tu celular. Sube los documentos que tengas; los que falten los puedes subir después. El administrador revisa y activa tu cuenta.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
+  if (st === 'ninguno') h += '<div class="card"><div class="h2">¿Tienes mototour? Conduce con Motocaimán</div><div class="muted">Regístrate con los datos de tu mototour, tu dirección y tu celular. Sube los documentos que tengas; los que falten los puedes subir después. El administrador revisa y activa tu cuenta.</div><button class="btn btn-gold" data-act="go" data-v="registroC">Registrarme como conductor</button></div>';
   if (st === 'pendiente') h += '<div class="card"><div class="h2">Tu registro está en revisión</div><div class="muted">El administrador está revisando tu registro. Cuando te active, esta opción se habilita sola.</div><button class="btn btn-ghost" data-act="go" data-v="registroC">Ver mis documentos</button></div>';
   if (st === 'rechazado' || st === 'suspendido') h += '<div class="card"><div class="h2">Modo conductor no habilitado</div><div class="muted">Tu cuenta de conductor está ' + st + '. Revisa tus documentos y comunícate con la oficina de JNF S.A.S.</div><button class="btn btn-ghost" data-act="go" data-v="registroC">Ver mis documentos</button></div>';
   if (st === 'aprobado') h += '<div class="card"><div class="row between"><div class="h2">Modo conductor habilitado</div><span class="pill p-ok">Aprobado</span></div><div class="banner warn">' + I.info + '<div class="grow">Tu ubicación se comparte solo mientras la app está abierta y estás conectado.</div></div>' + (pOn ? '<button class="btn btn-gold" data-act="modeC">Conectarme como conductor</button>' : '<button class="btn btn-ghost" data-act="modeP">Volver a modo pasajero</button>') + '</div>';
@@ -354,7 +354,7 @@ function vMenu() {
   items.push(['ayuda', 'Ayuda y soporte'], ['terminos', 'Términos y tratamiento de datos']);
   h += '<nav aria-label="Opciones">' + items.map(it => '<button class="menuitem" data-act="go" data-v="' + it[0] + '">' + it[1] + I.chev + '</button>').join('') +
     '<button class="menuitem" data-act="toggleSnd" aria-pressed="' + soundOn() + '">Sonido y vibración<span class="pill ' + (soundOn() ? 'p-ok' : 'p-info') + '">' + (soundOn() ? 'Activados' : 'Desactivados') + '</span></button></nav>';
-  return h + '<button class="link danger" data-act="logout" style="align-self:flex-start">Cerrar sesión</button></div><div class="demo">JNF Moto · Versión ' + APP_LABEL + ' (' + APP_VERSION + ')<br>' + COPY() + '</div></div>';
+  return h + '<button class="link danger" data-act="logout" style="align-self:flex-start">Cerrar sesión</button></div><div class="demo">Motocaimán · Versión ' + APP_LABEL + ' (' + APP_VERSION + ')<br>' + COPY() + '</div></div>';
 }
 function vHistorial() {
   let h = '<div class="screen">' + subTop('Mis viajes') + '<div class="pad">' + errHTML();
@@ -861,7 +861,7 @@ const ADM_SECS = () => [['resumen', 'Resumen'], ['usuarios', 'Usuarios'], ['cond
 function vAdmin() {
   const t = S.admTab, secs = ADM_SECS(), title = t === 'detalle' ? 'Servicios e ingresos' : t === 'susFicha' ? 'Suscripción del conductor' : t === 'tarifas' ? 'Tarifas y referidos' : t === 'mascEdit' ? (S.me && S.me.id ? 'Editar máscara' : 'Crear máscara') : (secs.find(x => x[0] === t) || secs[0])[1].replace(/ \(\d+\)$/, '');
   if (isWide()) {
-    return '<div class="adm-wrap"><nav class="adm-side" aria-label="Secciones del panel"><div class="row" style="gap:12px;padding:0 8px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:52px;height:52px"><div class="col" style="gap:2px"><span class="brandname" style="font-size:18px">JNF Moto</span><span class="small" style="color:#D8DEE8;font-weight:600">Administración</span></div></div>' +
+    return '<div class="adm-wrap"><nav class="adm-side" aria-label="Secciones del panel"><div class="row" style="gap:12px;padding:0 8px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:52px;height:52px"><div class="col" style="gap:2px"><span class="brandname" style="font-size:18px">Motocaimán</span><span class="small" style="color:#D8DEE8;font-weight:600">Administración</span></div></div>' +
       secs.map(x => '<button data-act="admTab" data-v="' + x[0] + '" aria-current="' + (t === x[0] || (t === 'detalle' && x[0] === S.admBack) || (t === 'mascEdit' && x[0] === 'mascaras') || ((t === 'susFicha' || t === 'tarifas') && x[0] === 'suscripciones')) + '">' + x[1] + '</button>').join('') +
       '<button data-act="go" data-v="menu" style="margin-top:auto">← Volver a la app</button><div style="font-size:11px;color:#B8C0E6;line-height:1.4;padding:8px 12px 0">' + COPY() + '</div></nav>' +
       '<main class="adm-main"><div class="row between" style="flex-wrap:wrap;gap:8px"><h1 class="h1" style="font-size:28px">' + title + '</h1><span class="muted">Hoy · ' + new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '</span></div>' +
@@ -1204,13 +1204,13 @@ function vTerminos() {
   const sec = (t, b) => '<div class="col" style="gap:6px"><div class="h2">' + t + '</div>' + b + '</div>';
   const p = t => '<div class="small" style="line-height:1.55">' + t + '</div>';
   return '<div class="screen">' + subTop('Términos y condiciones', S.perfil ? 'menu' : 'login') + '<div class="pad"><div class="card" style="gap:14px">' +
-    sec('1. Titular', p('JNF Moto es una aplicación de Asesorías y Consultorías JNF S.A.S., NIT 901.904.435-9, con oficina en la Cra. 13 N° 10-01, Of. 1. Contacto: 310 657 1274 · 311 302 8402.')) +
-    sec('2. Qué es JNF Moto', p('Es una plataforma tecnológica que permite a pasajeros y conductores de mototour ponerse en contacto para viajes y para envíos de documentos y paquetes. El valor de cada servicio lo acuerdan libremente el usuario y el conductor dentro de la aplicación; la tarifa mínima es la que indica la app.')) +
-    sec('3. Uso de la aplicación', p('Quien usa JNF Moto se compromete a dar información verdadera, a tratar con respeto a los demás usuarios y a no usar la aplicación con fines ilegales o fraudulentos. Las cuentas pueden ser suspendidas por incumplir estas condiciones, por calificaciones bajas reiteradas o por cancelaciones frecuentes, según las reglas que muestra la app.')) +
+    sec('1. Titular', p('Motocaimán es una aplicación de Asesorías y Consultorías JNF S.A.S., NIT 901.904.435-9, con oficina en la Cra. 13 N° 10-01, Of. 1. Contacto: 310 657 1274 · 311 302 8402.')) +
+    sec('2. Qué es Motocaimán', p('Es una plataforma tecnológica que permite a pasajeros y conductores de mototour ponerse en contacto para viajes y para envíos de documentos y paquetes. El valor de cada servicio lo acuerdan libremente el usuario y el conductor dentro de la aplicación; la tarifa mínima es la que indica la app.')) +
+    sec('3. Uso de la aplicación', p('Quien usa Motocaimán se compromete a dar información verdadera, a tratar con respeto a los demás usuarios y a no usar la aplicación con fines ilegales o fraudulentos. Las cuentas pueden ser suspendidas por incumplir estas condiciones, por calificaciones bajas reiteradas o por cancelaciones frecuentes, según las reglas que muestra la app.')) +
     sec('4. Conductores', p('Para conducir se requiere estar aprobado por el administrador y registrar su documento de identidad (cédula de ciudadanía, cédula de extranjería, PPT o pasaporte) y mantener vigentes la licencia de conducción, el SOAT, la tarjeta de propiedad y el registro ante la Secretaría de Tránsito. El uso del modo conductor tiene una suscripción: el primer mes es gratis desde la fecha de inscripción y luego se paga según el plan y las tarifas vigentes publicadas en "Mi suscripción". Si el pago se vence y terminan los días de gracia, el modo conductor queda bloqueado hasta que se registre el pago.')) +
     sec('5. Envíos', p('Quien solicita un envío declara que su contenido no incluye dinero en efectivo, armas, sustancias prohibidas, animales vivos ni objetos ilegales, y responde por esa declaración. El conductor puede negarse a llevar un envío si duda de su contenido. Asesorías y Consultorías JNF S.A.S. actúa solo como intermediario tecnológico: no recibe, custodia ni transporta los envíos. La entrega se confirma con el código de 4 dígitos que la app le da a quien envía; si no es posible entregar, el conductor devuelve el envío a quien lo envió, y en ese caso el valor lo paga quien envía.')) +
     sec('6. Seguridad', p('La app ofrece botón de pánico y contactos de emergencia. En una emergencia comunícate también con la línea 123.')) +
-    sec('7. Propiedad intelectual', p('El nombre JNF Moto, el logo de JNF S.A.S., el diseño, los textos y el código de la aplicación son propiedad de Asesorías y Consultorías JNF S.A.S. Todos los derechos reservados. Se prohíbe su reproducción, copia, modificación o distribución, total o parcial, sin autorización escrita del titular.')) +
+    sec('7. Propiedad intelectual', p('El nombre Motocaimán, el logo de JNF S.A.S., el diseño, los textos y el código de la aplicación son propiedad de Asesorías y Consultorías JNF S.A.S. Todos los derechos reservados. Se prohíbe su reproducción, copia, modificación o distribución, total o parcial, sin autorización escrita del titular.')) +
     sec('8. Tratamiento de datos personales', p('Asesorías y Consultorías JNF S.A.S. trata tus datos (nombre, celular, correo, ubicación durante los viajes; en los envíos, el nombre y el celular de quien recibe; y, para conductores, número y copia del documento de identidad, demás documentos, dirección y datos del vehículo) conforme a la Ley 1581 de 2012 y sus decretos reglamentarios, únicamente para prestar el servicio de la app, garantizar la seguridad de los viajes y llevar el control de las suscripciones. Como titular puedes conocer, actualizar, rectificar y suprimir tus datos, y revocar la autorización, escribiendo a los contactos del numeral 1.')) +
     sec('9. Cambios', p('Estos términos pueden actualizarse; la versión vigente es la publicada en la aplicación.')) +
     '<div class="muted small">' + COPY() + '</div></div></div></div>';
@@ -1606,10 +1606,10 @@ const GPS_SCREENS = ['home', 'solicitudes'];
 const inWebView = () => /; wv\)|FBAN|FBAV|Instagram|WhatsApp/i.test(navigator.userAgent);
 function gpsMsg() {
   const c = S.gpsErr;
-  if (c === 'nosoporta') return ['warn', 'Este navegador no permite usar la ubicación. Abre JNF Moto en Chrome.'];
+  if (c === 'nosoporta') return ['warn', 'Este navegador no permite usar la ubicación. Abre Motocaimán en Chrome.'];
   if (c === 1) return ['warn', inWebView() ? 'Estás usando el navegador interno de otra app (por ejemplo WhatsApp), que bloquea la ubicación. Toca ⋮ y elige "Abrir en Chrome".'
-    : isStandalone() ? 'La ubicación está bloqueada para JNF Moto. En el celular ve a Ajustes → Aplicaciones → Chrome → Permisos → Ubicación → Permitir, y toca "Reintentar".'
-      : 'Chrome tiene bloqueada la ubicación para JNF Moto. Toca el candado junto a la dirección → Permisos → Ubicación → Permitir, y toca "Reintentar".'];
+    : isStandalone() ? 'La ubicación está bloqueada para Motocaimán. En el celular ve a Ajustes → Aplicaciones → Chrome → Permisos → Ubicación → Permitir, y toca "Reintentar".'
+      : 'Chrome tiene bloqueada la ubicación para Motocaimán. Toca el candado junto a la dirección → Permisos → Ubicación → Permitir, y toca "Reintentar".'];
   if (c === 2) return ['warn', 'Tu celular no está entregando la ubicación. Enciende la ubicación (GPS) en los ajustes rápidos del celular y toca "Reintentar".'];
   return ['info', 'El GPS está tardando en ubicarte. Seguimos intentando; bajo techo ayuda acercarse a una ventana. Mientras tanto, escribe la referencia del punto de recogida.'];
 }
@@ -1888,7 +1888,7 @@ function pushCard(conductor) {
   if (p === 'granted' && S.pushOk) return '';
   const para = conductor ? 'recibir solicitudes de pasajeros' : 'saber cuándo llegan ofertas y cuándo llega tu conductor';
   let b;
-  if (p === 'nosoporta') b = isIOS() ? 'En iPhone, instala JNF Moto en la pantalla de inicio (Compartir → Agregar a inicio) y ábrela desde el ícono para activar las notificaciones.' : 'Este navegador no permite notificaciones. Abre JNF Moto en Chrome.';
+  if (p === 'nosoporta') b = isIOS() ? 'En iPhone, instala Motocaimán en la pantalla de inicio (Compartir → Agregar a inicio) y ábrela desde el ícono para activar las notificaciones.' : 'Este navegador no permite notificaciones. Abre Motocaimán en Chrome.';
   else if (p === 'denied') b = 'Las notificaciones están bloqueadas. Toca el candado junto a la dirección → Permisos → Notificaciones → Permitir, y vuelve a abrir la app.';
   else return '<div class="card" style="gap:8px;border:2px solid var(--gold)"><div class="strong">Activa las notificaciones</div><div class="muted small">Para ' + para + ' aunque la app esté cerrada o el celular bloqueado.</div><button class="btn btn-gold btn-sm" style="width:100%" data-act="pushOn">Activar notificaciones</button></div>';
   return '<div class="banner warn">' + I.info + '<div class="grow">' + esc(b) + '</div></div>';
@@ -2168,8 +2168,8 @@ async function act(a, v, b) {
       installEvt = null; render(); break;
     case 'closeBanner': S.banner = null; render(); break;
     case 'shareRef': {
-      const cod = codigoDe(S.conductor), txt = 'Inscríbete como conductor en JNF Moto con mi código ' + cod + ': https://janf1485.github.io/JNF-Moto/';
-      try { if (navigator.share) { await navigator.share({ title: 'JNF Moto', text: txt }); break; } } catch (e) { break; }
+      const cod = codigoDe(S.conductor), txt = 'Inscríbete como conductor en Motocaimán con mi código ' + cod + ': https://janf1485.github.io/JNF-Moto/';
+      try { if (navigator.share) { await navigator.share({ title: 'Motocaimán', text: txt }); break; } } catch (e) { break; }
       window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener'); break;
     }
     case 'pushOn': { const ok = await pushSync(true); S.banner = ok ? { kind: 'ok', text: 'Notificaciones activadas.' } : null; if (!ok && pushPerm() === 'denied') S.err = 'Las notificaciones quedaron bloqueadas. Toca el candado junto a la dirección → Permisos → Notificaciones → Permitir.'; else if (!ok && pushPerm() === 'granted') S.err = 'No se pudo activar el aviso en este celular. Intenta de nuevo.'; render(); break; }
@@ -2290,7 +2290,7 @@ async function act(a, v, b) {
     case 'chip': S.chips[v] = !S.chips[v]; render(); break;
     case 'sendRating':
       S.busy = true; render();
-      try { await setDoc(doc(db, 'conductores', S.viaje.conductorId, 'calificaciones', S.viaje.id), { estrellas: S.rating, aspectos: Object.keys(S.chips).filter(k => S.chips[k]), comentario: (S.f.comentario || '').trim().slice(0, 500), creado: serverTimestamp() }); S.busy = false; delete S.ratings[S.viaje.conductorId]; sound('ok'); S.banner = { kind: 'ok', text: 'Calificación enviada. Gracias por viajar con JNF Moto.' }; endPassengerTrip(); } catch (e) { fail(e); }
+      try { await setDoc(doc(db, 'conductores', S.viaje.conductorId, 'calificaciones', S.viaje.id), { estrellas: S.rating, aspectos: Object.keys(S.chips).filter(k => S.chips[k]), comentario: (S.f.comentario || '').trim().slice(0, 500), creado: serverTimestamp() }); S.busy = false; delete S.ratings[S.viaje.conductorId]; sound('ok'); S.banner = { kind: 'ok', text: 'Calificación enviada. Gracias por viajar con Motocaimán.' }; endPassengerTrip(); } catch (e) { fail(e); }
       break;
     case 'skipRating': endPassengerTrip(); break;
     case 'closeMenu': go(S.mode === 'conductor' ? 'solicitudes' : 'home'); break;
@@ -2652,7 +2652,7 @@ async function act(a, v, b) {
       const filas = [['Fecha', 'Recibo', 'Tipo', 'Conductor / concepto', 'Placa', 'Plan', 'Periodo desde', 'Periodo hasta', 'Valor', 'Descuento referido', 'Otro descuento', 'Motivo', 'Neto', 'Medio', 'Estado']]
         .concat(L.map(p => [fmtYmd(p.fecha), p.recibo, p.tipo === 'otro' ? 'Otro ingreso' : 'Suscripción', p.tipo === 'otro' ? p.concepto : p.nombre, p.placa || '', p.plan ? planTxt(p.plan) : '', p.desde ? fmtYmd(p.desde) : '', p.hasta ? fmtYmd(p.hasta) : '', p.valor || 0, p.descRef || 0, p.descOtro || 0, p.motivo || '', p.anulado ? 0 : (p.neto || 0), p.medio, p.anulado ? 'Anulado' + (p.motivoAnulacion ? ': ' + p.motivoAnulacion : '') : 'Válido']));
       filas.push([], ['Total neto', '', '', '', '', '', '', '', '', '', '', '', L.filter(p => !p.anulado).reduce((a, p) => a + (p.neto || 0), 0)]);
-      const csv = '﻿' + [['Asesorías y Consultorías JNF S.A.S. · NIT 901.904.435-9'], ['Ingresos JNF Moto del ' + fmtYmd(S.f.ingIni) + ' al ' + fmtYmd(S.f.ingFin)], []].concat(filas).map(f => f.map(q).join(';')).join('\r\n');
+      const csv = '﻿' + [['Asesorías y Consultorías JNF S.A.S. · NIT 901.904.435-9'], ['Ingresos Motocaimán del ' + fmtYmd(S.f.ingIni) + ' al ' + fmtYmd(S.f.ingFin)], []].concat(filas).map(f => f.map(q).join(';')).join('\r\n');
       const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })), el = document.createElement('a');
       el.href = url; el.download = 'ingresos_jnf_moto_' + S.f.ingIni + '_a_' + S.f.ingFin + '.csv'; document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
       break;
