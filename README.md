@@ -38,3 +38,15 @@ Panel de administración → **Máscaras**: adjuntar una imagen, elegir una de l
 - Se muestra una vez por sesión, se salta tocando la pantalla y no se usa si el celular tiene activado reducir movimiento.
 - Archivos nuevos que hay que subir junto con los demás: `splash.js` y `splash-1.png` a `splash-5.png`.
 - Si se quiere desactivar, basta quitar `<script src="splash.js"></script>` de `index.html`.
+
+## Imagen oficial e ícono (interno 27)
+- `banner-motocaiman.jpg`: imagen oficial, se muestra en la pantalla de ingreso.
+- `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`: nuevo ícono de la app (instalación, pantalla de inicio y notificaciones).
+- `logo-jnf.png`: logo de JNF S.A.S. (antes era `icon-192.png`); sigue en los encabezados de la app.
+- La app sigue mostrando «Versión 1.0».
+
+## Entrada con imagen y aviso de actualización (interno 28)
+- Al abrir: primero el logo de JNF por capas de color y luego la imagen de Motocaimán a pantalla completa (fondo difuminado) con «Entrando…» hasta que la app esté lista (mínimo 1,5 s, máximo 8 s).
+- Aviso de versión nueva: la app consulta `version.json` al abrirse, al volver a primer plano y cada 10 minutos. Si el número no coincide con el de la app, muestra «Hay una versión nueva de Motocaimán» con los botones Actualizar y Luego.
+- **En cada actualización futura:** subir `version.json` con un número mayor y cambiar `APP_VERSION` en `app.js` al mismo número (además de `CACHE` en `sw.js` y `?v=` en `index.html`). Si `version.json` no cambia, los celulares no avisan.
+- La app sigue mostrando «Versión 1.0».

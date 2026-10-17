@@ -20,9 +20,9 @@ const db = getFirestore(fb);
 const rtdb = getDatabase(fb);
 
 const MIN = 2000;
-const APP_VERSION = '26'; // número interno (actualiza la caché)
+const APP_VERSION = '28'; // número interno (actualiza la caché)
 const APP_LABEL = '1.0'; // versión oficial que ve el usuario
-const LOGO = 'icon-192.png';
+const LOGO = 'logo-jnf.png';
 const appEl = document.getElementById('app');
 
 /* ---------- utilidades ---------- */
@@ -154,7 +154,7 @@ function installCard() {
 function vCargando() { return '<div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:96px;height:96px"><div class="spinner" role="status" aria-label="Cargando"></div></div></div>'; }
 function vLogin() {
   const crear = S.f.modoCrear;
-  return '<div class="screen"><div class="top" style="align-items:center;text-align:center;padding:28px 20px"><img src="' + LOGO + '" alt="Logo JNF S.A.S." style="width:88px;height:88px"><h1 class="h1" style="color:#C9A227">Motocaimán</h1><div class="sub">Tu mototour, al precio que acuerdas.</div></div>' + mascLogin() +
+  return '<div class="screen"><div class="top" style="align-items:center;text-align:center;padding:20px 16px 24px"><img src="banner-motocaiman.jpg" alt="Motocaimán" width="1200" height="800" style="width:100%;max-width:440px;height:auto;border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.35)"><h1 class="h1" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Motocaimán</h1><div class="sub" style="margin-top:6px">Tu mototour, al precio que acuerdas.</div></div>' + mascLogin() +
     '<div class="pad">' + errHTML() + bannerHTML(S.banner) +
     '<button class="btn gbtn" data-act="google"' + busyAttr() + '>Entrar con Google</button><div class="divider">o con tu correo</div>' +
     '<div class="field"><label for="em">Correo electrónico</label><input type="email" id="em" data-in="email" autocomplete="email" value="' + fv('email') + '"></div>' +
@@ -1593,6 +1593,7 @@ function render() {
   lastWide = isWide(); appEl.classList.toggle('wide', S.screen === 'admin' && lastWide); applyMascTheme();
   if (map) { try { map.remove(); } catch (e) { } map = null; }
   appEl.innerHTML = V[S.screen]();
+  if (S.screen !== 'cargando' && window.__mcListo) { try { window.__mcListo(); } catch (e) { } }
   mountMap();
   const ends = routeEnds(); if (ends[0] && ends[1]) refreshRoute();
 }
@@ -2751,3 +2752,35 @@ document.addEventListener('pointerdown', beepUnlock, { once: true });
 appEl.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (!b || b.disabled) return; act(b.getAttribute('data-act'), b.getAttribute('data-v'), b); });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => { });
+
+/* ---------- aviso de versión nueva ----------
+   Cada vez que se publica una versión, version.json cambia. La app lo consulta al abrirse, al volver a primer plano y cada 10 minutos;
+   si el número es distinto al de esta copia, ofrece actualizar (borra la caché guardada y recarga). */
+let updOculto = 0;
+function mostrarActualizar() {
+  if (document.getElementById('updbar') || Date.now() < updOculto) return;
+  const d = document.createElement('div'); d.id = 'updbar'; d.setAttribute('role', 'alert');
+  d.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9500;max-width:520px;margin:0 auto;background:#1A2580;color:#fff;border:2px solid #C9A227;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);font:600 14px/1.3 system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+  d.innerHTML = '<span style="flex:1">Hay una versión nueva de Motocaimán.</span><button type="button" id="updluego" style="background:transparent;color:#C5CAEE;border:0;font:inherit;font-weight:600;min-height:44px;padding:0 6px">Luego</button><button type="button" id="updbtn" style="background:#C9A227;color:#1A2580;border:0;border-radius:12px;font:inherit;font-weight:800;min-height:44px;padding:0 16px">Actualizar</button>';
+  document.body.appendChild(d);
+  document.getElementById('updluego').addEventListener('click', () => { updOculto = Date.now() + 10 * 60 * 1000; d.remove(); });
+  document.getElementById('updbtn').addEventListener('click', async () => {
+    const b = document.getElementById('updbtn'); b.disabled = true; b.textContent = 'Actualizando…';
+    try { if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } } catch (e) { }
+    try { if (navigator.serviceWorker) { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.unregister())); } } catch (e) { }
+    location.reload();
+  });
+}
+async function buscarVersion() {
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) { const r = await navigator.serviceWorker.getRegistration(); if (r) r.update().catch(() => { }); }
+    const r = await fetch('./version.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j && j.v && String(j.v) !== APP_VERSION) mostrarActualizar();
+  } catch (e) { }
+}
+setTimeout(buscarVersion, 4000);
+setInterval(buscarVersion, 10 * 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') buscarVersion(); });
+

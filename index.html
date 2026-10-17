@@ -253,12 +253,21 @@ input[type=email],input[type=password]{min-height:48px;border:1px solid var(--li
 #splash .sp-word{text-align:center;opacity:0;transform:translateY(10px)}
 #splash .sp-word b{display:block;font-family:Montserrat,system-ui,sans-serif;font-weight:800;font-size:34px;letter-spacing:.04em;color:#C9A227;line-height:1.05}
 #splash .sp-word span{display:block;margin-top:8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#C5CAEE}
+#splash2{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;flex-direction:column;background:#000c26;overflow:hidden;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);-webkit-tap-highlight-color:transparent}
+#splash2 .s2-bg{position:absolute;inset:-6%;background:url(banner-motocaiman.jpg) center/cover no-repeat;filter:blur(16px) brightness(.7);transform:scale(1.1)}
+#splash2 .s2-img{position:relative;width:100%;max-width:640px;height:auto;aspect-ratio:3/2;display:block;animation:s2z 8s ease-out forwards}
+@keyframes s2z{from{transform:scale(1)}to{transform:scale(1.06)}}
+#splash2 .s2-load{position:absolute;left:0;right:0;bottom:calc(9% + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:8px;font:600 12px/1 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;letter-spacing:.06em;color:#E9ECFF}
+#splash2 .s2-sp{width:24px;height:24px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#C9A227;animation:s2g .9s linear infinite}
+@keyframes s2g{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#splash2 .s2-img,#splash2 .s2-sp{animation:none}}
 </style>
 </head>
 <body>
 <div id="app" aria-live="polite"><div class="screen"><div class="pad" style="flex:1;justify-content:center;align-items:center"><img src="icon-192.png" alt="Logo JNF S.A.S." style="width:96px;height:96px"><noscript><p>Motocaimán necesita JavaScript activado.</p></noscript></div></div></div>
 <div id="splash" aria-hidden="true"><div class="sp-logo"><div class="sp-glow"></div><div class="sp-l sp-l2"></div><div class="sp-l sp-l1"></div><div class="sp-l sp-l3"></div><div class="sp-l sp-l4"></div><div class="sp-l sp-l5"></div><div class="sp-shine"></div></div><div class="sp-word"><b>Motocaimán</b><span>Asesorías y Consultorías JNF S.A.S.</span></div></div>
+<div id="splash2" aria-hidden="true"><div class="s2-bg"></div><img class="s2-img" src="banner-motocaiman.jpg" alt="" width="1200" height="800"><div class="s2-load"><div class="s2-sp"></div>Entrando…</div></div>
 <script src="splash.js"></script>
-<script type="module" src="app.js?v=26"></script>
+<script type="module" src="app.js?v=28"></script>
 </body>
 </html>

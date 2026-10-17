@@ -1,16 +1,37 @@
 // Motocaimán — © 2026 Asesorías y Consultorías JNF S.A.S. (NIT 901.904.435-9). Todos los derechos reservados.
 // Pantalla de entrada: el logo de JNF aparece por capas de color (anillo dorado, fondo azul, espiral bronce, disco blanco y letras).
+// Al terminar, la imagen de Motocaimán ocupa la pantalla mientras la app termina de cargar (mínimo 1,5 s, máximo 8 s).
 // Se muestra una vez por sesión, se salta tocando la pantalla y no se usa si el celular pide reducir el movimiento.
 (function () {
-  var root = document.getElementById('splash');
+  var root = document.getElementById('splash'), s2 = document.getElementById('splash2');
   if (!root) return;
   function quitar() { try { root.parentNode && root.parentNode.removeChild(root); } catch (e) {} }
+  function quitar2() { try { s2 && s2.parentNode && s2.parentNode.removeChild(s2); } catch (e) {} }
+  var listoApp = false, s2desde = 0, s2cerrado = false;
+  window.__mcListo = function () { listoApp = true; cerrar2(); };
+  function cerrar2(forzar) {
+    if (!s2 || !s2desde || s2cerrado) return;
+    var falta = forzar ? 0 : 1500 - (Date.now() - s2desde);
+    if (!forzar && !listoApp) return;
+    setTimeout(function () {
+      if (s2cerrado) return; s2cerrado = true;
+      try { var t = s2.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, fill: 'forwards' }); t.onfinish = quitar2; } catch (e) { quitar2(); }
+      setTimeout(quitar2, 900);
+    }, Math.max(0, falta));
+  }
+  function mostrar2(rapido) {
+    if (!s2) { quitar(); return; }
+    s2.style.display = 'flex'; s2desde = Date.now();
+    try { var t = s2.animate([{ opacity: 0 }, { opacity: 1 }], { duration: rapido ? 160 : 420, fill: 'forwards' }); t.onfinish = function () { quitar(); cerrar2(); }; } catch (e) { quitar(); }
+    setTimeout(quitar, 1200);
+    setTimeout(function () { cerrar2(true); }, 8000); // tope: nunca se queda atascada
+  }
   var omitir = false;
   try {
     omitir = (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || navigator.webdriver === true ||
       /nosplash/.test(location.hash + location.search) || sessionStorage.getItem('mc_splash') === '1';
   } catch (e) {}
-  if (omitir || !root.animate) { quitar(); return; }
+  if (omitir || !root.animate) { quitar(); quitar2(); return; }
   try { sessionStorage.setItem('mc_splash', '1'); } catch (e) {}
 
   var capas = [1, 2, 3, 4, 5].map(function (n) { return root.querySelector('.sp-l' + n); });
@@ -29,8 +50,7 @@
   }
   function cerrar(rapido) {
     if (fin) return; fin = true;
-    var t = root.animate([{ opacity: 1 }, { opacity: 0 }], { duration: rapido ? 160 : 320, fill: 'forwards' });
-    t.onfinish = quitar; setTimeout(quitar, 900);
+    mostrar2(rapido);
   }
   function jugar() {
     root.style.display = 'flex';
@@ -46,6 +66,9 @@
     w.onfinish = function () { setTimeout(function () { cerrar(false); }, 450); };
   }
   root.addEventListener('click', function () { cerrar(true); });
+  if (s2) s2.addEventListener('click', function () { if (listoApp) cerrar2(true); });
+  try { var pre = new Image(); pre.src = 'banner-motocaiman.jpg'; } catch (e) {}
+  setTimeout(function () { quitar(); cerrar2(true); }, 20000); // tope general
   // espera a que carguen las capas para que el anillo no aparezca tarde
   var n = 0, ya = false;
   function listo() { if (ya) return; ya = true; jugar(); }
